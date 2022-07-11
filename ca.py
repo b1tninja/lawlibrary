@@ -337,28 +337,45 @@ def print_pubinfos(basedir, colorize=False, jsonp=False):
 
 
 def dir_path(path):
-    logger.info("Checking --path: %s", path)
-    if os.path.isdir(path):
+    logger.debug("Checking --path: %s", path)
+    if not os.path.exists(path):
+        os.mkdir(path)
+    elif os.path.isdir(path):
         return path
     else:
         raise NotADirectoryError(path)
 
+def download_pubinfos(path):
+    # TODO: parse the index page to get a list of zip files
+    import urllib.request
+    import os.path
+
+    from datetime import date
+    current_year = date.today().year
+    for year in range(1989, current_year, 2):
+        pubinfo = "pubinfo_%d.zip" % year
+        dst = os.path.join(path, pubinfo)
+        if not os.path.exists(dst):
+            logger.info("Retrieving %s", pubinfo)
+            urllib.request.urlretrieve("https://downloads.leginfo.legislature.ca.gov/" + pubinfo, dst)
 
 if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description='downloads.leginfo.legislature.ca.gov pubinfo_*.zip Code reader.')
     parser.add_argument('--path', type=dir_path,
-                        default='downloads.leginfo.legislature.ca.gov',
+                        default='data',
                         help="Path of directory containing pubinfo_2021.zip from downloads.leginfo.legislature.ca.gov")
-    # TODO: downloader
-    # parser.add_argument('-d', '--download', action=argparse.BooleanOptionalAction)
-    # parser.add_argument('-i', '--index', action=argparse.BooleanOptionalAction)
+
     try:
+        parser.add_argument('-d', '--download', action=argparse.BooleanOptionalAction)
+        # parser.add_argument('-i', '--index', action=argparse.BooleanOptionalAction)
         parser.add_argument('-c', '--color', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('-j', '--json', action=argparse.BooleanOptionalAction, default=False,
                             help="Export laws/codes into a .json per pubinfo by parsing the dats and lobs")
     except:
+        parser.add_argument('-d', '--download', action="store_true")
+        # parser.add_argument('-i', '--index', action="store_true")
         parser.add_argument('-c', '--color', action="store_true")
         parser.add_argument('-j', '--json', action="store_true")
     # TODO: colorize should only be used with --plaintext
@@ -370,6 +387,9 @@ if __name__ == '__main__':
         logger.critical("Please specify a path to a directory containing pubinfo_2021.zip")
         parser.print_help(sys.stderr)
     else:
+        if args.download:
+            download_pubinfos(args.path)
+
         # TODO: hook whoosh indexer back up, removed temporarily to eliminate dependencies
         # if args.index:
         #     index_pubinfos()
