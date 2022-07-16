@@ -11,8 +11,9 @@ import sys
 import zipfile
 from contextlib import closing
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(os.path.basename(__file__))
+import html2text  # Aaron Swartz original author
+# On July 11, 2011, Swartz was indicted for unlawfully obtaining information.
+# Facing trial and the possibility of imprisonment, Swartz committed suicide.
 
 ENCODING = 'utf-8'
 CURRENT_YEAR = datetime.datetime.today().year
@@ -34,12 +35,6 @@ ansi_escape_codes = {'OK': '\x1b[92m',
                      'BLUEIC': '\x1b[1m\x1b[3m\x1b[92m',
                      'END': '\x1b[0m'}
 
-try:
-    import html2text  # Aaron Swartz original author
-except:
-    logger.error("python3-html2text needs to be installed to parse HTML/CAML into MarkDown/plain-text.")
-    html2text = False
-
 
 def opt_tqdm(iterable):
     """
@@ -55,6 +50,10 @@ def opt_tqdm(iterable):
 
 class LawLibrary:
     pass
+
+
+def parse_caml(LOB):
+    return html2text.HTML2Text(bodywidth=0).handle(LOB)
 
 
 def read_text_from_zipped_file(zip_file, target):
@@ -102,10 +101,7 @@ def get_dats_and_lobs(path, prefixes=None):
 
             elif ext == '.lob':
                 CAML = read_text_from_zipped_file(zf, file.filename)
-                if html2text:
-                    lobs[file.filename] = html2text.HTML2Text(bodywidth=0).handle(CAML)
-                else:
-                    lobs[file.filename] = CAML
+                lobs[file.filename] = CAML
             else:
                 logger.debug("Unhandled content: %s", file.filename)
 
@@ -273,19 +269,20 @@ def parse_datlobs(LOBS, *, CODES_TBL, LAW_TOC_TBL, LAW_SECTION_TBL, LAW_TOC_SECT
 
         try:
             d = LawSectionTblDict(law_section)
+            # TODO: Fix DIVISION AND CHAPTER headings are optional, CONS doesn't include them for instance
             d.update(CODE_HEADING=CODES_TBL[LAW_CODE],
                      DIVISION_HEADING=toc_tbl[LAW_CODE][DIVISION][None][None]['HEADING'],
                      CHAPTER_HEADING=toc_tbl[LAW_CODE][DIVISION][CHAPTER][None]['HEADING'],
                      ARTICLE_HEADING=toc_tbl[LAW_CODE][DIVISION][CHAPTER][ARTICLE]['HEADING'],
                      ARTICLE_HISTORY=toc_tbl[LAW_CODE][DIVISION][CHAPTER][ARTICLE]['HISTORY_NOTE'],
-                     LAW=LOB,
+                     LEGAL_TEXT=parse_caml(LOB),
                      SECTION_TITLE=code_section_titles[LAW_CODE].get(SECTION_NUM, {}).get('TITLE'),
                      SECTION_HISTORY=HISTORY)
 
-        except:
+        except Exception as e:
             logger.warning("Unexpected table structure, unsure how to format law section: ", LAW_CODE, DIVISION,
                            CHAPTER, ARTICLE, SECTION_NUM)
-            pprint.pprint(LawSectionTblDict(law_section))
+            pprint.pprint(law_section)
 
         else:
             yield d
@@ -293,7 +290,7 @@ def parse_datlobs(LOBS, *, CODES_TBL, LAW_TOC_TBL, LAW_SECTION_TBL, LAW_TOC_SECT
 
 def index_pubinfos(basedir):
     """whoosh fulltext search index of the pubinfo, currently each individual section from  the CODES/LAW table"""
-    from misty.whoosh import Indexer
+    from indexer import Indexer
 
     indexer = Indexer()
     for path, (dats, lobs) in get_datses_and_lobses(basedir, prefixes=['LAW', 'CODE']):
@@ -345,6 +342,7 @@ def dir_path(path):
     else:
         raise NotADirectoryError(path)
 
+
 def download_pubinfos(path):
     # TODO: parse the index page to get a list of zip files
     import urllib.request
@@ -359,8 +357,12 @@ def download_pubinfos(path):
             logger.info("Retrieving %s", pubinfo)
             urllib.request.urlretrieve("https://downloads.leginfo.legislature.ca.gov/" + pubinfo, dst)
 
+
 if __name__ == '__main__':
     import argparse
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(os.path.basename(__file__))
 
     parser = argparse.ArgumentParser(description='downloads.leginfo.legislature.ca.gov pubinfo_*.zip Code reader.')
     parser.add_argument('--path', type=dir_path,
@@ -368,17 +370,19 @@ if __name__ == '__main__':
                         help="Path of directory containing pubinfo_2021.zip from downloads.leginfo.legislature.ca.gov")
 
     try:
+        parser.add_argument('-p', '--print', action=argparse.BooleanOptionalAction)
         parser.add_argument('-d', '--download', action=argparse.BooleanOptionalAction)
-        # parser.add_argument('-i', '--index', action=argparse.BooleanOptionalAction)
+        parser.add_argument('-i', '--index', action=argparse.BooleanOptionalAction)
         parser.add_argument('-c', '--color', action=argparse.BooleanOptionalAction, default=False)
         parser.add_argument('-j', '--json', action=argparse.BooleanOptionalAction, default=False,
                             help="Export laws/codes into a .json per pubinfo by parsing the dats and lobs")
     except:
+        parser.add_argument('-p', '--print', action="store_true")
         parser.add_argument('-d', '--download', action="store_true")
-        # parser.add_argument('-i', '--index', action="store_true")
+        parser.add_argument('-i', '--index', action="store_true")
         parser.add_argument('-c', '--color', action="store_true")
         parser.add_argument('-j', '--json', action="store_true")
-    # TODO: colorize should only be used with --plaintext
+
     # parser.add_argument('query', nargs=argparse.REMAINDER)
 
     try:
@@ -390,8 +394,8 @@ if __name__ == '__main__':
         if args.download:
             download_pubinfos(args.path)
 
-        # TODO: hook whoosh indexer back up, removed temporarily to eliminate dependencies
-        # if args.index:
-        #     index_pubinfos()
+        if args.index:
+            index_pubinfos(args.path)
 
-        print_pubinfos(args.path, colorize=args.color, jsonp=args.json)
+        if args.print:
+            print_pubinfos(args.path, colorize=args.color, jsonp=args.json)
