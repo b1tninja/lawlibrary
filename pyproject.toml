@@ -1,0 +1,27 @@
+[project]
+name = "lawlibrary"
+version = "0.2.0"
+description = "Search California codes from the official legislative publications."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "CC0-1.0" }
+dependencies = [
+    "html2text",
+    "mcp",
+    "whoosh",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+web = ["flask"]
+
+[project.scripts]
+lawlibrary = "ca:main"
+lawlibrary-mcp = "mcp_server:main"
+
+[tool.setuptools]
+py-modules = ["application", "ca", "config", "indexer", "mcp_server", "publication", "utils"]
+packages = ["states"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
