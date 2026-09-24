@@ -43,6 +43,7 @@ class LawSchema(SchemaClass):
     CODE_HEADING = TEXT(stored=True, analyzer=_ANALYZER)
     CITATION = ID(stored=True)
     SESSION = ID(stored=True)
+    SUBDIVISION = ID(stored=True)
     DIVISION = ID(stored=True)
     DIVISION_HEADING = TEXT(stored=True, analyzer=_ANALYZER)
     EFFECTIVE_DATE = DATETIME(stored=True)
@@ -232,6 +233,7 @@ class Indexer:
             'chapter': hit.get('CHAPTER_HEADING'),
             'article': hit.get('ARTICLE_HEADING'),
             'session': hit.get('SESSION'),
+            'subdivision': hit.get('SUBDIVISION'),
             'score': hit.score,
             'snippet': snippet,
         }

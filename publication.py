@@ -32,16 +32,35 @@ class Publication(ABC):
     def parallel_sections(self, path, workers=None, chunk_size=400):
         yield from self.sections(path)
 
-    def index(self, indexer, path, workers=None):
+    def index(self, indexer, path, workers=None, subdivision=None):
         """Editions join the code index by overriding this. Others are recognized and left alone."""
         return 0
 
 
-class State(ABC):
-    """Where a state publishes, and which edition parsers cover its years."""
+def subdivision(code):
+    """Return the ISO 3166-2 record for code, or raise ValueError."""
+    import pycountry
+    found = pycountry.subdivisions.get(code=code)
+    if found is None:
+        raise ValueError('%s is not an ISO 3166-2 subdivision code' % code)
+    return found
 
+
+class State(ABC):
+    """Where a state publishes, and which edition parsers cover its years.
+
+    code is the ISO 3166-2 subdivision, such as US-CA. It is not a name or a slug.
+    """
+
+    code = None
     source = None
     editions = ()
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if 'code' not in cls.__dict__:
+            raise TypeError('%s must set code to an ISO 3166-2 subdivision' % cls.__name__)
+        subdivision(cls.code)
 
     def edition(self, path):
         names = table_names(path)

@@ -59,6 +59,26 @@ def test_edition_follows_the_tables(tmp_path):
     assert text['SESSION'] == '1989'
 
 
+def test_california_is_iso_subdivision():
+    from ca import California
+    from publication import subdivision
+    assert California.code == 'US-CA'
+    assert subdivision('US-CA').country_code == 'US'
+
+
+def test_state_code_must_be_iso():
+    from publication import State
+    try:
+        class NotASubdivision(State):
+            code = 'not-a-code'
+            def list_editions(self):
+                return []
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('expected ValueError')
+
+
 def test_iter_laws_joins_headings(tmp_path):
     pub = tmp_path / 'pubinfo_2025.zip'
     _pubinfo(pub)

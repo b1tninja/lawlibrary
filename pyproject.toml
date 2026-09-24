@@ -8,6 +8,7 @@ license = { text = "CC0-1.0" }
 dependencies = [
     "html2text",
     "mcp",
+    "pycountry",
     "whoosh",
 ]
 

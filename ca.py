@@ -511,8 +511,12 @@ class CaliforniaCodes(Publication):
     def parallel_sections(self, path, workers=None, chunk_size=400):
         yield from iter_laws_parallel(path, workers=workers, chunk_size=chunk_size)
 
-    def index(self, indexer, path, workers=None):
-        return indexer.index_pubinfo_laws(path, self.parallel_sections(path, workers=workers))
+    def index(self, indexer, path, workers=None, subdivision='US-CA'):
+        def tagged():
+            for row in self.parallel_sections(path, workers=workers):
+                row['SUBDIVISION'] = subdivision
+                yield row
+        return indexer.index_pubinfo_laws(path, tagged())
 
 
 def bill_text(SESSION, PK, LAW_CODE, SECTION_NUM, SECTION_TITLE, LEGAL_TEXT, CODE_HEADING):
@@ -550,6 +554,7 @@ class CaliforniaBills(Publication):
 
 
 class California(State):
+    code = 'US-CA'
     source = PUBINFO_INDEX
     editions = (CaliforniaCodes, CaliforniaBills)
 
@@ -575,7 +580,7 @@ def index_pubinfos(basedir, all_sessions=True, workers=None):
             continue
         logger.info("Pubinfo zip: %s (%s)", path, type(edition).__name__)
         try:
-            count = edition.index(indexer, path, workers=workers)
+            count = edition.index(indexer, path, workers=workers, subdivision=california.code)
         except TypeError as e:
             logger.warning("Skipping %s... %s.", path, e)
         else:
