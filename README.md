@@ -1,10 +1,10 @@
 # lawlibrary
 
-Catalog of the California codes, built only from the Legislature's own publications at <https://downloads.leginfo.legislature.ca.gov/>.
+Catalog of official statute publications. Sacramento, California, USA is home: `python ca.py` reads the Legislature's files at <https://downloads.leginfo.legislature.ca.gov/>. Other US states live in `us/`. Another country is another ISO 3166-1 package beside it.
 
 Aaron Swartz's html2text turns each section's CAML into plain text. Whoosh indexes that text. An MCP server answers an agent from the local index: search, open a section, list the codes.
 
-`Publication` is the parser for one file layout. `California` is the distribution point (`downloads.leginfo.legislature.ca.gov`) and chooses an edition by the tables inside the zip. `CaliforniaCodes` is the code tables, published in the session zips from 2011 on. `CaliforniaBills` is the earlier sessions, which carry measures and no code tables. A later change in column layout is another subclass with its own `accepts`.
+`jurisdiction.py` is the government model. `publication.py` is one file layout, marked as a statute, measure, or regulation. `Country.layers` is the order under a region. In the US that is a county, then a city, and a layer package exists only where a place has been added. `California` is the distribution point (`downloads.leginfo.legislature.ca.gov`) and chooses an edition by the tables inside the zip. `CaliforniaCodes` is the statutes, published in the session zips from 2011 on. `CaliforniaBills` is the earlier sessions, which carry measures and no code tables. A later change in column layout is another subclass with its own `accepts`. The code catalog is `pycountry`.
 
 The current session is the odd-year file (`pubinfo_2025.zip` through 2026). It is refreshed weekly and is the file that contains the codes. Daily zips do not.
 
@@ -35,7 +35,7 @@ CAML parsing is the slow part, so index workers each open the zip and run html2t
 
 ## Official distribution points
 
-Each state is a `State` subclass. The URL is the government host only. Notes, file shapes, and the commercial hosts we do not crawl are in [docs/state-publications.md](docs/state-publications.md). One git branch per state, `state/<name>`, tracks `origin`.
+Each state is a `State` subclass under ISO 3166-2 (`US-CA`). The country key is `US`. Notes, file shapes, and the commercial hosts we do not crawl are in [docs/state-publications.md](docs/state-publications.md). Other countries, and which of their regions actually legislate, are in [docs/jurisdictions.md](docs/jurisdictions.md). County ordinances are a separate layer, mostly one county at a time, in [docs/counties.md](docs/counties.md). The country branch is `US`. The City of Sacramento is `us/ca/counties/sacramento/cities/sacramento.py`. A country's `layers` say what nests under a region. In the US that is a county, then a city. The query interface Jason uses is specified in [docs/jason-handoff.md](docs/jason-handoff.md).
 
 | State | Official distribution |
 | --- | --- |

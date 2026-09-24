@@ -1,7 +1,7 @@
 [project]
 name = "lawlibrary"
 version = "0.2.0"
-description = "Search California codes from the official legislative publications."
+description = "Official statute publications. Sacramento, California, USA is home."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "CC0-1.0" }
@@ -21,8 +21,8 @@ lawlibrary = "ca:main"
 lawlibrary-mcp = "mcp_server:main"
 
 [tool.setuptools]
-py-modules = ["application", "ca", "config", "indexer", "mcp_server", "publication", "utils"]
-packages = ["states"]
+py-modules = ["application", "ca", "config", "indexer", "jurisdiction", "mcp_server", "publication", "query", "utils"]
+packages = ["us"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

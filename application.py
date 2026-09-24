@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify
 
 from config import data_dir, logger
 
-from ca import download_pubinfos
+from us.ca import download_pubinfos
 
 application = Flask(__name__)
 

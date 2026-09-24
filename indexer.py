@@ -190,7 +190,16 @@ class Indexer:
         titled = folded[:-5].strip() if folded.endswith(' CODE') else folded
         for abbr, title in codes.items():
             name = title.upper()
-            if folded == name or titled == name or titled == name.replace(' CODE', ''):
+            # Pubinfo titles look like "Civil Code - CIV".
+            base = re.sub(r'\s+-\s+[A-Z0-9]+\s*$', '', name).strip()
+            if (
+                folded == name
+                or folded == base
+                or titled == name
+                or titled == base
+                or titled == base.replace(' CODE', '')
+                or titled == abbr
+            ):
                 return abbr
         return folded
 

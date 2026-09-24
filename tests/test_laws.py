@@ -1,7 +1,7 @@
 import zipfile
 from pathlib import Path
 
-from ca import California, iter_laws
+from us.ca import California, iter_laws
 from indexer import Indexer
 
 
@@ -59,11 +59,80 @@ def test_edition_follows_the_tables(tmp_path):
     assert text['SESSION'] == '1989'
 
 
+def test_sacramento_is_home():
+    from us import HOME, UnitedStates, load_states
+    from us.ca import California
+    from us.idaho import Idaho
+    from us.ca.counties.sacramento import SacramentoCounty
+    from us.ca.counties.sacramento.cities.sacramento import Sacramento
+    assert HOME == 'US-CA'
+    assert SacramentoCounty.region() == HOME
+    assert Sacramento.parent is SacramentoCounty
+    assert Sacramento.county() is SacramentoCounty
+    assert SacramentoCounty.cities()['sacramento'] is Sacramento
+    from publication import City
+    try:
+        class NotUnderACounty(City):
+            name = 'Loose'
+            parent = 'US-CA'
+    except TypeError:
+        pass
+    else:
+        raise AssertionError('a US city parents on a county')
+    assert California.counties()['sacramento'] is SacramentoCounty
+    assert UnitedStates.code == 'US'
+    assert load_states()['US-CA'].__name__ == 'California'
+    assert Idaho.counties() == {}
+
+
 def test_california_is_iso_subdivision():
-    from ca import California
-    from publication import subdivision
+    from us.ca import California, CaliforniaBills, CaliforniaCodes
+    from publication import Instrument, State, country, subdivision
+    assert issubclass(California, State)
+    assert California.legislates is True
     assert California.code == 'US-CA'
-    assert subdivision('US-CA').country_code == 'US'
+    assert subdivision(California.code).country_code == 'US'
+    assert California.country() is country('US')
+    assert California.country().alpha_3 == 'USA'
+    assert CaliforniaCodes.instrument is Instrument.STATUTE
+    assert CaliforniaBills.instrument is Instrument.MEASURE
+
+
+def test_layers_follow_iso():
+    from publication import Country, Locality, Region, State
+
+    class UnitedStates(Country):
+        code = 'US'
+        def list_editions(self):
+            return []
+
+    class Tokyo(Region):
+        code = 'JP-13'
+        legislates = False
+        def list_editions(self):
+            return []
+
+    class Sacramento(Locality):
+        name = 'Sacramento'
+        parent = 'US-CA'
+
+    assert UnitedStates.record().alpha_2 == 'US'
+    assert Tokyo.legislates is False
+    assert Tokyo.record().type == 'Prefecture'
+    assert Sacramento.region() == 'US-CA'
+    from publication import _countries
+    from us import UnitedStates as home
+    _countries['US'] = home
+    for bad in ('US-DC', 'JP-13'):
+        try:
+            class NotAState(State):
+                code = bad
+                def list_editions(self):
+                    return []
+        except TypeError:
+            pass
+        else:
+            raise AssertionError(bad)
 
 
 def test_state_code_must_be_iso():
@@ -99,7 +168,7 @@ def test_parallel_matches_serial(tmp_path):
     pub = tmp_path / 'pubinfo_2025.zip'
     _pubinfo(pub)
     serial = list(iter_laws(pub))
-    from ca import iter_laws_parallel
+    from us.ca import iter_laws_parallel
     parallel = list(iter_laws_parallel(pub, workers=2, chunk_size=1))
     fields = ('SECTION_NUM', 'LEGAL_TEXT', 'SESSION', 'ARTICLE_HEADING', 'CODE_HEADING')
     assert [{key: law[key] for key in fields} for law in serial] == [{key: law[key] for key in fields} for law in parallel]

@@ -1,29 +1,49 @@
-"""A publication is one official edition of a state's law.
+"""One file layout of a government's statutes, measures, or regulations.
 
-A state names the distribution point and the edition parsers it knows.
-An edition subclass accepts a year when that year's files are shaped differently.
+The governments themselves live in jurisdiction.py. This module re-exports
+them so a state parser can import its parser and its government together.
 """
 
-import os
-import os.path
-import zipfile
+import enum
 from abc import ABC, abstractmethod
 
+from jurisdiction import (
+    City,
+    Country,
+    County,
+    Jurisdiction,
+    Locality,
+    Region,
+    State,
+    _countries,
+    country,
+    load_localities,
+    subdivision,
+)
 
-def table_names(path):
-    with zipfile.ZipFile(path) as zf:
-        return {os.path.splitext(os.path.basename(info.filename))[0]
-                for info in zf.infolist()
-                if os.path.splitext(info.filename)[1] == '.dat'}
+__all__ = [
+    'City', 'Country', 'County', 'Instrument', 'Jurisdiction', 'Locality',
+    'Publication', 'Region', 'State', 'country', 'load_localities', 'subdivision',
+]
+
+
+class Instrument(enum.Enum):
+    """What an edition contains. The closed set is ours. The codes are ISO's."""
+
+    STATUTE = 'statute'
+    MEASURE = 'measure'
+    REGULATION = 'regulation'
 
 
 class Publication(ABC):
     """Parser for one shape of official publication."""
 
+    instrument = None
+
     @classmethod
     @abstractmethod
     def accepts(cls, names):
-        """True when the .dat tables in this zip are the shape this parser knows."""
+        """True when this path, or the table names inside a zip, is this shape."""
 
     @abstractmethod
     def sections(self, path):
@@ -35,44 +55,3 @@ class Publication(ABC):
     def index(self, indexer, path, workers=None, subdivision=None):
         """Editions join the code index by overriding this. Others are recognized and left alone."""
         return 0
-
-
-def subdivision(code):
-    """Return the ISO 3166-2 record for code, or raise ValueError."""
-    import pycountry
-    found = pycountry.subdivisions.get(code=code)
-    if found is None:
-        raise ValueError('%s is not an ISO 3166-2 subdivision code' % code)
-    return found
-
-
-class State(ABC):
-    """Where a state publishes, and which edition parsers cover its years.
-
-    code is the ISO 3166-2 subdivision, such as US-CA. It is not a name or a slug.
-    """
-
-    code = None
-    source = None
-    editions = ()
-
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        if 'code' not in cls.__dict__:
-            raise TypeError('%s must set code to an ISO 3166-2 subdivision' % cls.__name__)
-        subdivision(cls.code)
-
-    def edition(self, path):
-        names = table_names(path)
-        for parser in self.editions:
-            if parser.accepts(names):
-                return parser()
-        raise TypeError('no parser for %s' % os.path.basename(path))
-
-    def sections(self, path, workers=None):
-        edition = self.edition(path)
-        return edition.parallel_sections(path, workers=workers)
-
-    @abstractmethod
-    def list_editions(self):
-        """Names or years currently offered at the distribution point."""
