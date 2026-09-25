@@ -345,11 +345,7 @@ export function StatuteReader({ here, go }) {
             <p className="miss">{reasonWords(body)}</p>
           </>
         ) : (
-          <div
-            className="spread"
-            data-wide={tab === 'graph' ? 'true' : 'false'}
-            style={{ gridTemplateColumns: tab === 'graph' ? 'minmax(0, 1fr) 46rem' : undefined }}
-          >
+          <div className="spread" data-wide={tab === 'graph' ? 'true' : 'false'}>
             <main>
               <Crumbs crumbs={body.crumbs} go={go} />
               <h1>{body.citation || cite}</h1>

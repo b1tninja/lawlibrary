@@ -8,20 +8,31 @@ body:has(.ll.ll-statute) {
   max-width: 84rem;
 }
 
-.ll .spread {
-  grid-template-columns: minmax(0, 1fr) 23rem;
+/* The panel widens for the walk. The width lives on the panel, not on the
+ * grid: a track list holding `minmax()` cannot be interpolated, so a
+ * transition on `grid-template-columns` never leaves its first value. */
+.ll-statute .spread {
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 2.5rem;
-  transition: grid-template-columns 0.25s ease;
 }
 
-.ll .spread[data-wide="true"] {
-  grid-template-columns: minmax(0, 1fr) 46rem;
+.ll-statute .ll-panel {
+  width: 23rem;
+  transition: width 0.25s ease;
+}
+
+.ll-statute .spread[data-wide="true"] .ll-panel {
+  width: 46rem;
 }
 
 @media (max-width: 62rem) {
-  .ll .spread,
-  .ll .spread[data-wide="true"] {
+  .ll-statute .spread,
+  .ll-statute .spread[data-wide="true"] {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .ll-statute .ll-panel,
+  .ll-statute .spread[data-wide="true"] .ll-panel {
+    width: auto;
   }
   .ll .ll-panel {
     position: static;
