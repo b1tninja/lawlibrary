@@ -187,13 +187,13 @@ def _surfaces(start_response):
     from lexical import Clause
     from marks import Layer
     from mentions import Kind, Relation
-    from needles import Cut
+    from needles import Action, Cut
     from places import Use
     from publication import Instrument
     from structure import Gap
     sets = {
         'layer': Layer, 'note': Note, 'canon': Canon, 'clause': Clause,
-        'cite': Cite, 'join': Join, 'cut': Cut, 'kind': Kind,
+        'cite': Cite, 'join': Join, 'cut': Cut, 'kind': Kind, 'action': Action,
         'relation': Relation, 'quantity': Quantity, 'gap': Gap, 'use': Use,
         'instrument': Instrument, 'hint': Hint,
     }
@@ -801,7 +801,7 @@ def _library_crumbs(url, code_label=''):
     parts = [part for part in (url or 'us-ca').split('/') if part]
     names = {
         'division': 'Division', 'title': 'Title', 'part': 'Part',
-        'chapter': 'Chapter', 'article': 'Article', 'section': 'Â§',
+        'chapter': 'Chapter', 'article': 'Article', 'section': 'Ã‚Â§',
         'subdivision': 'Subdivision',
     }
     units = set(names)
@@ -1309,15 +1309,41 @@ _CUT_INDENT = {
 }
 
 
+def _ladder(body):
+    """The rungs above this section, each named by the unit its caption names.
+
+    The stored path is not always filed on the field its own words name —
+    ``TITLE 5. HIRING`` can sit on the part field, which would print the
+    caption at the wrong depth and drop the rung it displaced. The reader
+    settles that in ``_section_crumbs``; every representation reads the same
+    ladder from it, so a section reads the same however it is asked for.
+    """
+    steps = [step for step in body.get('path') or [] if step.get('heading')]
+    code = body.get('code') or ''
+    rungs = []
+    if code:
+        trail = _section_crumbs(code, body.get('section') or '', steps, body.get('units'))
+        rungs = [
+            (crumb.get('unit') or '', (crumb.get('label') or '').strip())
+            for crumb in trail
+            if crumb.get('unit') in ('division', 'title', 'part', 'chapter', 'article')
+            and (crumb.get('label') or '').strip()
+        ]
+    if rungs:
+        return rungs
+    # No book to hang the ladder on. What was stored is still what was read.
+    return [
+        (step.get('level') or '', (step.get('heading') or '').strip())
+        for step in steps
+    ]
+
+
 def _plain(body):
     """The text file. Each heading steps in by its cut, then the section text."""
     lines = [body.get('citation') or '']
     depth = 0
-    for step in body.get('path') or []:
-        heading = (step.get('heading') or '').strip()
-        if not heading:
-            continue
-        depth = _CUT_INDENT.get(step.get('level') or '', depth)
+    for unit, heading in _ladder(body):
+        depth = _CUT_INDENT.get(unit, depth)
         lines.append((' ' * depth) + heading)
     text = (body.get('text') or '').strip()
     if text:
@@ -1333,9 +1359,8 @@ def _xml(body):
     def esc(value):
         return html.escape(value or '', quote=True)
     headings = ''.join(
-        '<heading level="%s">%s</heading>' % (esc(step.get('level') or ''), esc(step.get('heading') or ''))
-        for step in body.get('path') or []
-        if step.get('heading')
+        '<heading level="%s">%s</heading>' % (esc(unit), esc(heading))
+        for unit, heading in _ladder(body)
     )
     return (
         '<?xml version="1.0" encoding="utf-8"?>\n'
@@ -1357,34 +1382,55 @@ def _xml(body):
 
 
 def _markdown(body):
-    """The section as a Markdown page. The diagram is a fenced flowchart."""
+    """The section as a Markdown page.
+
+    The ladder nests, because it is a ladder. Each cut is its own block, so a
+    subdivision reads as a subdivision instead of joining one long paragraph;
+    the labels the statute uses carry the depth, as they do on the page. A
+    section this one names is a link. The session that added or amended it is
+    the history line and is not repeated as a reference. The diagram is drawn
+    only when there is an edge to draw.
+    """
     code = body.get('code') or ''
     number = str(body.get('section') or '')
     edges, chart = _refs(code, number, body.get('chapters') or [])
+    named = [edge for edge in edges if edge.get('kind') != 'session']
     lines = ['# %s' % (body.get('citation') or '%s %s' % (code, number)), '']
-    for step in body.get('path') or []:
-        heading = (step.get('heading') or '').strip()
-        if heading:
-            lines.append(heading)
-            lines.append('')
-    text = (body.get('text') or '').strip()
-    if text:
-        lines.append(text)
+    rungs = _ladder(body)
+    for depth, (_unit, heading) in enumerate(rungs):
+        lines.append('%s- %s' % ('  ' * depth, heading))
+    if rungs:
         lines.append('')
+    for words in _cut_blocks(body.get('text') or '', code):
+        lines.extend((words, ''))
     history = (body.get('history') or '').strip()
     if history:
         lines.extend(('## History', '', history, ''))
-    if edges:
-        lines.extend(('## References', ''))
-        for edge in edges:
+    if named:
+        lines.extend(('## Sections this one names', ''))
+        for edge in named:
             if edge.get('href'):
                 lines.append('- [%s](%s)' % (edge['target'], edge['href']))
             else:
                 lines.append('- %s' % edge['target'])
         lines.append('')
-    if chart:
+    if named and chart:
         lines.extend(('## Diagram', '', '```mermaid', chart, '```', ''))
     return '\n'.join(lines)
+
+
+def _cut_blocks(text, code):
+    """Each cut of the section as its own block of words, in reading order.
+
+    A cut that only holds other cuts contributes nothing of its own. A section
+    with no cuts at all is one block, which is the whole of it.
+    """
+    blocks = []
+    for _path, _unit, node in _walk_cuts(text, code):
+        words = _shown(node).strip()
+        if words:
+            blocks.append(words)
+    return blocks
 
 
 def _pdf(text):

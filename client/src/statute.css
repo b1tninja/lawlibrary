@@ -85,7 +85,11 @@ body:has(.ll.ll-statute) {
 .ll[data-size="s"] ol.cuts.reading { font-size: 0.96rem; }
 .ll[data-size="l"] ol.cuts.reading { font-size: 1.22rem; }
 
-.ll .ll-text > ol.cuts.reading > li > .cut-head { display: none; }
+/* The outermost row is the section itself. When it has cuts under it the row
+ * carries no words of its own — the heading above already names the section —
+ * so it is not drawn. When it has none, that row is the whole section, and
+ * hiding it would leave the reader with an empty page. */
+.ll .ll-text > ol.cuts.reading > li:has(> ol.cuts) > .cut-head { display: none; }
 .ll .ll-text > ol.cuts.reading > li > ol.cuts { margin-left: 0; }
 .ll .ll-text > ol.cuts.reading > li { padding-left: 0; }
 

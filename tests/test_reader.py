@@ -101,6 +101,10 @@ def test_the_closed_sets_are_served_so_the_client_keeps_no_copy():
     assert surfaces['use'] == ['read', 'find', 'refs', 'gaps']
     assert 'short_title' in surfaces['gap']
     assert 'subdivision' in surfaces['cut']
+    # What a session law did to the section is a closed set too, so the
+    # reader can name it rather than printing the credit and nothing else.
+    assert surfaces['action'][:2] == ['added', 'amended']
+    assert 'repealed and added' in surfaces['action']
     assert 'section' in body['units']
 
 
@@ -331,3 +335,85 @@ def test_a_word_points_at_the_codes_that_use_it():
     assert body['reason'] == 'unknown_code'
     status, body = _json('/cloud')
     assert status == '404 Not Found'
+
+
+def test_a_representation_reads_the_same_ladder_the_reader_draws():
+    """A caption is filed on the unit its own words name, not the stored field.
+
+    CIV 1940 keeps ``TITLE 5. HIRING`` on the part field, and the part it
+    displaced has no caption of its own. The trail settles that, so the text,
+    the Markdown and the XML all name four rungs in the order the reader shows
+    them.
+    """
+    status, body = _json('/section/CIV/1940')
+    assert status == '200 OK'
+    drawn = [
+        (crumb['unit'], crumb['label'])
+        for crumb in body['crumbs']
+        if crumb['unit'] in ('division', 'title', 'part', 'chapter')
+    ]
+    assert [unit for unit, _label in drawn] == ['division', 'title', 'part', 'chapter']
+    title = dict(drawn)['title']
+    part = dict(drawn)['part']
+
+    status, raw, _headers = _get('/section/CIV/1940.md')
+    page = raw.decode('utf-8')
+    assert status == '200 OK'
+    rungs = [row for row in page.splitlines() if row.lstrip().startswith('- ')]
+    assert [row.strip()[2:] for row in rungs[:4]] == [label for _unit, label in drawn]
+    # The ladder nests, one step per rung.
+    assert [len(row) - len(row.lstrip()) for row in rungs[:4]] == [0, 2, 4, 6]
+
+    status, raw, _headers = _get('/section/CIV/1940.xml')
+    document = raw.decode('utf-8')
+    assert '<heading level="title">%s</heading>' % title in document
+    assert '<heading level="part">%s</heading>' % part in document
+
+    from application import _CUT_INDENT
+    status, raw, _headers = _get('/section/CIV/1940.txt')
+    lines = raw.decode('utf-8').splitlines()
+    # Each rung steps in by its own cut, so the depth is the unit and not the
+    # order the index happened to store it in.
+    for unit, label in drawn:
+        assert (' ' * _CUT_INDENT[unit]) + label in lines
+
+
+def test_the_markdown_is_the_section_cut_by_cut():
+    """One block per cut, so a subdivision reads as a subdivision.
+
+    A section with no cuts is one block, which is the whole of it — the page
+    was empty before, because the only row it had was the one being hidden.
+    """
+    status, raw, _headers = _get('/section/CIV/1940.md')
+    page = raw.decode('utf-8')
+    assert status == '200 OK'
+    blocks = [block.strip() for block in page.split('\n\n') if block.strip()]
+    lettered = [block for block in blocks if block.startswith('(a)')]
+    assert lettered, 'the first subdivision is its own block'
+    assert any(block.startswith('(b)') for block in blocks)
+    assert any(block.startswith('(1)') for block in blocks)
+    # Every cut is on the page, once. The stored text runs a label into its
+    # words as ``(a)Except``; a block is the label and then the words, so the
+    # Markdown reads the way the reader shows it.
+    status, section = _json('/section/CIV/1940')
+
+    def walk(node, held):
+        words = ''.join(piece.get('text') or '' for piece in node.get('pieces') or []).strip()
+        if len(words) > 40:
+            held.append(words)
+        for kid in node.get('children') or []:
+            walk(kid, held)
+        return held
+
+    for words in walk(section['nodes'], []):
+        assert page.count(words) == 1, words[:60]
+
+    status, raw, _headers = _get('/section/CIV/1860.md')
+    lone = raw.decode('utf-8')
+    assert 'If an innkeeper' in lone
+    assert '## History' in lone
+    # Nothing cites CIV 1860 here, so there is no chart of one node and no
+    # list of references that only repeats the history line.
+    assert '## Diagram' not in lone
+    assert 'mermaid' not in lone
+    assert '## Sections this one names' not in lone
