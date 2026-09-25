@@ -1,9 +1,8 @@
 """WSGI entry. ``application`` is the callable a server invokes.
 
-``/`` is the plain HTML home page and ``/view`` is the script-free reader.
-``/reader`` is the same library with the React client on ``#root``; the
-document stays inside ``noscript`` there, so a deep link is a page before the
-script runs. ``/tree``, ``/section``, ``/surfaces``, ``/annotations``, and
+``/`` and ``/reader`` are the library with the React client on ``#root``; the
+document stays inside ``noscript``, so a deep link is a page before the script
+runs. ``/view`` is the same library with no script at all. ``/tree``, ``/section``, ``/surfaces``, ``/annotations``, and
 ``/closure`` are the JSON the client reads. A GET reads the local index. A
 miss is found false. The process environment and the data directory are not
 served.
@@ -91,10 +90,7 @@ def application(environ, start_response):
     path, hint = _take_hint(path)
     query = parse_qs(environ.get('QUERY_STRING') or '')
     if not path:
-        body = _tree_html('')
-        if body is None:
-            return _html(start_response, '404 Not Found', _page('Not found', _missing('That node is not in the index.'), index=True))
-        return _html(start_response, '200 OK', _page('Law library', body, index=True))
+        return _reader(start_response, [], query)
     if path[0] == 'static' and len(path) == 2:
         return _static(start_response, path[1])
     if path[0] == 'mirror':

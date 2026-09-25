@@ -13,7 +13,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { route, useJson } from './api.js'
+import { route, useKept } from './api.js'
 import './cloud.css'
 
 const FAMILIES = [
@@ -372,7 +372,10 @@ export function TermCloud({
   const [held, setHeld] = useState(null)
   const here = useRef(false)
 
-  const { body, loading } = useJson(route('/cloud', { url }))
+  /* Three readings of one heading ask for it once: the counts do not change
+   * while the page is open. */
+  const body = useKept(route('/cloud', { url }), null)
+  const loading = !body
   const shelf = useMemo(() => shelve(body && body.found ? body.tree : null), [body])
   const leaves = (body && body.leaves) || []
   const codes = (body && body.codes) || {}

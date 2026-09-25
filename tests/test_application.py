@@ -19,14 +19,17 @@ def _get(path, method='GET', query=''):
 
 
 def test_the_home_page_is_html_and_a_section_route_stays_json():
+    """The root mounts the client and keeps the document inside ``noscript``."""
     status, raw = _get_raw('/')
     page = raw[0].decode('utf-8')
     assert status == '200 OK'
     assert 'text/html' in dict(raw[1]).get('Content-Type', '')
-    assert 'reader.js' not in page
-    assert 'name="section"' in page
-    assert 'Law Library' in page
-    assert 'href="/view/tree/' in page
+    assert 'id="root"' in page
+    assert '/static/reader.js' in page
+    kept = page.split('<noscript>')[1].split('</noscript>')[0]
+    assert 'name="section"' in kept
+    assert 'Law Library' in kept
+    assert 'href="/view/tree/' in kept
     status, body = _get('/section/CIV/1')
     assert status == '200 OK'
     assert body['found'] is True
