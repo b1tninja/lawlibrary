@@ -1,6 +1,7 @@
 {
   "shape": "package",
   "pkg": "lawlibrary-reader",
+  "projectId": "c3e7e0b0-43ab-4552-bd43-6858f89243f6",
   "globalName": "LawLibraryReader",
   "buildCmd": "npm --prefix client run build:lib",
   "srcDir": "src",
