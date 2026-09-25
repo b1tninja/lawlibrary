@@ -39,6 +39,7 @@ def test_sections_from_local_html():
         rows = list(NewHampshire().sections(path))
         assert len(rows) >= 2
         assert rows[0]['SECTION_NUM'] == '1:1'
+        assert rows[0]['SUBDIVISION'] == 'US-NH'
         assert 'perambulated' in rows[0]['LEGAL_TEXT'].lower()
         assert rows[1]['SECTION_NUM'] == '1:2'
         assert 'bounds' in rows[1]['LEGAL_TEXT'].lower()

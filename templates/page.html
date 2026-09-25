@@ -1,0 +1,27 @@
+{% import "macros.html" as ui %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+{% include "style.html" %}
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+mermaid.initialize({startOnLoad: true, securityLevel: "strict"});
+</script>
+</head>
+<body>
+<header class="mast">
+<p>Law Library</p>
+<nav class="site">
+{{ ui.link('/', 'Library') }}
+{{ ui.link('/view/random', 'Random') }}
+{{ ui.link('/mirror', 'Reference') }}
+{{ ui.link('/view/diagram/codes', 'Codes') }}
+{{ ui.link('/view/diagram/vesting?code=GOV', 'Vesting') }}
+{{ ui.link('/view/diagram/enactments?code=WAT', 'Enactments') }}
+</nav>
+</header>
+<main id="main">{{ main }}</main>
+</body>
+</html>

@@ -1,11 +1,17 @@
-"""Iowa Code — LSA chapter XML (unofficial machine form of the code)."""
+"""Iowa Code — unofficial chapter XML from LSA publications.
+
+The official code is eight volume PDFs; this edition does not parse those
+PDFs. Chapter XML under
+https://www.legis.iowa.gov/docs/publications/ICC/{year}/attachments/{chapter}_slim.xml
+is the machine-readable form used here (labeled unofficial by the LSA).
+"""
 
 import os
 import xml.etree.ElementTree as ET
 
 from publication import Publication, State
 
-SOURCE = 'https://www.legis.iowa.gov/law/iowaCode?year=2026'
+SOURCE = 'https://www.legis.iowa.gov/docs/publications/ICC/2026/attachments/'
 
 
 def _local(tag):
@@ -18,11 +24,8 @@ def _text_of(el):
 
 
 def _section_num(el):
-    # Prefer an identifier child (slim chapter XML), then id, then stem later.
     for child in el.iter():
-        if _local(child.tag) in ('identifier',) or (
-            child.get('class') == 'identifier'
-        ):
+        if _local(child.tag) == 'identifier' or child.get('class') == 'identifier':
             value = ''.join(child.itertext()).strip()
             if value:
                 return value
@@ -39,6 +42,14 @@ def _section_num(el):
     return ''
 
 
+def _row(section_num, legal_text):
+    return {
+        'SECTION_NUM': section_num,
+        'LEGAL_TEXT': legal_text,
+        'SUBDIVISION': Iowa.code,
+    }
+
+
 class IowaCode(Publication):
     """One LSA chapter XML file (Section / Text when present)."""
 
@@ -52,7 +63,7 @@ class IowaCode(Publication):
         section_els = [el for el in root.iter() if _local(el.tag) == 'Section']
         if not section_els:
             stem = os.path.splitext(os.path.basename(path))[0]
-            yield {'SECTION_NUM': stem, 'LEGAL_TEXT': _text_of(root)}
+            yield _row(stem, _text_of(root))
             return
         for el in section_els:
             text_els = [c for c in el if _local(c.tag) == 'Text']
@@ -61,7 +72,7 @@ class IowaCode(Publication):
             else:
                 body = _text_of(el)
             num = _section_num(el) or os.path.splitext(os.path.basename(path))[0]
-            yield {'SECTION_NUM': num, 'LEGAL_TEXT': body}
+            yield _row(num, body)
 
 
 class Iowa(State):
@@ -71,3 +82,6 @@ class Iowa(State):
 
     def list_editions(self):
         return [SOURCE]
+
+    def edition(self, path):
+        return IowaCode()

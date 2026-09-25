@@ -1,0 +1,42 @@
+{% import "macros.html" as ui %}
+{{ ui.crumbs(crumbs) }}
+{{ ui.parents(crumbs) }}
+{{ ui.contents(contents) }}
+<h1>{{ title }}</h1>
+{% if again %}
+<p class="beside">{{ ui.link(again, 'Another') }}</p>
+{% endif %}
+{% if previous or following %}
+<p class="beside">
+{% if previous %}{{ ui.link(previous.href, 'Previous ' + previous.label) }}{% endif %}
+{% if following %}{{ ui.link(following.href, 'Next ' + following.label) }}{% endif %}
+</p>
+{% endif %}
+<p class="formats">
+<a href="/section/{{ code }}/{{ number }}.txt">Text</a>
+<a href="/section/{{ code }}/{{ number }}.xml">XML</a>
+<a href="/section/{{ code }}/{{ number }}.html">HTML</a>
+<a href="/section/{{ code }}/{{ number }}.pdf">PDF</a>
+<a href="/section/{{ code }}/{{ number }}.md">Markdown</a>
+</p>
+{{ ui.legend() }}
+{% if tree.children or tree.pieces %}
+<ol class="cuts">
+<li class="cut-{{ tree.unit }}">{{ ui.marks(tree.pieces) }}{% if tree.children %}{{ ui.nodes(tree.children) }}{% endif %}</li>
+</ol>
+{% endif %}
+{% if history %}
+<p class="history">{{ history }}</p>
+{% endif %}
+{% if edges %}
+<h2>References</h2>
+<ol class="refs">
+{% for edge in edges %}
+<li class="ref-{{ edge.kind }}"><span class="ref-source">{{ edge.source }}</span>{% if edge.href %}{{ ui.link(edge.href, edge.target) }}{% else %}<span>{{ edge.target }}</span>{% endif %}</li>
+{% endfor %}
+</ol>
+{% endif %}
+{% if chart %}
+<noscript><style>pre.mermaid { display: none; }</style></noscript>
+<pre class="mermaid">{{ chart }}</pre>
+{% endif %}

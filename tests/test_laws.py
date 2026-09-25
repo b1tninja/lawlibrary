@@ -35,13 +35,17 @@ def _pubinfo(path: Path):
         zf.writestr('LAW_SECTION_TBL_pk1.lob', '<p>The landlord shall keep the dwelling habitable.</p>')
 
 
-def _bills(path: Path):
+def _bills(path: Path, *, extras=()):
+    """Minimal 1989-style bills zip. extras names companion .dat stems for later eras."""
     row = _row(['19891SCR198CHP', '198919901SCR1', '98', '1989-11-03 00:00:00', 'Chaptered', None,
                 'Joint Rules.', None, None, None, None, None, None, None,
                 'BILL_VERSION_TBL_1.lob', 'Y', 'LEG_ESI', '2007-08-22 11:53:13'])
     with zipfile.ZipFile(path, 'w') as zf:
         zf.writestr('BILL_TBL.dat', _row(['198919901SCR1', 'bill']) + '\n')
         zf.writestr('BILL_VERSION_TBL.dat', row + '\n')
+        zf.writestr('BILL_VERSION_AUTHORS_TBL.dat', _row(['a']) + '\n')
+        for stem in extras:
+            zf.writestr('%s.dat' % stem, _row(['x']) + '\n')
         zf.writestr('BILL_VERSION_TBL_1.lob', '<p>The joint rules of the session.</p>')
 
 
@@ -57,6 +61,39 @@ def test_edition_follows_the_tables(tmp_path):
     assert text['SECTION_NUM'] == '198919901SCR1'
     assert 'joint rules' in text['LEGAL_TEXT'].lower()
     assert text['SESSION'] == '1989'
+
+
+def test_bill_era_shapes_still_dispatch(tmp_path):
+    """Companion-table eras differ; BILL_VERSION_TBL columns do not. One bills edition."""
+    california = California()
+    eras = {
+        1989: (),
+        1993: ('BILL_ANALYSIS_TBL',),
+        1999: ('BILL_ANALYSIS_TBL', 'BILL_HISTORY_TBL', 'LEGISLATOR_TBL'),
+        2003: ('BILL_ANALYSIS_TBL', 'COMMITTEE_HEARING_TBL', 'LEGISLATOR_TBL'),
+    }
+    for year, extras in eras.items():
+        path = tmp_path / ('pubinfo_%d.zip' % year)
+        _bills(path, extras=extras)
+        assert type(california.edition(path)).__name__ == 'CaliforniaBills'
+        row = next(california.sections(path))
+        assert row['SESSION'] == str(year)
+        assert row['LAW_CODE'] == 'BILL'
+
+
+def test_codes_and_bills_stamp_subdivision(tmp_path):
+    codes = tmp_path / 'pubinfo_2025.zip'
+    bills = tmp_path / 'pubinfo_1989.zip'
+    _pubinfo(codes)
+    _bills(bills)
+    california = California()
+    indexer = Indexer(tmp_path / 'idx')
+    assert california.edition(codes).index(indexer, codes, subdivision=california.code) == 1
+    assert california.edition(bills).index(indexer, bills, subdivision=california.code) == 1
+    hits = indexer.search_law('habitable dwelling')
+    assert hits[0]['subdivision'] == 'US-CA'
+    bill_hits = indexer.search_law('joint rules', session='1989')
+    assert bill_hits[0]['subdivision'] == 'US-CA'
 
 
 def test_sacramento_is_home():
@@ -178,11 +215,13 @@ def test_parallel_matches_serial(tmp_path):
 def test_index_search_and_citation(tmp_path):
     pub = tmp_path / 'pubinfo_2025.zip'
     _pubinfo(pub)
+    california = California()
     indexer = Indexer(tmp_path / 'idx')
-    assert indexer.index_pubinfo_laws(pub, iter_laws(pub)) == 1
+    assert california.edition(pub).index(indexer, pub, subdivision=california.code) == 1
 
     hits = indexer.search_law('habitable dwelling')
     assert hits[0]['citation'] == 'CIV 1940'
+    assert hits[0]['subdivision'] == 'US-CA'
     assert 'habitable' in hits[0]['snippet'].lower() or 'HABITABLE' in hits[0]['snippet']
 
     cited = indexer.search_law('Civil Code section 1940')

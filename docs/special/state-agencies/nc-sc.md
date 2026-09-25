@@ -1,0 +1,1236 @@
+# State agencies NC–SC (official directories)
+
+Checked 2026-09-24 against each state’s official directory (Secretary of State roster, governor’s agency list, or state portal department index). Official hosts only. Commercial hosts were not opened. Agency names are as printed on the cited source. Do not invent bodies. Do not assign enum tokens.
+
+“Same function, different title” notes appear only where the **printed** name clearly names agriculture, insurance, real estate, housing, fire protection, environmental protection, labor, revenue, transportation, or health. Two titles are not treated as the same office unless both titles say so.
+
+## North Carolina
+
+| | |
+| --- | --- |
+| **Directory** | [www.nc.gov/your-government/state-organizations](https://www.nc.gov/your-government/state-organizations) |
+| **Publisher** | State of North Carolina (nc.gov) |
+| **Section** | North Carolina State Organizations A to Z |
+
+### Agency names (as printed)
+
+- Accessible Books and Library Services, Library of North Carolina
+- Administration, Department of
+- Administrative Hearings, Office of
+- Administrative Office of the Courts
+- Adult Correction, Department of
+- Aging and Adult Services, Division of
+- Agricultural Finance Authority, NC
+- Agriculture and Consumer Services, Department of
+- Air Quality, Division of
+- Alcohol and Chemical Dependency, Division of
+- Alcohol Law Enforcement
+- Alcoholic Beverage Control Commission
+- Archaeology, N.C. State Office of
+- Archives and History, Office of NC
+- Archives of North Carolina, State
+- Art Museums, N.C. Division of State
+- Arts Council, N.C.
+- Aviation
+- Banking Commission
+- Bicycle/Pedestrian
+- Blind, Division of Services for the
+- Boards and Commissions of North Carolina
+- Budget and Management, Office of State
+- Business Registration Division
+- Campaign Finance Division
+- Capitol Area Visitors Services
+- Center for Geographic Information and Analysis
+- Center for Safer Schools
+- Chief Information Officer Office
+- Child Development and Early Education, Division of
+- Child Protection Services
+- Child Support Services
+- Civil Air Patrol
+- Civil Rights Division
+- Coastal Management Division
+- Commerce, Department of
+- Community College System Office
+- Community Supervision
+- Constituent Services
+- Construction, Office of State
+- Consumer Protection Division
+- Controller, Office of the State
+- Correction Enterprises
+- Credit Union Division, N.C.
+- Criminal Justice Information Network
+- Criminal Justice Training and Standards
+- Deaf and Hard of Hearing Services, Division of
+- Developmental Disabilities, Council on
+- Economic Development Partnership of NC
+- Elections, State Board of
+- Emergency Management Division
+- Employment and Independence for People with Disabilities
+- Employment Security, Division of
+- Energy Program
+- Energy, Mineral and Land Resources, Division of
+- Environmental Assistance and Customer Service
+- Environmental Health
+- Environmental Quality, Department of
+- Ethics Commission, NC State
+- Facility Management Division
+- Federal Surplus Property
+- Ferry Division
+- Film Office
+- Fire Marshal, Office of State
+- Food and Drug Protection Division
+- Food Distribution Division
+- Forest Service, NC
+- General Assembly
+- Global TransPark
+- Government Data Analytics Center
+- Governor Morehead School
+- Governor, Office of the
+- Governor's Crime Commission
+- Governor's Highway Safety Program
+- Health and Human Services, Department of
+- Health Benefits (Medicaid), Division of
+- Health Service Regulation, Division of
+- Hearings Division
+- Highway Patrol
+- Highways Division
+- Historic Preservation Office, State
+- Historic Sites, Division of State
+- Historical Publications, N.C.
+- Historically Underutilized Businesses, Office for
+- History Museums, N.C. Division of State
+- House of Representatives
+- Housing Finance Agency of North Carolina
+- Human Relations Commission
+- Indian Affairs, Commission of
+- Industrial Commission
+- Information Technology, Department of
+- Institutions, Divison of
+- Insurance, Department of
+- Justice for Sterilization Victims Foundation, Office of
+- Justice, Department of
+- Juvenile Court Services
+- Juvenile Crime Prevention Councils
+- Juvenile Justice
+- Labor and Economic Analysis Division
+- Labor, Department of
+- Legislative Bill Drafting Division
+- Library of North Carolina
+- License to Give Trust Fund Commission
+- Lieutenant Governor, Office of
+- Lottery Commission
+- Mail Service Center
+- Marine Fisheries
+- Medical Board, N.C.
+- Mental Health, Developmental Disabilities and Substance Abuse Services
+- Military and Veterans Affairs, Department of
+- Mitigation Services, Division of
+- Motor Fleet Management
+- Motor Vehicles, Division of
+- National Guard
+- Natural and Cultural Resources, Department of
+- Non-Public Education, Division of
+- Notary Public Division
+- Occupational Safety and Health
+- Parking Division, State
+- Parks and Recreation, Division of
+- Ports, N.C.
+- Post-Release Supervision and Parole Commission
+- Public Health, Division of
+- Public Instruction, Department of
+- Public Safety, Department of
+- Public Staff, Utilities Commission
+- Public Transit Services
+- Purchase and Contract Division
+- Rail (Train)
+- Retirement Systems
+- Revenue, Department of
+- Rules Division, Office of Administrative Hearings
+- Rules Review Commission
+- Rural Economic Development Division
+- Rural Electrification Authority
+- Rural Health, Office
+- Safety and Health Review Commission
+- Science, Technology & Innovation, Office of
+- Secretary of State, Department of
+- Securities Division
+- Senate
+- Small Business Technical Development Center
+- Social Services, Division of
+- Soil and Water Conservation
+- State Auditor, Office of
+- State Bureau of Investigation
+- State Capitol Police
+- State Center for Health Statistics
+- State Environmental Review Clearinghouse
+- State Health Plan
+- State Human Resources, Office of
+- State Property, Office of
+- State Surplus Property
+- Structural Pest Control and Pesticides Division
+- Symphony, N.C.
+- Temporary Solutions
+- Transportation, Department of
+- Treasurer, Department of State
+- Turnpike Authority
+- Uniform Commercial Code Section
+- University of North Carolina System
+- Utilities Commission
+- Victim Compensation Services, Office of
+- Vital Records
+- Volunteerism & Community Service, Commission on
+- Waste Management
+- Water Infrastructure, Division for
+- Water Resources, Division of
+- Wildlife Resources Commission
+- Women, Infant and Community Wellness Section
+- Workforce Solutions, Division of
+
+### Same function, different title
+
+- Agriculture and Consumer Services, Department of — agriculture
+- Agricultural Finance Authority, NC — agriculture
+- Insurance, Department of — insurance
+- Fire Marshal, Office of State — fire protection
+- Housing Finance Agency of North Carolina — housing
+- Environmental Quality, Department of — environmental protection
+- Labor, Department of — labor
+- Occupational Safety and Health — labor
+- Revenue, Department of — revenue
+- Transportation, Department of — transportation
+- Health and Human Services, Department of — health
+- Public Health, Division of — health
+- Environmental Health — health
+- Health Benefits (Medicaid), Division of — health
+- Health Service Regulation, Division of — health
+- State Center for Health Statistics — health
+- Rural Health, Office — health
+
+## North Dakota
+
+| | |
+| --- | --- |
+| **Directory** | [www.nd.gov/government/state-government/agency-alphabet](https://www.nd.gov/government/state-government/agency-alphabet) |
+| **Publisher** | State of North Dakota (ND Portal) |
+| **Section** | Agency by Alphabet |
+
+### Agency names (as printed)
+
+- Adjutant General
+- Administrative Hearings
+- Aeronautics Commission
+- Agriculture
+- Attorney General
+- Auditor
+- Bank of North Dakota
+- Barley Council
+- Beef Commission
+- Bismarck State College
+- Boiler Inspections
+- Capitol Cafe
+- Career & Technical Education
+- Center for Distance Education
+- Child Support
+- Civil Air Patrol
+- Commerce
+- Community Services
+- Corrections and Rehabilitation
+- Council on the Arts
+- Criminal Justice Information Sharing (CJIS)
+- Dakota College at Bottineau
+- Dickinson State University
+- Distance Education, Center for(ND CDE)
+- Dual Sensory Project
+- Economic Development and Finance
+- Education Standards and Practices Board
+- Electrical Board
+- Emergency Services
+- Environmental Quality
+- Facility Management
+- Financial Institutions
+- Firefighter's Association
+- First Lady
+- Fiscal Management
+- Forest Service
+- Game and Fish
+- Geographic Information Systems
+- Geological Survey
+- Governor Office
+- Health and Human Services
+- Highway Patrol
+- Historical Society
+- Housing Finance Agency
+- Human Resource Management Services
+- Human Rights
+- Indian Affairs Commission
+- Industrial Commission
+- Information Technology
+- Insurance Commissioner
+- Interagency Program for Assistive Technology
+- Investment Board
+- Job Service
+- Judicial Branch
+- Labor and Human Rights
+- Lake Region State College
+- Law Examiners
+- Legislative Assembly
+- Legislative Council
+- Library
+- Lignite Research Council
+- Mayville State University
+- Medical Examiners Board
+- Milk Marketing Board
+- Mill and Elevator Association
+- Minot State University
+- ND Cancer Coalition
+- ND Commission on Legal Counsel for Indigents
+- ND State University
+- ND State University Extension Service
+- National Guard
+- North Dakota State College of Science
+- Nursing Board
+- Office of the Governor
+- Office of Management and Budget
+- Oil and Gas Division
+- Oilseed Council
+- Optometry Board
+- Parks and Recreation
+- Petroleum Tank Release Compensation Fund
+- Pharmacy Board
+- Private Investigation and Security Board
+- Procurement
+- Protection and Advocacy Project
+- Public Employees Retirement System
+- Public Finance Authority- Formerly Municipal Bond Bank
+- Public Instruction
+- Public Service Commission
+- Racing Commission
+- Radio Communications
+- Real Estate Commission
+- Relay North Dakota
+- Retirement and Investment
+- Risk Management
+- Roughrider Industries
+- School for the Deaf
+- Secretary of State
+- Securities
+- Seed
+- Soybean Council
+- State Approving Agency
+- State Bonding Fund
+- State Fair
+- State Fire and Tornado Fund
+- State University
+- Supreme Court
+- Surplus Property
+- Tax Commissioner
+- Teachers' Fund for Retirement
+- Tobacco Prevention and Control Policy
+- Tourism
+- Transportation
+- Treasurer
+- Trust Lands
+- UND School of Medicine - Family Practice
+- Unclaimed Property
+- University System
+- University of North Dakota
+- Valley City State University
+- Vendor Registry
+- Veterans Affairs
+- Veterans Cemetery
+- Veterans Home
+- Veterinary Medical Examiners Board
+- Vision Services/School for the Blind
+- Vital Records- Birth, Death and Marriage Certificates
+- Vocational Rehabilitation
+- Water Resources
+- Wheat Commission
+- Williston State College
+- Workforce Development
+- Workforce Safety and Insurance
+
+### Same function, different title
+
+- Agriculture — agriculture
+- Insurance Commissioner — insurance
+- Real Estate Commission — real estate
+- Housing Finance Agency — housing
+- State Fire and Tornado Fund — fire protection
+- Firefighter's Association — fire protection
+- Environmental Quality — environmental protection
+- Labor and Human Rights — labor
+- Tax Commissioner — revenue
+- Transportation — transportation
+- Health and Human Services — health
+
+## Ohio
+
+| | |
+| --- | --- |
+| **Directory** | [ohio.gov/wps/portal/gov/site/help-center/state-directory](https://ohio.gov/wps/portal/gov/site/help-center/state-directory/) |
+| **Publisher** | State of Ohio (Ohio.gov Help Center) |
+| **Section** | State Directory (agency, board, or commission names as printed) |
+
+### Agency names (as printed)
+
+- Accountancy Board
+- Adjutant General
+- Administrative Services
+- Aging
+- Agriculture
+- Air Pollution Control
+- Air Quality Development Authority
+- ApprenticeOhio
+- Architects Board
+- Arts Council
+- Asian American Pacific Islander Advisory Council
+- Attorney General
+- Auditor
+- Behavioral Health
+- Broadcast Educational Media Commission
+- Budget and Management
+- Building Appeals Board
+- Building Standards Board
+- Bureau of Motor Vehicles
+- Business Gateway
+- Cannabis Control
+- Capitol Square Review and Advisory Board
+- Career Colleges and Schools Board
+- Casino Control Commission
+- Chemical Dependency Professionals Board
+- Children and Youth
+- Chiropractic Board
+- Civil Rights Commission
+- Clean Air Resource Center
+- Coastal Management
+- College Advantage
+- Commerce
+- Common Sense Initiative
+- Construction Industry Licensing Board
+- Consumers' Counsel
+- Controlling Board
+- Correctional Institution Inspection Committee
+- Cosmetology and Barber Board
+- Counselor, Social Worker, and Marriage and Family Therapist Board
+- Court of Claims
+- Criminal Justice Services
+- Deaf and Blind Education Services
+- Dental Board
+- Development
+- Developmental Disabilities Council
+- Developmental Disabilities Department
+- Dispute Resolution (Ohio Supreme Court)
+- Dr. Martin Luther King, Jr. Holiday Commission
+- Drinking and Ground Waters
+- Drive Ohio
+- Education and Workforce Department
+- Education Board
+- Elections Commission
+- Embalmers and Funeral Directors Board
+- Emergency Management Agency
+- Emergency Medical Services
+- Emergency Medical, Fire and Transportation Services Board
+- Engineering (ODNR)
+- Engineers and Surveyors Board
+- Environmental Health Specialist Program
+- Environmental Protection Agency
+- Environmental Review Appeals Commission
+- Ethics Commission
+- Executives of Long-term Services and Supports Board
+- Exposition Commission
+- Facilities Construction Commission
+- Family and Children First
+- Fatherhood Commission
+- Financial Institutions
+- Fire Marshal
+- Forestry
+- Geological Survey
+- Golden Buckeye Program
+- Governor
+- Grape Industries Committee
+- Health
+- Help Me Grow
+- Higher Education Department
+- Higher Educational Facility Commission
+- Highway Patrol
+- Homeland Security
+- House of Representatives
+- Housing Finance Agency
+- Human Trafficking Task Force
+- Industrial Commission
+- Industrial Compliance
+- Information Technology
+- InnovateOhio
+- Inspector General
+- Insurance
+- Investigative Unit
+- Job and Family Services
+- JobsOhio
+- Joint Committee on Agency Rule Review
+- Joint Legislative Ethics Committee
+- Joint Medicaid Oversight Committee
+- Judicial Conference
+- Labor Market Information
+- Lake Erie Commission
+- Landscape Architects Board
+- Latino Affairs Commission
+- Lean Ohio
+- Legislative Inspector General
+- Legislative Service Commission
+- Liquor Control Commission
+- Liquor Control Division
+- Long-Term Care Ombudsman Office
+- Lottery
+- Manufactured Homes Program
+- Materials and Waste Management
+- Medicaid
+- Medical Board
+- Military Reserve
+- Mineral Resources
+- Minority Health Commission
+- Motor Vehicle Repair Board
+- National Guard
+- Natural Areas and Preserves
+- Natural Resources
+- Naval Militia
+- New African Immigrants Commission
+- Notary Commission
+- Nursing Board
+- OARnet
+- Occupational Therapy, Physical Therapy, and Athletic Trainers Board
+- Ohio 9-1-1 Program Office
+- Ohio Channel
+- Ohio Educational Technology Conference
+- Ohio Film Office
+- Ohio for Responsible Gambling
+- Ohio History Connection
+- Ohio State Fair
+- Ohio Technology Consortium
+- Ohioana Library Association
+- Oil and Gas
+- Opportunities for Ohioans with Disabilities
+- Personnel Board of Review
+- Petroleum Underground Storage Tank Release Compensation Board
+- Pharmacy Board
+- Power Siting Board
+- Private Investigator Security Guard Services
+- Psychology Board
+- Public Defender
+- Public Safety
+- Public Utilities Commission
+- Public Works Commission
+- Racing Commission
+- Rail Development Commission
+- Real Estate and Professional Licensing
+- Rehabilitation and Correction
+- School for the Blind
+- School for the Deaf
+- Secretary of State
+- Securities
+- Senate
+- Senior Health Insurance Information Program
+- Service and Volunteerism Commission
+- Speech and Hearing Professionals Board
+- State and Federal Surplus
+- State Employment Relations Board
+- State Energy Program
+- State Library of Ohio
+- State Parks and Watercraft
+- Statehouse
+- Statehouse Museum Shop
+- Statehouse News Bureau
+- Supreme Court
+- Surface Water
+- Tax Appeals Board
+- Taxation
+- Third Frontier and Technology
+- TourismOhio
+- Traffic Safety Office
+- Transportation
+- Treasurer
+- Turnpike Commission
+- Unclaimed Funds
+- Unemployment Compensation Review
+- Utility Radiological Safety Board
+- Veterans Services
+- Veterinary Medical Licensing Board
+- Vision Professionals Board
+- Wage and Hour Administration
+- Water Development Authority
+- Water Resources
+- Wildlife
+- Workers' Compensation
+- Youth and Family Ombudsman
+- Youth Art Exhibition
+- Youth Services
+
+### Same function, different title
+
+- Agriculture — agriculture
+- Insurance — insurance
+- Real Estate and Professional Licensing — real estate
+- Housing Finance Agency — housing
+- Fire Marshal — fire protection
+- Environmental Protection Agency — environmental protection
+- Wage and Hour Administration — labor
+- Taxation — revenue
+- Transportation — transportation
+- Health — health
+
+## Oklahoma
+
+| | |
+| --- | --- |
+| **Directory** | [oklahoma.gov/content/dam/ok/en/libraries/documents/2023-abcs.pdf](https://oklahoma.gov/content/dam/ok/en/libraries/documents/2023-abcs.pdf) |
+| **Publisher** | Oklahoma Department of Libraries, Office of Public Information (ABC guide; also linked from oklahoma.gov state agency pages) |
+| **Section** | Oklahoma Agencies, Boards and Commissions (2023) — agency profile headings |
+
+The interactive [Find an Agency](https://oklahoma.gov/stateagency.html) page on oklahoma.gov loads the same roster by keyword. Profile headings below are taken from the Department of Libraries ABC PDF.
+
+### Agency names (as printed)
+
+- Abstractors Board, Oklahoma
+- Accountancy Board, Oklahoma
+- Aerospace and Aeronautics, Oklahoma Department of
+- Agriculture, Food, and Forestry; Department of
+- Alcohol and Drug Counselors, Oklahoma Board of Licensed
+- Anatomical Board of the State of Oklahoma
+- Board of Governors of the Licensed Architects, Landscape Architects, and Registered Interior Designers of Oklahoma
+- Arts Council, Oklahoma
+- Attorney General
+- Banking Department, Oklahoma State
+- Boll Weevil Eradication Organization, Oklahoma
+- Career and Technology Education, Oklahoma Department of
+- Cerebral Palsy Commission
+- Children and Youth, Commission on
+- Chiropractic Examiners, Board of
+- College Savings Plan, Board of Trustees
+- Conservation Commission, Oklahoma
+- Consumer Credit, Department of
+- Corporation Commission, Oklahoma
+- Corrections, State Department of
+- Crime Victims Compensation Board
+- Davis, J.M. Memorial Commission
+- Dentistry, Oklahoma Board of
+- Disability Concerns, Office of
+- District Attorneys Council
+- Education, State Board of
+- Education, State Department of
+- Educational Television Authority, Oklahoma
+- Election Board, State
+- Employment Security Commission, Oklahoma
+- Energy Resources Board, Oklahoma
+- Environmental Quality, Department of
+- Ethics Commission
+- Fire Marshal Commission, State
+- Forensic Center, Oklahoma
+- Grand River Dam Authority
+- Health Care Authority, Oklahoma
+- Health Care Workforce Training Commission, Oklahoma
+- Historic Preservation Review Committee, Oklahoma
+- Historical Society, Oklahoma
+- Horse Racing Commission, Oklahoma
+- Housing Finance Agency, Oklahoma
+- Human Services, Department of
+- Indigent Defense System, Oklahoma
+- Insurance Department
+- Investigation, Oklahoma State Bureau of
+- Juvenile Affairs, Office of
+- Labor, Department of
+- Land Office, Commissioners of the
+- Law Enforcement Education and Training, Council on (CLEET)
+- Law Enforcement Retirement System, Oklahoma
+- Libraries, Oklahoma Department of
+- Medical Licensure and Supervision, State Board of
+- Medicolegal Investigations, Board of
+- Military Department
+- Mines, Department of
+- Narcotics and Dangerous Drugs Control, Oklahoma State Bureau of
+- New Motor Vehicle Commission, Oklahoma
+- Office of the State Fire Marshal
+- Oklahoma Department of Civil Emergency Management
+- Oklahoma Real Estate Commission
+- Optometry, Board of Examiners In
+- Osteopathic Examiners, State Board of
+- Pardon and Parole Board
+- Pharmacy, Board of
+- Podiatric Medical Examiners, Oklahoma State Board of
+- Police Pension and Retirement System, Oklahoma
+- Private Vocational Schools, Oklahoma Board of
+- Psychologists, State Board of Examiners of
+- Public Employees Retirement System, Oklahoma
+- Real Estate Appraisers Board
+- Rehabilitation Services, Oklahoma Department of
+- Safety, Department of Public
+- School of Science and Mathematics, Oklahoma
+- Science and Technology Research and Development Board, Oklahoma
+- Secretary of State, Office of
+- Social Workers, Oklahoma State Board of Licensed
+- Space Industry Development Authority, Oklahoma
+- Speech-Language Pathology and Audiology, Board of Examiners for
+- State Department of Health
+- Tax Commission, Oklahoma
+- Tobacco Settlement Endowment Trust Fund, Board of Directors of the
+- Tourism and Recreation Department, Oklahoma
+- Transportation, Department of
+- Turnpike Authority, Oklahoma
+- University Hospitals Authority
+- Veterans Affairs, Oklahoma Department of
+- Veterinary Medical Examiners, Board of
+- Water Resources Board, Oklahoma
+
+### Same function, different title
+
+- Agriculture, Food, and Forestry; Department of — agriculture
+- Insurance Department — insurance
+- Oklahoma Real Estate Commission — real estate
+- Real Estate Appraisers Board — real estate
+- Housing Finance Agency, Oklahoma — housing
+- Fire Marshal Commission, State — fire protection
+- Office of the State Fire Marshal — fire protection
+- Environmental Quality, Department of — environmental protection
+- Labor, Department of — labor
+- Tax Commission, Oklahoma — revenue
+- Transportation, Department of — transportation
+- State Department of Health — health
+- Health Care Authority, Oklahoma — health
+
+## Oregon
+
+| | |
+| --- | --- |
+| **Directory** | [www.oregon.gov/Pages/agencies.aspx](https://www.oregon.gov/Pages/agencies.aspx) |
+| **Publisher** | State of Oregon (oregon.gov) |
+| **Section** | Find an Oregon Agency, Entity, or Local Jurisdiction (state entries only; city and county rows on the same page are omitted here) |
+
+### Agency names (as printed)
+
+- Accountancy, Board of
+- Administrative Hearings, Office of
+- Administrative Services, Department of
+- Advocacy Commissions Office, Oregon
+- Agriculture, Oregon Department of
+- Appraiser Certification and Licensure Board
+- Architect Examiners, Oregon State Board of
+- Archives, Oregon State
+- Arts Commission, Oregon
+- Asian and Pacific Islander Affairs, Oregon Commission on
+- Athletic Trainers, Board of
+- Audits Division
+- Aviation, Department of
+- Bar, Oregon State
+- Black Affairs, Oregon Commission on
+- Blind, Oregon Commission for the
+- Building Codes Division
+- Business Oregon
+- Business Services Division
+- Chief Operating Officer, Office of the
+- Chiropractic Examiners, Oregon Board of
+- Columbia River Gorge Commission
+- Construction Contractors Board
+- Consumer and Business Services, Department of
+- Corrections Enterprises, Oregon
+- Corrections, Department of
+- Cosmetology, Board of
+- Court Procedures, Council on
+- Court of Appeals
+- Criminal Justice Commission
+- Cultural Trust, Oregon
+- Dentistry, Board of
+- Denture Technology, Board of
+- Direct Entry Midwifery, Board of
+- Driver and Motor Vehicle Services, Oregon
+- Early Learning and Care, Oregon Department of
+- Economic Analysis, Office of
+- Education, Oregon Department of
+- Educators Benefit Board, Oregon
+- Elections Division
+- Electrologists and Body Art Practitioners, Board of
+- Electronic Portal Advisory Board
+- Emergency Management, Department of
+- Employment Department
+- Employment Relations Board
+- Energy, Department of
+- Enterprise Information Services
+- Environmental Health Registration Board
+- Environmental Quality, Department of
+- Examiners for Engineering and Land Surveying, Board of
+- Examiners for Speech-Language Pathology and Audiology, Board of
+- Fair Council, Oregon State
+- Fair, Oregon State
+- Film Office, Oregon
+- Financial Regulation, Division of
+- Fire Marshal, Oregon State
+- Fish and Wildlife, Oregon Department of
+- Forestry, Oregon Department of
+- Geologist Examiners, Oregon State Board of
+- Geology and Mineral Industries, Department of
+- Government Ethics Commission, Oregon
+- Governor of Oregon
+- Health & Science University, Oregon
+- Health Authority, Oregon
+- Health Evidence Review Commission
+- Health Insurance Marketplace, Oregon
+- Health Licensing Office
+- Health Policy and Analytics Division
+- Health Policy, Office of
+- Healthcare Acquired Infection Advisory Committee
+- Hearing Aids, Advisory Council on
+- Higher Education Coordinating Commission
+- Hispanic Affairs, Commission on
+- Housing and Community Services, Oregon
+- Human Services, Oregon Department of
+- Independent Living Council, State
+- Institute of Technology, Oregon
+- Interoperability Executive Council, State
+- Invasive Species Council, Oregon
+- Judicial Department, Oregon
+- Judicial Fitness and Disability, Commission on
+- Justice, Department of
+- Labor and Industries, Bureau of
+- Land Conservation and Development, Department of
+- Land Use Board of Appeals
+- Landscape Architect Board, Oregon State
+- Landscape Contractors Board
+- Law Library, State of Oregon
+- Legislative Administration Committee
+- Legislative Commission on Indian Services
+- Legislative Counsel, Office of
+- Legislative Fiscal Office
+- Legislative Revenue Office
+- Legislature, Oregon State
+- Library of Oregon, State
+- Licensed Dietitians, Board of
+- Licensed Professional Counselors and Therapists, Board of
+- Licensed Social Workers, Board of
+- Liquor and Cannabis Commission, Oregon
+- Long Term Care Administrators Board
+- Long-Term Care Ombudsman
+- Lottery, Oregon State
+- Marine Board, Oregon State
+- Marine Fisheries Commission, Pacific States
+- Massage Therapists, Oregon Board of
+- Medicaid Advisory Committee
+- Medical Board, Oregon
+- Medical Examiner, State
+- Medical Imaging, Oregon Board of
+- Military Department, Oregon
+- Mortuary and Cemetery Board, Oregon
+- Naturopathic Medicine, Oregon Board of
+- Nursing, Oregon State Board of
+- Occupational Safety and Health Division, Oregon
+- Occupational Therapy Licensing Board
+- Optometry, Oregon Board of
+- Pain Management Commission, Oregon
+- Parks and Recreation, Oregon
+- Parole and Post-Prison Supervision, Board of
+- Patient Safety Commission, Oregon
+- Performance Reporting Information System
+- Pharmacy, Oregon State Board of
+- Physical Therapist Licensing Board
+- Physician Credentialing Information, Advisory Committee on
+- Police, Oregon State
+- Power and Conservation Council, Northwest
+- Prescription Drug Program, Oregon
+- Psychiatric Security Review Board
+- Psychology, Oregon Board of
+- Public Defense Commission, Oregon
+- Public Employees Retirement System
+- Public Employees' Benefits Board
+- Public Health Division
+- Public Safety Standards and Training, Department of
+- Public Utility Commission of Oregon
+- Racing Commission, Oregon
+- Real Estate Agency, Oregon
+- Respiratory Therapist and Polysomnographic Technologist Licensing Board
+- Revenue, Department of
+- Salmon and Watersheds, Oregon Plan for
+- School Boards Association, Oregon
+- Secretary of State
+- Senior Health Insurance Benefits Assistance Program
+- Sex Offender Treatment Board
+- Small Business Assistance, Office of
+- Special Districts Association of Oregon
+- State Lands, Department of
+- Supreme Court, Oregon
+- Tax Court
+- Tax Practitioner, Oregon Board of
+- Teacher Standards and Practices Commission
+- Transportation, Oregon Department of
+- Travel Information Council
+- Travel Oregon
+- Treasurer, Oregon State
+- University of Oregon
+- University, Oregon State
+- Veterans' Affairs, Oregon Department of
+- Veterinary Medical Examining Board
+- Water Resources Department
+- Watershed Enhancement Board, Oregon
+- Wine Board, Oregon
+- Women, Oregon Commission for
+- Workers' Compensation Board
+- Workers' Compensation Division
+- Workforce and Talent Development Board
+- Worksource Oregon
+- Youth Authority, Oregon
+
+### Same function, different title
+
+- Agriculture, Oregon Department of — agriculture
+- Appraiser Certification and Licensure Board — real estate
+- Real Estate Agency, Oregon — real estate
+- Housing and Community Services, Oregon — housing
+- Fire Marshal, Oregon State — fire protection
+- Environmental Quality, Department of — environmental protection
+- Labor and Industries, Bureau of — labor
+- Revenue, Department of — revenue
+- Transportation, Oregon Department of — transportation
+- Health Authority, Oregon — health
+- Public Health Division — health
+
+## Pennsylvania
+
+| | |
+| --- | --- |
+| **Directory** | [www.pa.gov/agencies/dgs/programs-and-services/commonwealth-phone-directory](https://www.pa.gov/agencies/dgs/programs-and-services/commonwealth-phone-directory) |
+| **Publisher** | Department of General Services, Commonwealth of Pennsylvania |
+| **Section** | Commonwealth Telephone Directory — Individual Agency Listings (plus Department of Aging and Department of Agriculture named in the directory abbreviations) |
+
+### Agency names (as printed)
+
+- Administrative Office of Pennsylvania Courts
+- Board of Claims
+- Capitol Preservation Committee
+- Center for Rural Pennsylvania
+- Commission On Sentencing
+- Commonwealth Court
+- Court of Judicial Discipline
+- Department of Aging
+- Department of Agriculture
+- Department of Auditor General
+- Department of Banking and Securities
+- Department of Community and Economic Development
+- Department of Conservation and Natural Resources
+- Department of Corrections
+- Department of Drug and Alcohol Programs
+- Department of Education
+- Department of Environmental Protection
+- Department of General Services
+- Department of Health
+- Department of Human Services
+- Department of Labor and Industry
+- Department of Military and Veterans Affairs
+- Department of Revenue
+- Department of State
+- Department of Transportation
+- Governor's Advisory Commission on African American Affairs
+- Governor's Advisory Commission on Asian American & Pacific Islander Affairs
+- Governor's Advisory Commission on Latino Affairs
+- Governor's Advisory Commission on LGBTQ Affairs
+- Governor’s Advisory Commission on Next Generation Engagement
+- Governor's Advisory Commission on Women
+- Governor's Office
+- House of Representatives
+- Independent Regulatory Review Commission
+- Insurance Department
+- Joint State Government Commission
+- Judicial Conduct Board
+- Judicial Ethics Advisory Board
+- Juvenile Court Judges Commission
+- Legislative Budget and Finance Committee
+- Legislative Data Processing Center
+- Legislative Reference Bureau
+- Local Government Commission
+- Milk Board
+- Office of Administration
+- Office of Attorney General
+- Office of General Counsel
+- Office of State Inspector General
+- Office of the Budget
+- Office of the Comptroller
+- Office of the Lieutenant Governor
+- Patient Safety Authority
+- Pennsylvania Commission on Crime and Delinquency
+- Pennsylvania Council on the Arts
+- Pennsylvania Emergency Management Agency
+- Pennsylvania Environmental Hearing Board
+- Pennsylvania Fish and Boat Commission
+- Pennsylvania Game Commission
+- Pennsylvania Gaming Control Board
+- Pennsylvania Health Care Cost Containment Council
+- Pennsylvania Higher Education Assistance Agency
+- Pennsylvania Higher Education Facilities Authority
+- Pennsylvania Historical and Museum Commission
+- Pennsylvania Housing Finance Agency
+- Pennsylvania Human Relations Commission
+- Pennsylvania Infrastructure Investment Authority
+- Pennsylvania Intergovernmental Cooperation Authority
+- Pennsylvania Liquor Control Board
+- Pennsylvania Municipal Retirement System
+- Pennsylvania Parole Board
+- Pennsylvania Public School Employees' Retirement System
+- Pennsylvania Public Utility Commission
+- Pennsylvania State Data Center
+- Pennsylvania State Employees' Credit Union
+- Pennsylvania State Employees' Retirement System
+- Pennsylvania State Police
+- Pennsylvania State System of Higher Education
+- Pennsylvania Treasury
+- Pennsylvania Turnpike Commission
+- Senate of Pennsylvania
+- State Civil Service Commission
+- State Ethics Commission
+- State Public School Building Authority
+- Superior Court
+- Supreme Court
+
+### Same function, different title
+
+- Department of Agriculture — agriculture
+- Insurance Department — insurance
+- Pennsylvania Housing Finance Agency — housing
+- Department of Environmental Protection — environmental protection
+- Department of Labor and Industry — labor
+- Department of Revenue — revenue
+- Department of Transportation — transportation
+- Department of Health — health
+- Pennsylvania Health Care Cost Containment Council — health
+
+## Rhode Island
+
+| | |
+| --- | --- |
+| **Directory** | [www.ri.gov/guide/index.php](https://www.ri.gov/guide/index.php) |
+| **Publisher** | State of Rhode Island (RI.gov) |
+| **Section** | All Rhode Island Agencies A–Z (state entries; city and town rows on the same guide are omitted here) |
+
+### Agency names (as printed)
+
+- Accounts and Control, Office of
+- Administration, Department of
+- Aging and Disabilities Resource Center
+- Airport, T.F. Green International
+- Arts, Rhode Island State Council on the
+- Assistive Technology Project
+- Attorney General, Office of the
+- Auditor General, Office of
+- Audits, Bureau of
+- Automobile Emissions and Testing Program
+- Behavioral Healthcare, Developmental Disabilities and Hospitals, Department of
+- Budget Office, RI State
+- Business Regulation, Department of
+- Campaign Finance
+- Child Advocate, Office of the
+- Child Support, Rhode Island
+- Children, Youth, and Families, Department of
+- Clean Water Finance Agency
+- Coastal Resources Management Council
+- College Planning Center of Rhode Island
+- Commerce Corporation
+- Contractors' Registration Board
+- Corrections, Department of
+- Deaf and Hard of Hearing, Commission on the
+- Design Professionals, Board of
+- Developmental Disabilities Council
+- Disabilities, Governors Commission on
+- Education, Department of Elementary and Secondary
+- Elderly Affairs, Department of
+- Elections, Board of
+- Emergency 911
+- Emergency Management Agency
+- Employees' Retirement System of RI
+- Energy Office
+- Environmental Management, Department of
+- Ethics Commission
+- Film Office
+- Fire Marshal's Office, State
+- Fire Safety Code Board of Appeal and Review
+- General Assembly
+- General Treasurer, Office of the
+- Governor's Workforce Board
+- Governor, Office of
+- Health and Human Services, Executive Office of
+- Health Insurance Commissioner, The Office of
+- Health, Department of
+- Higher Education, Board of Governors for
+- Historical Cemetery Commission
+- Historical Preservation and Heritage Commission
+- Housing Resources Commission
+- Human Resources, Division of
+- Human Rights, Commission for
+- Human Services, Department of
+- Humanities, Council for the
+- Information Technology, Office of
+- Judiciary, RI State
+- Labor and Training, Department of
+- Library and Information Service, Office of
+- Lieutenant Governor, Office of the
+- Lottery Commission
+- Minority Business Enterprise
+- Motor Vehicles, Division of
+- Municipal Finance, Division of
+- National Guard
+- Ocean State Clean Cities Coalition
+- Parks & Recreation, Division of
+- Parole Board & Sex Offender Community Notification Unit
+- Postsecondary Commissioner, Office of
+- Providence Warwick Convention & Visitors Bureau
+- Public Defender's Office
+- Public Safety Grant Administration Office
+- Public Transit Authority
+- Public Utilities Commission
+- Purchases, Division of
+- Rehabilitation Building and Fire Code for Existing Buildings and Structures
+- Rehabilitation Services, Office of
+- Resource Recovery Corporation
+- Revenue, Department of
+- Rhode Island Housing
+- Secretary of State, Office of the
+- Sheriff's Department
+- State Police
+- Statewide Planning Program
+- Student Loan Authority, Rhode Island
+- Taxation, Division of
+- Tourism, Division of
+- Transportation, Department of
+- Turnpike and Bridge Authority
+- Water Resources Board
+- Women, Commission on
+- Women, Rhode Island Commission on
+
+### Same function, different title
+
+- Health Insurance Commissioner, The Office of — insurance
+- Housing Resources Commission — housing
+- Rhode Island Housing — housing
+- Fire Marshal's Office, State — fire protection
+- Fire Safety Code Board of Appeal and Review — fire protection
+- Rehabilitation Building and Fire Code for Existing Buildings and Structures — fire protection
+- Environmental Management, Department of — environmental protection
+- Labor and Training, Department of — labor
+- Revenue, Department of — revenue
+- Taxation, Division of — revenue
+- Transportation, Department of — transportation
+- Health, Department of — health
+- Health and Human Services, Executive Office of — health
+
+## South Carolina
+
+| | |
+| --- | --- |
+| **Directory** | [sc.gov/government/getting-know-your-government/agency-listing](https://sc.gov/government/getting-know-your-government/agency-listing) |
+| **Publisher** | State of South Carolina (sc.gov) |
+| **Section** | Agency Listing |
+
+### Agency names (as printed)
+
+- Adjutant General's Office
+- Administrative Law Court
+- Area Health Education Consortium
+- Arts Commission
+- Attorney General's Office
+- Commission for Community Advancement and Engagement
+- Commission for the Blind
+- Commission on Higher Education
+- Commission on Indigent Defense
+- Comptroller General's Office
+- Confederate Relic Room and Military Museum
+- Department of Administration
+- Department of Agriculture
+- Department of Archives and History
+- Department of Behavioral Health and Developmental Disabilities
+- Department of Children's Advocacy
+- Department of Commerce
+- Department of Consumer Affairs
+- Department of Corrections
+- Department of Education
+- Department of Employment and Workforce
+- Department of Environmental Services
+- Department of Health and Human Services
+- Department of Insurance
+- Department of Juvenile Justice
+- Department of Labor, Licensing and Regulation
+- Department of Motor Vehicles
+- Department of Natural Resources
+- Department of Parks, Recreation, and Tourism
+- Department of Probation, Parole and Pardon Services
+- Department of Public Health
+- Department of Public Safety
+- Department of Revenue
+- Department of Social Services
+- Department of Transportation
+- Department of Veterans' Affairs
+- Department on Aging
+- Division of Aeronautics
+- Education Oversight Committee
+- Educational Television and Public Radio
+- Election Commission
+- First Steps
+- Forestry Commission
+- Governor's Office
+- Governor's Office: Mansion and Grounds
+- Governor's School for Agriculture at John De La Howe
+- Governor's School for Science and Mathematics
+- Governor's School for the Arts and Humanities
+- Higher Education Tuition Grants Commission
+- Housing Finance and Development Authority
+- Human Affairs Commission
+- Judicial Department
+- Legislative Audit Council
+- Legislative Services Agency
+- Lottery Commission
+- Office of Regulatory Staff
+- Office Of Resilience
+- Office of the Commissioner of Banking
+- Office of the State Auditor
+- Office of the State Inspector General
+- Office of the State Treasurer
+- Palmetto Railways
+- Patriots Point Development Authority
+- Procurement Review Panel
+- Prosecution Coordination Commission
+- Public Employee Benefit Authority
+- Public Service Authority: Santee Cooper
+- Public Service Commission
+- Retirement System Investment Commission
+- Revenue and Fiscal Affairs Office
+- Rural Infrastructure Authority
+- SC Jobs: Economic Development Authority
+- School for the Deaf and the Blind
+- Sea Grant Consortium
+- Secretary of State's Office
+- South Carolina Conservation Bank
+- South Carolina House of Representatives
+- South Carolina Law Enforcement Division
+- South Carolina Legislative Council
+- South Carolina Research Authority
+- South Carolina Senate
+- South Carolina State University: Public Service Activities
+- State Accident Fund
+- State Board for Technical and Comprehensive Education
+- State Board of Financial Institutions
+- State Ethics Commission
+- State Fiscal Accountability Authority
+- State Library
+- State Museum Commission
+- State Ports Authority
+- Transportation Infrastructure Bank
+- Vocational Rehabilitation Department
+- Wil Lou Gray Opportunity School
+- Workers' Compensation Commission
+
+### Same function, different title
+
+- Department of Agriculture — agriculture
+- Governor's School for Agriculture at John De La Howe — agriculture
+- Department of Insurance — insurance
+- Housing Finance and Development Authority — housing
+- Department of Environmental Services — environmental protection
+- Department of Labor, Licensing and Regulation — labor
+- Department of Revenue — revenue
+- Revenue and Fiscal Affairs Office — revenue
+- Department of Transportation — transportation
+- Transportation Infrastructure Bank — transportation
+- Department of Public Health — health
+- Department of Health and Human Services — health
+- Area Health Education Consortium — health

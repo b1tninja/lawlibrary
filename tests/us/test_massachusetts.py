@@ -37,6 +37,7 @@ def test_sections_from_local_html():
     try:
         rows = list(MassachusettsGeneralLaws().sections(path))
         assert len(rows) >= 2
+        assert all(r['SUBDIVISION'] == Massachusetts.code for r in rows)
         assert rows[0]['SECTION_NUM'] == '1'
         assert 'consumer protection' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '2'

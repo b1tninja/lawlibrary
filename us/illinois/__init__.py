@@ -1,4 +1,8 @@
-"""Illinois Compiled Statutes — ilga.gov FTP HTML tree."""
+"""Illinois Compiled Statutes — ilga.gov FTP HTML tree.
+
+Directory of section HTML at https://www.ilga.gov/ftp/ILCS/ (not one zip).
+The FTP readme says the print at the Secretary of State is the official copy.
+"""
 
 import os
 import re
@@ -24,6 +28,14 @@ def _html_to_text(html):
     return html2text.HTML2Text(bodywidth=0).handle(html)
 
 
+def _row(section_num, legal_text):
+    return {
+        'SECTION_NUM': section_num,
+        'LEGAL_TEXT': legal_text,
+        'SUBDIVISION': Illinois.code,
+    }
+
+
 class IllinoisCompiledStatutes(Publication):
     """One saved ILCS section HTML file from the FTP tree."""
 
@@ -42,18 +54,18 @@ class IllinoisCompiledStatutes(Publication):
                 end = ilcs[i + 1].start() if i + 1 < len(ilcs) else len(text)
                 body = text[start:end].strip()
                 num = '%s ILCS %s/%s' % match.groups()
-                yield {'SECTION_NUM': num, 'LEGAL_TEXT': body}
+                yield _row(num, body)
             return
         matches = list(_SEC_RE.finditer(text))
         if not matches:
             stem = os.path.splitext(os.path.basename(path))[0]
-            yield {'SECTION_NUM': stem, 'LEGAL_TEXT': text}
+            yield _row(stem, text)
             return
         for i, match in enumerate(matches):
             start = match.start()
             end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
             body = text[start:end].strip()
-            yield {'SECTION_NUM': match.group(1), 'LEGAL_TEXT': body}
+            yield _row(match.group(1), body)
 
 
 class Illinois(State):
@@ -63,3 +75,6 @@ class Illinois(State):
 
     def list_editions(self):
         return [SOURCE]
+
+    def edition(self, path):
+        return IllinoisCompiledStatutes()

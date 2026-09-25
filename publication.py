@@ -33,10 +33,17 @@ class Instrument(enum.Enum):
     STATUTE = 'statute'
     MEASURE = 'measure'
     REGULATION = 'regulation'
+    RULE = 'rule'
+    MANUAL = 'manual'
 
 
 class Publication(ABC):
-    """Parser for one shape of official publication."""
+    """Parser that yields the plain text of an official publication.
+
+    PDF and HTML are in the way of that text. Prefer plain text or Word, then
+    an XML-like file (XML, SGML, CAML) over HTML or PDF of the same code.
+    ``sections`` yields those words, not the page.
+    """
 
     instrument = None
 

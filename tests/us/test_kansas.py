@@ -40,6 +40,7 @@ def test_sections_from_local_html():
     try:
         rows = list(KansasStatutes().sections(path))
         assert len(rows) >= 2
+        assert all(r['SUBDIVISION'] == Kansas.code for r in rows)
         assert rows[0]['SECTION_NUM'] == '50-6,146'
         assert 'Age verification' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '50-636'

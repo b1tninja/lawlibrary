@@ -38,6 +38,7 @@ def test_sections_from_local_html():
     try:
         rows = list(MinnesotaStatutes().sections(path))
         assert len(rows) >= 2
+        assert all(r['SUBDIVISION'] == Minnesota.code for r in rows)
         assert rows[0]['SECTION_NUM'] == '645.08'
         assert 'canons' in rows[0]['LEGAL_TEXT'].lower()
         assert rows[1]['SECTION_NUM'] == '645.16'

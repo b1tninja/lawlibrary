@@ -44,6 +44,7 @@ def test_sections_from_local_html():
     try:
         rows = list(DelawareChapter().sections(path))
         assert len(rows) >= 2
+        assert all(r['SUBDIVISION'] == Delaware.code for r in rows)
         assert rows[0]['SECTION_NUM'] == '101'
         assert 'Delaware Code' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '102'

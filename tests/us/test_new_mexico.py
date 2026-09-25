@@ -37,6 +37,7 @@ def test_sections_from_local_html():
         rows = list(NewMexico().sections(path))
         assert len(rows) >= 2
         assert rows[0]['SECTION_NUM'] == '30-1-1'
+        assert rows[0]['SUBDIVISION'] == 'US-NM'
         assert 'Criminal Code' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '30-1-2'
         assert 'Definitions' in rows[1]['LEGAL_TEXT']

@@ -1,4 +1,12 @@
-"""Indiana Code — iga.in.gov HTML zip downloads."""
+"""Indiana Code — local HTML (HTML zip when a real archive is available).
+
+The Legislative Services Agency downloads page
+(https://iga.in.gov/laws/ic/downloads) is a JavaScript app shell. Probed zip
+URL candidates return text/html, not a zip payload, so there is no confirmed
+bulk file URL to fetch. This edition parses local .html/.htm files, or a local
+zip containing such files, saved from an official distribution when one is
+available.
+"""
 
 import os
 import re
@@ -21,38 +29,52 @@ def _html_to_text(html):
     return html2text.HTML2Text(bodywidth=0).handle(html)
 
 
-def _read_html_from_zip(path):
-    with zipfile.ZipFile(path) as zf:
-        for info in zf.infolist():
-            if info.is_dir():
-                continue
-            ext = os.path.splitext(info.filename)[1].lower()
-            if ext in ('.html', '.htm'):
-                with zf.open(info) as fh:
-                    return info.filename, fh.read().decode('utf-8', errors='replace')
-    raise FileNotFoundError('no .html in %s' % path)
+def _row(section_num, legal_text):
+    return {
+        'SECTION_NUM': section_num,
+        'LEGAL_TEXT': legal_text,
+        'SUBDIVISION': Indiana.code,
+    }
+
+
+def _yield_from_html(html, stem):
+    text = _html_to_text(html)
+    matches = list(_SECTION_RE.finditer(text))
+    if not matches:
+        yield _row(stem, text)
+        return
+    for i, match in enumerate(matches):
+        start = match.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        body = text[start:end].strip()
+        yield _row(match.group(1), body)
 
 
 class IndianaCode(Publication):
-    """Full-code HTML zip from the Legislative Services Agency downloads page."""
+    """Local Indiana Code HTML, or a zip of HTML files."""
 
     @classmethod
     def accepts(cls, names):
         return True
 
     def sections(self, path):
-        name, html = _read_html_from_zip(path)
-        text = _html_to_text(html)
-        matches = list(_SECTION_RE.finditer(text))
-        if not matches:
-            stem = os.path.splitext(os.path.basename(name))[0]
-            yield {'SECTION_NUM': stem, 'LEGAL_TEXT': text}
+        if zipfile.is_zipfile(path):
+            with zipfile.ZipFile(path) as zf:
+                for info in zf.infolist():
+                    if info.is_dir():
+                        continue
+                    ext = os.path.splitext(info.filename)[1].lower()
+                    if ext not in ('.html', '.htm'):
+                        continue
+                    with zf.open(info) as fh:
+                        html = fh.read().decode('utf-8', errors='replace')
+                    stem = os.path.splitext(os.path.basename(info.filename))[0]
+                    yield from _yield_from_html(html, stem)
             return
-        for i, match in enumerate(matches):
-            start = match.start()
-            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-            body = text[start:end].strip()
-            yield {'SECTION_NUM': match.group(1), 'LEGAL_TEXT': body}
+        with open(path, encoding='utf-8', errors='replace') as fh:
+            html = fh.read()
+        stem = os.path.splitext(os.path.basename(path))[0]
+        yield from _yield_from_html(html, stem)
 
 
 class Indiana(State):
@@ -64,5 +86,4 @@ class Indiana(State):
         return [SOURCE]
 
     def edition(self, path):
-        # Zip of HTML, not California .dat tables.
         return IndianaCode()

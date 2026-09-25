@@ -1,7 +1,6 @@
-import logging
-import os
+"""Process logging. Paths live in ``core``."""
 
-data_dir = os.getenv('MOUNT_DIRECTORY', 'data')
+import logging
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

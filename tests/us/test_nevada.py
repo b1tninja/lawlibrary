@@ -37,6 +37,7 @@ def test_sections_from_local_html():
         rows = list(Nevada().sections(path))
         assert len(rows) >= 2
         assert rows[0]['SECTION_NUM'] == '1.010'
+        assert rows[0]['SUBDIVISION'] == 'US-NV'
         assert 'courts of justice' in rows[0]['LEGAL_TEXT'].lower()
         assert rows[1]['SECTION_NUM'] == '1.020'
         assert 'courts of record' in rows[1]['LEGAL_TEXT'].lower()

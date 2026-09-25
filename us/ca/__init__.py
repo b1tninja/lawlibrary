@@ -25,6 +25,14 @@ ENCODING = 'utf-8'
 CURRENT_YEAR = datetime.datetime.today().year
 PUBINFO_INDEX = 'https://downloads.leginfo.legislature.ca.gov/'
 LAW_DATS = ('CODES_TBL', 'LAW_TOC_TBL', 'LAW_SECTION_TBL', 'LAW_TOC_SECTIONS_TBL')
+# pubinfo_YYYY.zip table-set eras (core BILL_VERSION / LAW_SECTION columns stay 18):
+#   1989-1991  bills only (3 .dat)
+#   1993-1997  + BILL_ANALYSIS_TBL
+#   1999-2001  votes / history / legislators
+#   2003-2009  + COMMITTEE_HEARING_TBL
+#   2011-2013  codes appear (17 .dat); no COMMITTEE_AGENDA_TBL
+#   2015-2025  + COMMITTEE_AGENDA_TBL (18 .dat)
+# Codes tables (LAW_SECTION_TBL) exist from 2011 on. Earlier zips are measures only.
 HEADING_LEVELS = (
     ('DIVISION', 'DIVISION_HEADING'),
     ('TITLE', 'TITLE_HEADING'),
@@ -182,6 +190,27 @@ def datetime_fromiso(dt):
     return datetime.datetime.strptime(dt, '%Y-%m-%d %H:%M:%S')
 
 
+def rstrip_dot(value):
+    return value.rstrip('.') if value else value
+
+
+def zip_dat_names(path):
+    """Stem names of every .dat inside a pubinfo zip."""
+    with zipfile.ZipFile(path) as zf:
+        return {os.path.splitext(os.path.basename(info.filename))[0]
+                for info in zf.infolist()
+                if os.path.splitext(info.filename)[1].lower() == '.dat'}
+
+
+def iter_dat_rows(zf, stem):
+    """Yield parsed rows from one .dat table stem inside an open zip."""
+    for info in zf.infolist():
+        name, ext = os.path.splitext(os.path.basename(info.filename))
+        if ext.lower() == '.dat' and name == stem:
+            yield from read_rows_from_zipped(zf, info)
+            return
+
+
 @starg
 def LawTocTblDict(LAW_CODE, DIVISION, TITLE, PART, CHAPTER, ARTICLE, HEADING, ACTIVE_FLG, TRANS_UID, TRANS_UPDATE,
                   NODE_SEQUENCE, NODE_LEVEL, NODE_POSITION, NODE_TREEPATH, CONTAINS_LAW_SECTIONS, HISTORY_NOTE,
@@ -222,8 +251,7 @@ def LawTocTblDict(LAW_CODE, DIVISION, TITLE, PART, CHAPTER, ARTICLE, HEADING, AC
 def LawTocSectionsTblDict(ID, LAW_CODE, NODE_TREEPATH, SECTION_NUM, SECTION_ORDER, TITLE, OP_STATUES, OP_CHAPTER,
                           OP_SECTION, TRANS_UID, TRANS_UPDATE, LAW_SECTION_VERSION_ID, SEQ_NUM):
     NODE_TREEPATH = tuple(map(int, NODE_TREEPATH.split('.'))) if NODE_TREEPATH else ()
-    if SECTION_NUM:
-        SECTION_NUM = SECTION_NUM.rstrip('.')
+    SECTION_NUM = rstrip_dot(SECTION_NUM)
     TRANS_UPDATE = datetime_fromiso(TRANS_UPDATE)
     return dict(**locals())
 
@@ -236,26 +264,13 @@ def LawSectionTblDict(PK, LAW_CODE, SECTION_NUM, OP_STATUES, OP_CHAPTER, OP_SECT
     if EFFECTIVE_DATE is not None:
         EFFECTIVE_DATE = datetime_fromiso(EFFECTIVE_DATE)  # .date()
 
-    if DIVISION:
-        DIVISION = DIVISION.rstrip('.')
-
-    if TITLE:
-        TITLE = TITLE.rstrip('.')
-
-    if PART:
-        PART = PART.rstrip('.')
-
-    if CHAPTER:
-        CHAPTER = CHAPTER.rstrip('.')
-
-    if ARTICLE:
-        ARTICLE = ARTICLE.rstrip('.')
-
-    if SECTION_NUM:
-        SECTION_NUM = SECTION_NUM.rstrip('.')
-
+    DIVISION = rstrip_dot(DIVISION)
+    TITLE = rstrip_dot(TITLE)
+    PART = rstrip_dot(PART)
+    CHAPTER = rstrip_dot(CHAPTER)
+    ARTICLE = rstrip_dot(ARTICLE)
+    SECTION_NUM = rstrip_dot(SECTION_NUM)
     ACTIVE_FLG = 'Y' == ACTIVE_FLG
-
     TRANS_UPDATE = datetime_fromiso(TRANS_UPDATE)
 
     return dict(**locals())
@@ -285,6 +300,37 @@ def deepest_heading(DIVISION, TITLE, PART, CHAPTER, ARTICLE):
     if DIVISION:
         return 'DIVISION_HEADING'
     return None
+
+
+def heading_fields(DIVISION_HEADING, TITLE_HEADING, PART_HEADING, CHAPTER_HEADING,
+                   ARTICLE_HEADING, ARTICLE_HISTORY):
+    return dict(**locals())
+
+
+def toc_headings(LAW_CODE, NODE_TREEPATH, toc_by_path):
+    """Walk parent NODE_TREEPATH prefixes; shared by every LAW_SECTION edition."""
+    DIVISION_HEADING = TITLE_HEADING = PART_HEADING = CHAPTER_HEADING = ARTICLE_HEADING = ''
+    ARTICLE_HISTORY = ''
+    for i in range(1, len(NODE_TREEPATH) + 1):
+        try:
+            node = toc_by_path[LAW_CODE, NODE_TREEPATH[:i]]
+        except KeyError:
+            continue
+        level = deepest_heading(node.DIVISION, node.TITLE, node.PART, node.CHAPTER, node.ARTICLE)
+        HEADING = node.HEADING or ''
+        if level == 'DIVISION_HEADING':
+            DIVISION_HEADING = HEADING
+        elif level == 'TITLE_HEADING':
+            TITLE_HEADING = HEADING
+        elif level == 'PART_HEADING':
+            PART_HEADING = HEADING
+        elif level == 'CHAPTER_HEADING':
+            CHAPTER_HEADING = HEADING
+        elif level == 'ARTICLE_HEADING':
+            ARTICLE_HEADING = HEADING
+            ARTICLE_HISTORY = node.HISTORY_NOTE or ''
+    return heading_fields(DIVISION_HEADING, TITLE_HEADING, PART_HEADING, CHAPTER_HEADING,
+                          ARTICLE_HEADING, ARTICLE_HISTORY)
 
 
 def section_overlay(CODE_HEADING, DIVISION_HEADING, TITLE_HEADING, PART_HEADING, CHAPTER_HEADING,
@@ -323,7 +369,7 @@ def format_law_section(law_section, LOB, *, CODES_TBL, toc_by_path, by_version, 
         placed = by_version[LAW_CODE, LAW_SECTION_VERSION_ID]
     except KeyError:
         try:
-            placed = by_section[LAW_CODE, (SECTION_NUM or '').rstrip('.')]
+            placed = by_section[LAW_CODE, rstrip_dot(SECTION_NUM)]
         except KeyError:
             placed = None
 
@@ -331,37 +377,18 @@ def format_law_section(law_section, LOB, *, CODES_TBL, toc_by_path, by_version, 
         CODE_HEADING = CODES_TBL[LAW_CODE]
     except KeyError:
         CODE_HEADING = ''
-    DIVISION_HEADING = TITLE_HEADING = PART_HEADING = CHAPTER_HEADING = ARTICLE_HEADING = ''
-    ARTICLE_HISTORY = ''
+    head = SimpleNamespace(**heading_fields('', '', '', '', '', ''))
     SECTION_TITLE = ''
     if placed is not None:
         SECTION_TITLE = placed.TITLE or ''
-        NODE_TREEPATH = placed.NODE_TREEPATH
-        for i in range(1, len(NODE_TREEPATH) + 1):
-            try:
-                node = toc_by_path[LAW_CODE, NODE_TREEPATH[:i]]
-            except KeyError:
-                continue
-            level = deepest_heading(node.DIVISION, node.TITLE, node.PART, node.CHAPTER, node.ARTICLE)
-            HEADING = node.HEADING or ''
-            if level == 'DIVISION_HEADING':
-                DIVISION_HEADING = HEADING
-            elif level == 'TITLE_HEADING':
-                TITLE_HEADING = HEADING
-            elif level == 'PART_HEADING':
-                PART_HEADING = HEADING
-            elif level == 'CHAPTER_HEADING':
-                CHAPTER_HEADING = HEADING
-            elif level == 'ARTICLE_HEADING':
-                ARTICLE_HEADING = HEADING
-                ARTICLE_HISTORY = node.HISTORY_NOTE or ''
+        head = SimpleNamespace(**toc_headings(LAW_CODE, placed.NODE_TREEPATH, toc_by_path))
     LEGAL_TEXT = parse_caml(LOB) if LOB else ''
     SECTION_HISTORY = HISTORY or ''
     SESSION = '' if SESSION is None else str(SESSION)
     PK = '%s:%s' % (SESSION, ID)
-    d.update(section_overlay(CODE_HEADING, DIVISION_HEADING, TITLE_HEADING, PART_HEADING, CHAPTER_HEADING,
-                             ARTICLE_HEADING, ARTICLE_HISTORY, LEGAL_TEXT, SECTION_TITLE, SECTION_HISTORY,
-                             SESSION, PK))
+    d.update(section_overlay(CODE_HEADING, head.DIVISION_HEADING, head.TITLE_HEADING, head.PART_HEADING,
+                             head.CHAPTER_HEADING, head.ARTICLE_HEADING, head.ARTICLE_HISTORY,
+                             LEGAL_TEXT, SECTION_TITLE, SECTION_HISTORY, SESSION, PK))
     return d
 
 
@@ -396,15 +423,13 @@ def session_year(path):
 
 def load_law_dats(path):
     with zipfile.ZipFile(path) as zf:
-        dats = {}
-        for info in zf.infolist():
-            stem, ext = os.path.splitext(os.path.basename(info.filename))
-            if ext == '.dat' and stem in LAW_DATS:
-                dats[stem] = list(read_rows_from_zipped(zf, info))
-    missing = [name for name in LAW_DATS if name not in dats]
-    if missing:
-        raise TypeError('not a code publication, missing %s' % ', '.join(missing))
-    return dats
+        present = {os.path.splitext(os.path.basename(info.filename))[0]
+                   for info in zf.infolist()
+                   if os.path.splitext(info.filename)[1].lower() == '.dat'}
+        missing = [name for name in LAW_DATS if name not in present]
+        if missing:
+            raise TypeError('not a code publication, missing %s' % ', '.join(missing))
+        return {stem: list(iter_dat_rows(zf, stem)) for stem in LAW_DATS}
 
 
 def iter_laws(path):
@@ -498,7 +523,56 @@ def BillVersionTblDict(BILL_VERSION_ID, BILL_ID, VERSION_NUM, BILL_VERSION_ACTIO
     return dict(**locals())
 
 
-class CaliforniaCodes(Publication):
+def bill_text(SESSION, PK, LAW_CODE, SECTION_NUM, SECTION_TITLE, LEGAL_TEXT, CODE_HEADING):
+    return dict(**locals())
+
+
+def format_bill_section(row, LOB, SESSION):
+    """Frame one BILL_VERSION_TBL row. Shared by every bill-era zip (1989-2009)."""
+    version = BillVersionTblDict(row)
+    bill = SimpleNamespace(**version)
+    LEGAL_TEXT = parse_caml(LOB) if LOB else ''
+    PK = '%s:%s' % (SESSION, bill.BILL_VERSION_ID)
+    LAW_CODE = 'BILL'
+    SECTION_NUM = bill.BILL_ID
+    SECTION_TITLE = bill.SUBJECT or ''
+    CODE_HEADING = 'California bill'
+    return dict(version, **bill_text(SESSION, PK, LAW_CODE, SECTION_NUM, SECTION_TITLE, LEGAL_TEXT, CODE_HEADING))
+
+
+def subdivision_field(SUBDIVISION):
+    return dict(**locals())
+
+
+def stamp_subdivision(row, SUBDIVISION):
+    row.update(subdivision_field(SUBDIVISION))
+    return row
+
+
+class SubdivisionIndexed:
+    """Mixin: stamp ISO subdivision (California.code) on rows before Whoosh."""
+
+    def index(self, indexer, path, workers=None, subdivision=None):
+        def tagged():
+            for row in self.parallel_sections(path, workers=workers):
+                yield stamp_subdivision(row, subdivision)
+        return indexer.index_pubinfo_laws(path, tagged())
+
+
+class BillVersionRows:
+    """Mixin: read BILL_VERSION_TBL. Column layout is stable from 1989 on."""
+
+    def bill_sections(self, path):
+        SESSION = '' if session_year(path) is None else str(session_year(path))
+        with zipfile.ZipFile(path) as zf:
+            rows = list(iter_dat_rows(zf, 'BILL_VERSION_TBL'))
+            for row in rows:
+                bill = SimpleNamespace(**BillVersionTblDict(row))
+                LOB = read_lob(zf, bill.LOB_FILE)
+                yield format_bill_section(row, LOB, SESSION)
+
+
+class CaliforniaCodes(SubdivisionIndexed, Publication):
     """Code tables. Present in the session zips from 2011 on."""
 
     instrument = Instrument.STATUTE
@@ -513,19 +587,8 @@ class CaliforniaCodes(Publication):
     def parallel_sections(self, path, workers=None, chunk_size=400):
         yield from iter_laws_parallel(path, workers=workers, chunk_size=chunk_size)
 
-    def index(self, indexer, path, workers=None, subdivision=None):
-        def tagged():
-            for row in self.parallel_sections(path, workers=workers):
-                row['SUBDIVISION'] = subdivision
-                yield row
-        return indexer.index_pubinfo_laws(path, tagged())
 
-
-def bill_text(SESSION, PK, LAW_CODE, SECTION_NUM, SECTION_TITLE, LEGAL_TEXT, CODE_HEADING):
-    return dict(**locals())
-
-
-class CaliforniaBills(Publication):
+class CaliforniaBills(BillVersionRows, SubdivisionIndexed, Publication):
     """Sessions whose zip has measures and no code tables. 1989 through 2009."""
 
     instrument = Instrument.MEASURE
@@ -535,26 +598,7 @@ class CaliforniaBills(Publication):
         return 'BILL_VERSION_TBL' in names and 'LAW_SECTION_TBL' not in names
 
     def sections(self, path):
-        SESSION = '' if session_year(path) is None else str(session_year(path))
-        with zipfile.ZipFile(path) as zf:
-            for info in zf.infolist():
-                stem, ext = os.path.splitext(os.path.basename(info.filename))
-                if ext == '.dat' and stem == 'BILL_VERSION_TBL':
-                    rows = list(read_rows_from_zipped(zf, info))
-                    break
-            else:
-                return
-            for row in rows:
-                version = BillVersionTblDict(row)
-                BILL_VERSION_ID, BILL_ID, VERSION_NUM, BILL_VERSION_ACTION_DATE, BILL_VERSION_ACTION, REQUEST_NUM, SUBJECT, VOTE_REQUIRED, APPROPRIATION, FISCAL_COMMITTEE, LOCAL_PROGRAM, SUBSTANTIVE_CHANGES, URGENCY, TAXLEVY, LOB_FILE, ACTIVE_FLG, TRANS_UID, TRANS_UPDATE = row
-                LOB = read_lob(zf, LOB_FILE)
-                LEGAL_TEXT = parse_caml(LOB) if LOB else ''
-                PK = '%s:%s' % (SESSION, BILL_VERSION_ID)
-                LAW_CODE = 'BILL'
-                SECTION_NUM = BILL_ID
-                SECTION_TITLE = SUBJECT or ''
-                CODE_HEADING = 'California bill'
-                yield dict(version, **bill_text(SESSION, PK, LAW_CODE, SECTION_NUM, SECTION_TITLE, LEGAL_TEXT, CODE_HEADING))
+        yield from self.bill_sections(path)
 
 
 class California(State):

@@ -37,6 +37,7 @@ def test_sections_from_local_html():
     try:
         rows = list(LouisianaStatutes().sections(path))
         assert len(rows) >= 2
+        assert all(r['SUBDIVISION'] == Louisiana.code for r in rows)
         assert rows[0]['SECTION_NUM'] == '14:30'
         assert 'First degree murder' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '14:67'

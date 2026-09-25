@@ -1,22 +1,25 @@
-"""New Jersey distribution — local fixture only, no network."""
+"""New Jersey distribution — synthetic text snippet only, no live zip."""
 
-import os
-import zipfile
+from pathlib import Path
 
 from us.new_jersey import NewJersey, NewJerseyStatutes
 
-FIXTURE = os.path.join(os.path.dirname(__file__), 'new_jersey_fixture.zip')
+SNIPPET = """NEW JERSEY GENERAL AND PERMANENT STATUTES
+
+TITLE 1         ACTS, LAWS AND STATUTES
+
+1:1-1.  General rules of construction
+    In the construction of the laws and statutes of this state, both civil and criminal, words and phrases shall be read and construed with their context.
+
+1:1-2  Words and phrases defined.
+    Unless it be otherwise expressly provided, the following words and phrases shall have the meaning herein given to them.
+"""
 
 
-def _write_fixture():
-    text = (
-        "TITLE 1. GENERAL PROVISIONS\n"
-        "1:1-1. Words and phrases defined. As used in this Title...\n"
-        "The statutes of New Jersey shall be known as the New Jersey Statutes.\n"
-    )
-    with zipfile.ZipFile(FIXTURE, 'w') as zf:
-        zf.writestr('STATUTES-TEXT.txt', text)
-    return FIXTURE
+def _write_fixture(tmp_path: Path):
+    path = tmp_path / 'STATUTES.TXT'
+    path.write_text(SNIPPET, encoding='utf-8')
+    return path
 
 
 def test_source():
@@ -33,13 +36,12 @@ def test_accepts():
     assert NewJerseyStatutes.accepts(set())
 
 
-def test_sections_from_local_zip():
-    path = _write_fixture()
-    try:
-        rows = list(NewJersey().sections(path))
-        assert len(rows) == 1
-        assert rows[0]['SECTION_NUM'] == 'STATUTES-TEXT'
-        assert 'New Jersey Statutes' in rows[0]['LEGAL_TEXT']
-        assert '1:1-1' in rows[0]['LEGAL_TEXT']
-    finally:
-        os.remove(path)
+def test_sections_from_synthetic_snippet(tmp_path):
+    path = _write_fixture(tmp_path)
+    rows = list(NewJerseyStatutes().sections(path))
+    assert len(rows) == 2
+    assert all(r['SUBDIVISION'] == NewJersey.code for r in rows)
+    assert rows[0]['SECTION_NUM'] == '1:1-1'
+    assert 'construction of the laws' in rows[0]['LEGAL_TEXT']
+    assert rows[1]['SECTION_NUM'] == '1:1-2'
+    assert 'Words and phrases defined' in rows[1]['LEGAL_TEXT']

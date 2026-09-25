@@ -38,6 +38,7 @@ def test_sections_from_local_html():
     try:
         rows = list(IdahoStatutes().sections(path))
         assert len(rows) >= 2
+        assert all(r['SUBDIVISION'] == Idaho.code for r in rows)
         assert rows[0]['SECTION_NUM'] == '55-1801'
         assert 'Subdivided Lands' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '55-1802'

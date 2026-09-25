@@ -1,28 +1,30 @@
 [project]
 name = "lawlibrary"
 version = "0.2.0"
-description = "Official statute publications. Sacramento, California, USA is home."
+description = "Plain text of official statutes. Sacramento, California, USA is home."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "CC0-1.0" }
 dependencies = [
     "html2text",
-    "mcp",
+    "jinja2",
+    "mcp>=1.0,<2",
     "pycountry",
     "whoosh",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest"]
-web = ["flask"]
 
 [project.scripts]
 lawlibrary = "ca:main"
 lawlibrary-mcp = "mcp_server:main"
 
 [tool.setuptools]
-py-modules = ["application", "ca", "config", "indexer", "jurisdiction", "mcp_server", "publication", "query", "utils"]
-packages = ["us"]
+py-modules = ["agency", "analysis", "apa", "application", "ca", "california", "canons", "citations", "companions", "config", "core", "corpus", "court", "drafting", "entities", "government", "hierarchy", "indexer", "jurisdiction", "lexical", "mcp_server", "mentions", "muster", "needles", "outline", "parsers", "places", "publication", "query", "sample", "styles", "styles_alwd", "styles_bluebook", "styles_chicago", "styles_indigo", "styles_universal", "structure", "utils", "vesting", "weight"]
+
+[tool.setuptools.packages.find]
+include = ["us*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

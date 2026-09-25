@@ -33,13 +33,13 @@ class KentuckyStatutes(Publication):
         matches = list(_SECTION_RE.finditer(text))
         if not matches:
             stem = os.path.splitext(os.path.basename(path))[0]
-            yield {'SECTION_NUM': stem, 'LEGAL_TEXT': text}
+            yield {'SECTION_NUM': stem, 'LEGAL_TEXT': text, 'SUBDIVISION': Kentucky.code}
             return
         for i, match in enumerate(matches):
             start = match.start()
             end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
             body = text[start:end].strip()
-            yield {'SECTION_NUM': match.group(1), 'LEGAL_TEXT': body}
+            yield {'SECTION_NUM': match.group(1), 'LEGAL_TEXT': body, 'SUBDIVISION': Kentucky.code}
 
 
 class Kentucky(State):

@@ -37,6 +37,7 @@ def test_sections_from_local_html():
     try:
         rows = list(AlabamaCode().sections(path))
         assert len(rows) >= 2
+        assert all(r['SUBDIVISION'] == Alabama.code for r in rows)
         assert rows[0]['SECTION_NUM'] == '13A-1-1'
         assert 'Criminal Code' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '13A-1-2'

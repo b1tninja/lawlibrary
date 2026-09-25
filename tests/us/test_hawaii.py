@@ -40,6 +40,7 @@ def test_sections_from_local_html():
     try:
         rows = list(HawaiiChapter().sections(path))
         assert len(rows) >= 2
+        assert all(r['SUBDIVISION'] == Hawaii.code for r in rows)
         assert rows[0]['SECTION_NUM'] == '1-1'
         assert 'common law of England' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '1-2'

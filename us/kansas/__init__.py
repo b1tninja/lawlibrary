@@ -41,12 +41,12 @@ class KansasStatutes(Publication):
                 start = match.start()
                 end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
                 body = text[start:end].strip()
-                yield {'SECTION_NUM': match.group(1), 'LEGAL_TEXT': body}
+                yield {'SECTION_NUM': match.group(1), 'LEGAL_TEXT': body, 'SUBDIVISION': Kansas.code}
             return
         meta = _META_RE.search(html)
         stem = os.path.splitext(os.path.basename(path))[0]
         num = meta.group(1) if meta else stem
-        yield {'SECTION_NUM': num, 'LEGAL_TEXT': text}
+        yield {'SECTION_NUM': num, 'LEGAL_TEXT': text, 'SUBDIVISION': Kansas.code}
 
 
 class Kansas(State):

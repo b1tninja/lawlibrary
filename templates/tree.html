@@ -1,0 +1,9 @@
+{% import "macros.html" as ui %}
+{{ ui.crumbs(crumbs) }}
+{{ ui.parents(crumbs) }}
+{{ ui.find_form(codes) }}
+<h1>{{ heading }}</h1>
+{{ ui.contents(children) }}
+{% if not children %}
+<p>No further headings.</p>
+{% endif %}

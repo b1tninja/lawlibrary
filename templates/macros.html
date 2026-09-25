@@ -1,0 +1,81 @@
+{% macro link(href, label) -%}
+<a href="{{ href }}">{{ label }}</a>
+{%- endmacro %}
+
+{% macro parents(trail) -%}
+{% if trail|length > 1 %}
+<ol class="cuts">
+{% for crumb in trail[:-1] %}
+<li class="cut-{{ crumb.unit }}">{% if crumb.pieces %}<a href="{{ crumb.href }}">{{ marks(crumb.pieces) }}</a>{% else %}{{ link(crumb.href, crumb.label) }}{% endif %}</li>
+{% endfor %}
+</ol>
+{% endif %}
+{%- endmacro %}
+
+{% macro contents(items) -%}
+{% if items %}
+<h2>Contents</h2>
+<ol class="contents">
+{% for item in items %}
+<li class="cut-{{ item.unit }}">{% if item.current %}<span aria-current="page">{% if item.pieces %}{{ marks(item.pieces) }}{% else %}{{ item.label }}{% endif %}</span>{% elif item.pieces %}<a href="{{ item.href }}">{{ marks(item.pieces) }}</a>{% else %}{{ link(item.href, item.label) }}{% endif %}</li>
+{% endfor %}
+</ol>
+{% endif %}
+{%- endmacro %}
+
+{% macro crumbs(trail) -%}
+<nav class="crumbs" aria-label="Breadcrumb">
+<ol>
+{% for crumb in trail %}
+<li class="cut-{{ crumb.unit }}">{% if loop.last %}<span aria-current="page">{{ crumb.label }}</span>{% else %}{{ link(crumb.href, crumb.label) }}{% endif %}</li>
+{% endfor %}
+</ol>
+</nav>
+{%- endmacro %}
+
+{% macro find_form(codes) -%}
+<form class="find" action="/view/open" method="get">
+<label>Code <select name="code">{% for code in codes %}<option value="{{ code.token }}">{{ code.label }}</option>{% endfor %}</select></label>
+<label>Section <input name="section"></label>
+<button>Open</button>
+</form>
+{%- endmacro %}
+
+{% macro mark(piece) -%}
+<mark class="note-{{ piece.kind }}" data-note="{{ piece.kind }}"{% if piece.cite %} data-cite="{{ piece.cite }}"{% endif %} title="{{ piece.title }}">{{ piece.text }}</mark>
+{%- endmacro %}
+
+{% macro nodes(items) -%}
+<ol class="cuts">
+{% for item in items %}
+<li class="cut-{{ item.unit }}">{{ marks(item.pieces) }}{% if item.children %}{{ nodes(item.children) }}{% endif %}</li>
+{% endfor %}
+</ol>
+{%- endmacro %}
+
+{% macro marks(pieces) -%}
+{% for piece in pieces %}
+{% if piece.kind and piece.href -%}
+<a href="{{ piece.href }}">{{ mark(piece) }}</a>
+{%- elif piece.kind -%}
+{{ mark(piece) }}
+{%- else -%}
+{{ piece.text }}
+{%- endif %}
+{% endfor %}
+{%- endmacro %}
+
+{% macro legend() -%}
+<ul class="legend">
+<li><mark class="note-amount">amount</mark></li>
+<li><mark class="note-period">period</mark></li>
+<li><mark class="note-date">date</mark></li>
+<li><mark class="note-citation">citation</mark></li>
+<li><mark class="note-cross_reference">cross reference</mark></li>
+<li><mark class="note-case">name</mark></li>
+<li><mark class="note-cut">cut</mark></li>
+<li><mark class="note-short_form">short form</mark></li>
+<li><mark class="note-named_act">named act</mark></li>
+<li><mark class="note-session">session</mark></li>
+</ul>
+{%- endmacro %}

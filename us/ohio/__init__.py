@@ -1,4 +1,8 @@
-"""Ohio Revised Code — HTML from codes.ohio.gov."""
+"""Ohio Revised Code — saved HTML only.
+
+codes.ohio.gov robots.txt disallows /. Do not fetch. The edition parser
+reads a local fixture whose section markers match the public HTML shape.
+"""
 
 import os
 import re
@@ -35,13 +39,13 @@ class OhioRevisedCode(Publication):
         matches = list(_SECTION_RE.finditer(text))
         if not matches:
             stem = os.path.splitext(os.path.basename(path))[0]
-            yield {'SECTION_NUM': stem, 'LEGAL_TEXT': text}
+            yield {'SECTION_NUM': stem, 'LEGAL_TEXT': text, 'SUBDIVISION': 'US-OH'}
             return
         for i, match in enumerate(matches):
             start = match.start()
             end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
             body = text[start:end].strip()
-            yield {'SECTION_NUM': match.group(1), 'LEGAL_TEXT': body}
+            yield {'SECTION_NUM': match.group(1), 'LEGAL_TEXT': body, 'SUBDIVISION': 'US-OH'}
 
 
 class Ohio(State):

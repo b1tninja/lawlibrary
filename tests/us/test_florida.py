@@ -1,13 +1,11 @@
 """Florida distribution — local fixture only, no network."""
 
-import os
+from pathlib import Path
 
 from us.florida import Florida, FloridaChapter
 
-FIXTURE = os.path.join(os.path.dirname(__file__), 'florida_fixture.html')
 
-
-def _write_fixture():
+def _write_fixture(tmp_path: Path):
     html = """<!DOCTYPE html>
 <html><body>
 <div class="Section">
@@ -22,9 +20,9 @@ def _write_fixture():
 </div>
 </body></html>
 """
-    with open(FIXTURE, 'w', encoding='utf-8') as fh:
-        fh.write(html)
-    return FIXTURE
+    path = tmp_path / 'florida_fixture.html'
+    path.write_text(html, encoding='utf-8')
+    return path
 
 
 def test_source():
@@ -38,17 +36,16 @@ def test_list_editions_no_network():
 
 
 def test_accepts():
-    assert FloridaChapter.accepts(set())
+    assert FloridaChapter.accepts('chapter.html')
+    assert not FloridaChapter.accepts(set())
 
 
-def test_sections_from_local_html():
-    path = _write_fixture()
-    try:
-        rows = list(FloridaChapter().sections(path))
-        assert len(rows) >= 2
-        assert rows[0]['SECTION_NUM'] == '1.01'
-        assert 'singular includes the plural' in rows[0]['LEGAL_TEXT']
-        assert rows[1]['SECTION_NUM'] == '1.02'
-        assert 'Eastern standard time' in rows[1]['LEGAL_TEXT']
-    finally:
-        os.remove(path)
+def test_sections_from_local_html(tmp_path):
+    path = _write_fixture(tmp_path)
+    rows = list(FloridaChapter().sections(path))
+    assert len(rows) >= 2
+    assert all(r['SUBDIVISION'] == Florida.code for r in rows)
+    assert rows[0]['SECTION_NUM'] == '1.01'
+    assert 'singular includes the plural' in rows[0]['LEGAL_TEXT']
+    assert rows[1]['SECTION_NUM'] == '1.02'
+    assert 'Eastern standard time' in rows[1]['LEGAL_TEXT']

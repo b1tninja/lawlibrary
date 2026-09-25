@@ -37,6 +37,7 @@ def test_sections_from_local_html():
         rows = list(OhioRevisedCode().sections(path))
         assert len(rows) >= 2
         assert rows[0]['SECTION_NUM'] == '2901.01'
+        assert rows[0]['SUBDIVISION'] == 'US-OH'
         assert 'Definitions' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '2901.02'
         assert 'Classification' in rows[1]['LEGAL_TEXT']

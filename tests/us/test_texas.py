@@ -1,6 +1,5 @@
-"""Texas distribution — local zip fixture only, no network."""
+"""Texas distribution — local HTML fixture only; do not commit the code zip."""
 
-import zipfile
 from pathlib import Path
 
 from us.texas import Texas, TexasStatutes
@@ -13,9 +12,8 @@ def _write_fixture(tmp_path: Path):
 <p>Sec. 1.002. CONSTRUCTION. The Code Construction Act applies to this code.</p>
 </body></html>
 """
-    path = tmp_path / 'property.zip'
-    with zipfile.ZipFile(path, 'w') as zf:
-        zf.writestr('property.htm', html)
+    path = tmp_path / 'property.htm'
+    path.write_text(html, encoding='utf-8')
     return path
 
 
@@ -31,10 +29,11 @@ def test_accepts():
     assert TexasStatutes.accepts(set())
 
 
-def test_sections_from_local_zip(tmp_path):
+def test_sections_from_local_html(tmp_path):
     path = _write_fixture(tmp_path)
     rows = list(TexasStatutes().sections(path))
     assert len(rows) == 2
+    assert all(r['SUBDIVISION'] == Texas.code for r in rows)
     assert rows[0]['SECTION_NUM'] == '1.001'
     assert 'property' in rows[0]['LEGAL_TEXT'].lower()
     assert rows[1]['SECTION_NUM'] == '1.002'

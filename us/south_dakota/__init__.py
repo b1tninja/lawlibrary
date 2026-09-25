@@ -23,7 +23,7 @@ class SouthDakotaCode(Publication):
         section = data.get('section') or data.get('SECTION_NUM')
         if not section:
             section = os.path.splitext(os.path.basename(path))[0]
-        yield {'SECTION_NUM': str(section), 'LEGAL_TEXT': text}
+        yield {'SECTION_NUM': str(section), 'LEGAL_TEXT': text, 'SUBDIVISION': 'US-SD'}
 
 
 class SouthDakota(State):

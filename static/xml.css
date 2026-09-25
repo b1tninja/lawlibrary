@@ -1,0 +1,13 @@
+/* The browser's XML viewer uses the dark-theme text color on a white page. */
+:root {
+  color-scheme: light;
+  color: #1a1814;
+  background: #f4f0e6;
+}
+section, citation, path, heading, text, history {
+  display: block;
+  color: #1a1814;
+  background: #f4f0e6;
+  white-space: pre-wrap;
+  margin: 0.75rem 0;
+}

@@ -1,4 +1,8 @@
-"""New Mexico Statutes Annotated — NMOneSource HTML distribution."""
+"""New Mexico Statutes Annotated — NMOneSource HTML.
+
+Norma terms forbid automated bulk download. This module parses a saved
+page only; it does not fetch or crawl.
+"""
 
 import os
 import re
@@ -35,13 +39,13 @@ class NewMexicoStatutes(Publication):
         matches = list(_SECTION_RE.finditer(text))
         if not matches:
             stem = os.path.splitext(os.path.basename(path))[0]
-            yield {'SECTION_NUM': stem, 'LEGAL_TEXT': text}
+            yield {'SECTION_NUM': stem, 'LEGAL_TEXT': text, 'SUBDIVISION': 'US-NM'}
             return
         for i, match in enumerate(matches):
             start = match.start()
             end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
             body = text[start:end].strip()
-            yield {'SECTION_NUM': match.group(1), 'LEGAL_TEXT': body}
+            yield {'SECTION_NUM': match.group(1), 'LEGAL_TEXT': body, 'SUBDIVISION': 'US-NM'}
 
 
 class NewMexico(State):

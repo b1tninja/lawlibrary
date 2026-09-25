@@ -5,6 +5,8 @@ import pkgutil
 
 from publication import City, Country, County, State
 
+from .usc import SOURCE, UnitedStatesCode
+
 HOME = 'US-CA'
 
 
@@ -14,9 +16,11 @@ class UnitedStates(Country):
     code = 'US'
     source = 'https://uscode.house.gov/'
     layers = (County, City)
+    editions = (UnitedStatesCode,)
 
     def list_editions(self):
-        return [self.source]
+        """Live release-point href is resolved from this page."""
+        return [SOURCE]
 
 
 def load_states():

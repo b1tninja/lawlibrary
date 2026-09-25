@@ -38,6 +38,7 @@ def test_sections_from_local_html():
         rows = list(SouthCarolinaCode().sections(path))
         assert len(rows) >= 2
         assert rows[0]['SECTION_NUM'] == '16-1-10'
+        assert rows[0]['SUBDIVISION'] == 'US-SC'
         assert 'Felonies' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '16-1-20'
         assert 'Classification' in rows[1]['LEGAL_TEXT']

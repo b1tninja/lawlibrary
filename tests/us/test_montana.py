@@ -36,6 +36,7 @@ def test_sections_from_local_html():
     try:
         rows = list(MontanaCodeAnnotated().sections(path))
         assert len(rows) >= 2
+        assert all(r['SUBDIVISION'] == Montana.code for r in rows)
         assert rows[0]['SECTION_NUM'] == '1-1-101'
         assert 'Montana Code Annotated' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '1-1-102'

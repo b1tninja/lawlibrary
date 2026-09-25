@@ -106,11 +106,28 @@ Do not search Sacramento ordinances. There is nothing to rank.
 ## Misses
 
 ```text
-{ "found": false, "reason": "not_in_index" | "unknown_code" | "ordinance_absent" | "unknown_act" | "span_too_large",
+{ "found": false, "reason": "not_in_index" | "unknown_code" | "ordinance_absent" | "unknown_act" | "span_too_large" | "outside_us_ca",
   "expression": "<what the caller passed>" }
 ```
 
 `found: true` on successes, so the caller does not treat an outline of zero nodes as a statute.
+
+A federal statute or named act is still `outside_us_ca`. When the expression is a known body, the miss also names the official United States Code chapter and CFR title so Jason can point at a corpus later. Do not invent section text.
+
+| Expression | `statute` | `regulations` |
+| --- | --- | --- |
+| Fair Housing Act, or 42 U.S.C. §§ 3601–3631 | `{title: "42", chapter: "45"}` | `{title: "24"}` |
+| Americans with Disabilities Act / ADA | `{title: "42", chapter: "126"}` | `{title: "28"}` |
+| NFIP / National Flood Insurance | `{title: "42", chapter: "50"}` | `{title: "44"}` |
+
+Shape:
+
+```text
+{ found: false, reason: "outside_us_ca", expression: "...",
+  statute: {title: "42", chapter: "45"}, regulations: {title: "24"} }
+```
+
+A bare `42 USC …` cite that is clearly Title 42 may set `statute.title` to `"42"` and omit `chapter` when the chapter cannot be told safely from the section number. Named acts are mapped exactly as in the table.
 
 ## MCP
 
@@ -122,8 +139,20 @@ Add tools beside the existing four. Keep the old tools. New tools:
 | `cite_law` | `cite` |
 | `outline_law` | `outline` |
 | `search_span` | `search` |
+| `federal_section` | One section from `data/codes/US.sqlite` (`kind: "usc"`) or `data/codes/US/cfr/{title}.sqlite` (`kind: "cfr"`). A miss is `not_in_index` when that file was not loaded. |
+| `list_offices` | Registered agencies, including `authority` when a creating section is known |
+| `list_courts` | Registered courts, bench, and jurisdiction |
+| `analyze_text` | Sentence reading: class, jurisdiction, duties, citations. Does not write a pin |
+| `list_pins` | Rows in `pins.sqlite` |
+| `pin_section` | Read one indexed section, analyze it, and replace the pins for that citation |
+| `list_sources` | Indexed codes, CFR titles on disk, and court-rule pointers |
+| `sample_book` | A few sections from one book. The same seed repeats the draw |
+
+`search_law` uses the same search as `search_span`. A `§` citation opens that section. `§§` opens a range or a series.
 
 `get_section` remains the single-section tool. `cite_law` may return either a section or an outline; the payload includes `kind: "section" | "outline" | "miss"`.
+
+`outside_us_ca` misses already name `statute.title` / `chapter` and `regulations.title`. Do not invent quotes.
 
 ## Tests
 

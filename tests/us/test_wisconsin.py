@@ -38,6 +38,7 @@ def test_sections_from_local_html():
         rows = list(WisconsinStatutes().sections(path))
         assert len(rows) >= 2
         assert rows[0]['SECTION_NUM'] == '1.01'
+        assert rows[0]['SUBDIVISION'] == 'US-WI'
         assert 'Construction' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '1.10'
         assert 'On, Wisconsin' in rows[1]['LEGAL_TEXT']

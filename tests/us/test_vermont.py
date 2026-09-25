@@ -34,6 +34,7 @@ def test_sections_from_local_html(tmp_path):
     rows = list(VermontStatutes().sections(path))
     assert len(rows) == 2
     assert rows[0]['SECTION_NUM'] == '1'
+    assert rows[0]['SUBDIVISION'] == 'US-VT'
     assert 'Vermont Statutes' in rows[0]['LEGAL_TEXT']
     assert rows[1]['SECTION_NUM'] == '2'
     assert 'Definitions' in rows[1]['LEGAL_TEXT']

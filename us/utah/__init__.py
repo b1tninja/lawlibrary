@@ -6,10 +6,12 @@ import xml.etree.ElementTree as ET
 from publication import Publication, State
 
 SOURCE = 'https://glen.le.utah.gov/code/'
+# Developer token is path-scoped; required to fetch. Do not invent one.
+TOKEN_NOTE = SOURCE + ' (developer token required)'
 
 
 class UtahCode(Publication):
-    """One saved XML document from the glen.le.utah.gov code API."""
+    """One saved XML document from the glen.le.utah.gov code API (local fixture)."""
 
     @classmethod
     def accepts(cls, names):
@@ -34,11 +36,19 @@ class UtahCode(Publication):
                 number = os.path.splitext(os.path.basename(path))[0]
             if text:
                 found = True
-                yield {'SECTION_NUM': number, 'LEGAL_TEXT': text}
+                yield {
+                    'SECTION_NUM': number,
+                    'LEGAL_TEXT': text,
+                    'SUBDIVISION': Utah.code,
+                }
         if not found:
             text = ''.join(root.itertext()).strip()
             stem = os.path.splitext(os.path.basename(path))[0]
-            yield {'SECTION_NUM': stem, 'LEGAL_TEXT': text}
+            yield {
+                'SECTION_NUM': stem,
+                'LEGAL_TEXT': text,
+                'SUBDIVISION': Utah.code,
+            }
 
 
 class Utah(State):
@@ -47,4 +57,4 @@ class Utah(State):
     editions = (UtahCode,)
 
     def list_editions(self):
-        return [SOURCE]
+        return [TOKEN_NOTE]

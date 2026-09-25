@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+{% include "style.html" %}
+</head>
+<body>
+<header class="mast"><p>Law Library</p></header>
+{% if parent %}<nav class="crumbs" aria-label="Breadcrumb"><ol><li><a href="{{ parent }}">Up</a></li><li><span aria-current="page">{{ title }}</span></li></ol></nav>{% endif %}
+{% for heading in path or [] %}
+<p>{{ heading }}</p>
+{% endfor %}
+<h1>{{ title }}</h1>
+{% if text %}
+<article style="white-space: pre-wrap">{{ text }}</article>
+{% endif %}
+{% if history %}
+<p class="history">{{ history }}</p>
+{% endif %}
+{% if children %}
+<ul>
+{% for child in children %}
+<li><a href="{{ child.href }}">{{ child.label }}</a></li>
+{% endfor %}
+</ul>
+{% endif %}
+{% if previous %}<a href="{{ previous }}">Previous</a>{% endif %}
+{% if following %}<a href="{{ following }}">Next</a>{% endif %}
+</body>
+</html>

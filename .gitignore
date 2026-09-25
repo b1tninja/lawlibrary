@@ -134,3 +134,4 @@ dmypy.json
 !.elasticbeanstalk/*.global.yml
 .idea/
 data/
+client/node_modules/

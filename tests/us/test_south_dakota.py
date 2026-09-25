@@ -36,6 +36,7 @@ def test_sections_from_local_json():
         rows = list(SouthDakotaCode().sections(path))
         assert len(rows) == 1
         assert rows[0]['SECTION_NUM'] == '22-1-1'
+        assert rows[0]['SUBDIVISION'] == 'US-SD'
         assert 'Criminal Code' in rows[0]['LEGAL_TEXT']
     finally:
         os.remove(path)

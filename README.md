@@ -1,14 +1,28 @@
 # lawlibrary
 
-Catalog of official statute publications. Sacramento, California, USA is home: `python ca.py` reads the Legislature's files at <https://downloads.leginfo.legislature.ca.gov/>. Other US states live in `us/`. Another country is another ISO 3166-1 package beside it.
+The index holds the plain text of the law. Sacramento, California, USA is home: `python ca.py` reads the Legislature's files at <https://downloads.leginfo.legislature.ca.gov/>. Other US states live in `us/`. Another country is another ISO 3166-1 package beside it.
 
-Aaron Swartz's html2text turns each section's CAML into plain text. Whoosh indexes that text. An MCP server answers an agent from the local index: search, open a section, list the codes.
+A section in the index is words. When a government publishes more than one file, take plain text or Word first. An XML-like file (XML, SGML, CAML) is next: the elements are the statute, which is preferable to HTML or PDF in most cases. HTML is a page and PDF is a print image. A zip of HTML is still HTML. A list of title PDFs records where the print copy lives. It does not put the statute in the index.
 
-`jurisdiction.py` is the government model. `publication.py` is one file layout, marked as a statute, measure, or regulation. `Country.layers` is the order under a region. In the US that is a county, then a city, and a layer package exists only where a place has been added. `California` is the distribution point (`downloads.leginfo.legislature.ca.gov`) and chooses an edition by the tables inside the zip. `CaliforniaCodes` is the statutes, published in the session zips from 2011 on. `CaliforniaBills` is the earlier sessions, which carry measures and no code tables. A later change in column layout is another subclass with its own `accepts`. The code catalog is `pycountry`.
+California's official file is CAML. Aaron Swartz's html2text turns each section's tags into the words Whoosh stores. An MCP server answers an agent from that local index: search, open a section, list the codes.
+
+How the tree is organized, and how to add a country, state, county, or city, is [docs/layout.md](docs/layout.md). Agent axioms (enums, records, and the helpers that already do a job) are in [AGENTS.md](AGENTS.md). `CaliforniaCodes` reads the code tables from 2011 on. `CaliforniaBills` reads the earlier sessions, which carry measures and no code tables. A later change in column layout is another subclass with its own `accepts`. The code catalog is `pycountry`.
 
 The current session is the odd-year file (`pubinfo_2025.zip` through 2026). It is refreshed weekly and is the file that contains the codes. Daily zips do not.
 
-## Setup
+## Install
+
+`pyproject.toml` is the package. A public install copies that snapshot into the environment. Edits in the checkout are not visible until the next install.
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install .
+```
+
+## Development
+
+An editable install points the environment at this checkout. Change a module and the next run sees it. Install again only when dependencies, the version, or the `lawlibrary-mcp` script change. The `dev` extra adds pytest.
 
 ```bash
 python -m venv .venv
@@ -31,12 +45,11 @@ Search and `get_section` use the newest session unless you pass an older year or
 
 CAML parsing is the slow part, so index workers each open the zip and run html2text. The Whoosh writer stays in the parent process. `--workers` sets the pool size.
 
-`data/` holds the zips and the index. It is not committed.
+The publication archive is `LAWLIBRARY_DATA` in the environment, then the same name in `.env`, then the platform data directory (`%LOCALAPPDATA%\lawlibrary` on Windows). `.env.example` shows the file. The checkout's zips are not committed.
 
 ## Official distribution points
 
-Each state is a `State` subclass under ISO 3166-2 (`US-CA`). The country key is `US`. Notes, file shapes, and the commercial hosts we do not crawl are in [docs/state-publications.md](docs/state-publications.md). Other countries, and which of their regions actually legislate, are in [docs/jurisdictions.md](docs/jurisdictions.md). County ordinances are a separate layer, mostly one county at a time, in [docs/counties.md](docs/counties.md). The country branch is `US`. The City of Sacramento is `us/ca/counties/sacramento/cities/sacramento.py`. A country's `layers` say what nests under a region. In the US that is a county, then a city. The query interface Jason uses is specified in [docs/jason-handoff.md](docs/jason-handoff.md).
-
+File shapes and the commercial hosts we do not crawl are in [docs/state-publications.md](docs/state-publications.md). Which regions actually legislate is in [docs/jurisdictions.md](docs/jurisdictions.md). County ordinances are in [docs/counties.md](docs/counties.md). The class and folder map is [docs/layout.md](docs/layout.md).
 | State | Official distribution |
 | --- | --- |
 | Alabama | <https://alison.legislature.state.al.us/code-of-alabama> |

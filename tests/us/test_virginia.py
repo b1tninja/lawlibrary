@@ -1,16 +1,24 @@
-"""Virginia distribution — local CSV fixture only, no network."""
+"""Virginia distribution — local CSV fixture only; annotations excluded from export."""
 
 from pathlib import Path
 
-from us.virginia import Virginia, VirginiaCode
+from us.virginia import TITLE_1_CSV, Virginia, VirginiaCode
 
 
 def _write_fixture(tmp_path: Path):
-    csv_text = """section,text
-1-1,This Code shall be known as the Code of Virginia.
-1-2,Words used in the present tense include the future.
-"""
-    path = tmp_path / 'title1.csv'
+    # Column names match LIS CoVTitle_*.csv; Body is HTML; no annotation column.
+    csv_text = (
+        'TitleNum,TitleName,SubTitleNum,SubTitleName,PartNum,PartName,'
+        'ChapterNum,ChapterName,ArticleNum,ArticleName,SubPartNum,SubPartName,'
+        'Section,Title,Body\n'
+        '1,General Provisions,,,,,1,CODE OF VIRGINIA,,,,,1-1,'
+        'Contents and designation of Code,'
+        '"<p>This Code shall be known as the Code of Virginia.</p>"\n'
+        '1,General Provisions,,,,,1,CODE OF VIRGINIA,,,,,1-2,'
+        'Effective date of Code,'
+        '"<p>Words used in the present tense include the future.</p>"\n'
+    )
+    path = tmp_path / 'CoVTitle_1.csv'
     path.write_text(csv_text, encoding='utf-8')
     return path
 
@@ -20,7 +28,7 @@ def test_source():
 
 
 def test_list_editions_no_network():
-    assert Virginia().list_editions() == ['https://law.lis.virginia.gov/law-library/']
+    assert Virginia().list_editions() == [TITLE_1_CSV]
 
 
 def test_accepts():
@@ -31,6 +39,7 @@ def test_sections_from_local_csv(tmp_path):
     path = _write_fixture(tmp_path)
     rows = list(VirginiaCode().sections(path))
     assert len(rows) == 2
+    assert all(r['SUBDIVISION'] == Virginia.code for r in rows)
     assert rows[0]['SECTION_NUM'] == '1-1'
     assert 'Code of Virginia' in rows[0]['LEGAL_TEXT']
     assert rows[1]['SECTION_NUM'] == '1-2'

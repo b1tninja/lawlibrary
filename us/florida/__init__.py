@@ -1,8 +1,8 @@
-"""Florida Statutes — official zip plus chapter HTML.
+"""Florida Statutes — Division of Law Revision download zip.
 
-source is the Division of Law Revision download zip. Chapter HTML from the
-statutes site is what this edition parses; the zip itself is a Windows browser
-and is not opened here.
+source points at FLLawDL2026.zip (a Windows statutes browser). This edition
+parses saved chapter HTML from the statutes site; it does not unpack the
+browser zip.
 """
 
 import os
@@ -22,11 +22,22 @@ def _html_to_text(html):
     return html2text.HTML2Text(bodywidth=0).handle(html)
 
 
+def _row(section_num, legal_text):
+    return {
+        'SECTION_NUM': section_num,
+        'LEGAL_TEXT': legal_text,
+        'SUBDIVISION': Florida.code,
+    }
+
+
 class FloridaChapter(Publication):
     """One saved chapter HTML page from the Florida Statutes site."""
 
     @classmethod
     def accepts(cls, names):
+        # The official zip is a Windows browser, not chapter HTML.
+        if isinstance(names, (set, frozenset)):
+            return False
         return True
 
     def sections(self, path):
@@ -36,13 +47,13 @@ class FloridaChapter(Publication):
         matches = list(_SECTION_RE.finditer(text))
         if not matches:
             stem = os.path.splitext(os.path.basename(path))[0]
-            yield {'SECTION_NUM': stem, 'LEGAL_TEXT': text}
+            yield _row(stem, text)
             return
         for i, match in enumerate(matches):
             start = match.start()
             end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
             body = text[start:end].strip()
-            yield {'SECTION_NUM': match.group(1), 'LEGAL_TEXT': body}
+            yield _row(match.group(1), body)
 
 
 class Florida(State):
@@ -52,3 +63,6 @@ class Florida(State):
 
     def list_editions(self):
         return [SOURCE]
+
+    def edition(self, path):
+        return FloridaChapter()

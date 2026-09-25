@@ -1,19 +1,20 @@
 # Official statute publications
 
-Survey of how each state publishes its **unannotated** code, for a `State` subclass that reads only a government host. Commercial reprints (Justia, FindLaw, Westlaw, Lexis, Fastcase) are not a source. Checked 2026-09-24 by reading the official sites. A later session can change a URL; `accepts` on the edition subclass is what should notice.
+Survey of how each state publishes its **unannotated** code, for a `State` subclass that reads only a government host. The index stores the plain text of each section. Commercial reprints (Justia, FindLaw, Westlaw, Lexis, Fastcase) are not a source. Checked 2026-09-24 by reading the official sites. A later session can change a URL; `accepts` on the edition subclass is what should notice.
 
-Four shapes, same as the publication base:
+PDF and HTML get in the way. A page and a print file both have to be stripped before a word can be stored, and both lose structure on the way. An XML-like file is preferable to either in most cases: the elements are the sections. Rank a state's files by how close they already are to the words:
 
-| Shape | What the subclass downloads |
-| --- | --- |
-| `bulk` | One archive, a file tree, or an official API that returns the whole code |
-| `pdf` | A finite set of official title or volume PDFs |
-| `html` | Official section or chapter pages, no bulk file |
-| `none` | The public code is a commercial host. No government corpus to index |
+| Shape | What it is | Index it when |
+| --- | --- | --- |
+| `text` | Plain text, Word, CSV, or JSON whose body is the statute | The file yields section words |
+| `xml` | XML, SGML, CAML, or another XML-like body | The elements yield section words. Prefer this over HTML or PDF of the same code |
+| `html` | Official section or chapter pages, or a zip of those pages | No XML-like file exists, and the tags can be stripped to those words. A bulk zip of HTML is still HTML |
+| `pdf` | A finite set of official title or volume PDFs | No text or XML-like file exists, and the words can be recovered. A URL list alone is not an edition |
+| `none` | The public code is a commercial host | Never. There is no government text to index |
 
-## Bulk, closest to California
+## Bulk files
 
-These can follow `California`: a distribution URL, an edition parser, a local index.
+These states publish the whole code as one download or API. Prefer plain text in that download, then an XML-like file. California's zip is CAML, which is the XML-like file for that state. A sibling zip of HTML or PDF is a worse file of the same code.
 
 | State | Publisher | Distribution |
 | --- | --- | --- |
@@ -34,17 +35,18 @@ These can follow `California`: a distribution URL, an edition parser, a local in
 
 ## Official PDF sets
 
-A subclass lists titles and fetches each file. No crawl.
+These states publish the code as title PDFs. That is a print copy, not text in the index. Delaware also has HTML on the same host. A subclass does not gain an edition from a PDF URL list.
 
-| State | Distribution |
-| --- | --- |
-| Alaska | `https://www.akleg.gov/statutesPDF/Title-{N}.pdf` |
-| Delaware | `https://delcode.delaware.gov/title{N}/title{N}.pdf` and HTML. Site is prepared with Lexis; the host is the state's |
-| Maine | `https://www.mainelegislature.org/legis/statutes/{title}/title{title}.pdf` |
-| Oklahoma | `https://www.oklegislature.gov/OK_Statutes/CompleteTitles/os{title}.pdf`. The certified unannotated code on the SOS site is a West portal; use these PDFs instead. `robots.txt` disallows PDFs |
-| Pennsylvania | `https://www.legis.state.pa.us/WU01/LI/LI/CT/PDF/{title}/{title}.PDF` and matching HTML. Not Purdon's |
-| Washington | Certified title PDFs, `https://lawfilesext.leg.wa.gov/Law/RCWArchive/2025/pdf/`. Online RCW twice a year |
-| Wyoming | Text-only titles, `https://wyoleg.gov/statutes/compress/title01.pdf`. The Lexis annotated feed is a separate, non-commercial contract |
+A second pass looked for a bulk file or raw text behind the title PDFs. None of these six publishes a current XML or zip of the whole code.
+
+| State | What else exists | Bulk raw statutes |
+| --- | --- | --- |
+| Alaska | Title index at `akleg.gov/basis/statutes.asp`. BASIS public API is bills, members, committees, and sessions, not the code. The Folio infobase at `regulations.akleg.gov/statutes` says it is unofficial. | No. The title PDFs are the public text. |
+| Maine | The Revisor's title pages offer PDF and Word for a title, chapter, or section. A [Statute XML](https://legislature.maine.gov/documents) set was filed in 2017 and stops at the 127th Legislature. | No current bulk. Word files are raw text, one title or chapter at a time. Current XML is not posted. |
+| Oklahoma | Legislature title PDFs at `OK_Statutes/CompleteTitles/os{title}.pdf`. The Secretary of State certifies the unannotated code, and that publication is West's site `govt.westlaw.com/okjc`. Enrolled bills from 2001 on are at `sos.ok.gov/gov/legislation.aspx`. OSCN citationizes the same statutes. | No legislature XML or zip. The certified code is a commercial host. The title PDFs remain the government files. |
+| Pennsylvania | `palegis.us` section search says it returns a PDF only. `palegis.us/data` is bill-history XML from 1969, not the consolidated statutes. The Legislative Reference Bureau publishes the official consolidated statutes. | No. Slip laws and pamphlet laws are session laws, not the code. |
+| Washington | The Statute Law Committee says the certified PDFs in the RCW archive are the official publication. `app.leg.wa.gov/RCW/default.aspx?cite=` is the Code Reviser's own HTML, updated twice a year, and is not that official publication. | No bulk file. The cite HTML is raw text on a government host. The certified copy is still the PDF. |
+| Wyoming | Text-only title PDFs under `/statutes/compress/`. A download-format page lists the same titles. The Legislative Service Office sells the titles as Word on a USB drive. The annotated site is Lexis, for non-commercial use. | No public XML or zip. The compress PDFs are the public text. The Word set is not a posted file. |
 
 ## Official HTML, no bulk file
 

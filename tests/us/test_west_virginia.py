@@ -38,6 +38,7 @@ def test_sections_from_local_html():
         rows = list(WestVirginiaCode().sections(path))
         assert len(rows) >= 2
         assert rows[0]['SECTION_NUM'] == '61-2-1'
+        assert rows[0]['SUBDIVISION'] == 'US-WV'
         assert 'Murder' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '61-2-2'
         assert 'second degree' in rows[1]['LEGAL_TEXT'].lower()

@@ -2,7 +2,7 @@
 
 A country is an ISO 3166-1 alpha-2 code. A first-level region is an ISO 3166-2 code. Having a subdivision code does not mean that region publishes its own statutes.
 
-ISO does not ship a Python API. This environment already has `pycountry` (249 countries). The United States is `US` / `USA` / `840`. `pycountry.subdivisions` lists 57 US entries typed State, District, or Outlying area. California is `US-CA`. The state branches are that layer. `babel` names locales. It does not define legal subdivisions.
+ISO does not ship a Python API. `pycountry` does. The United States is `US` / `USA` / `840`. `pycountry.subdivisions` lists 57 US entries typed State, District, or Outlying area. California is `US-CA`. Those classes live under `us/`. The folder map is [layout.md](layout.md). `babel` names locales. It does not define legal subdivisions.
 
 The United Kingdom's alpha-2 is `GB`. `UK` is reserved, not the standard code. Devolved subdivisions look like `GB-SCT`.
 

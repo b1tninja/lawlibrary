@@ -39,6 +39,7 @@ def test_sections_from_local_html():
         rows = list(NorthCarolinaChapter().sections(path))
         assert len(rows) >= 2
         assert rows[0]['SECTION_NUM'] == '14-1'
+        assert rows[0]['SUBDIVISION'] == 'US-NC'
         assert 'Felonies' in rows[0]['LEGAL_TEXT']
         assert rows[1]['SECTION_NUM'] == '14-2'
         assert 'Punishment' in rows[1]['LEGAL_TEXT']

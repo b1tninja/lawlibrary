@@ -1,0 +1,7 @@
+{% import "macros.html" as ui %}
+<h1>{{ kind }}</h1>
+{% if needs_code %}
+<p>Add a code, as in {{ ui.link(example_href, 'GOV') }}.</p>
+{% else %}
+<pre class="mermaid">{{ chart }}</pre>
+{% endif %}
