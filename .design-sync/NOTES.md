@@ -83,3 +83,25 @@ card carries only what it draws. To refresh it, start the server
 - **Only the presentational layer is synced.** If someone exports a
   fetch-coupled view from `client/src/index.js`, its preview will render an
   empty state at best; keep the boundary.
+
+## The re-sync command
+
+React and the package both live in `client/`, not at the repo root, so the
+driver needs to be told twice where the package is:
+
+```
+node .ds-sync/resync.mjs --config .design-sync/config.json \
+  --node-modules client/node_modules \
+  --entry client/dist/lawlibrary-reader.js \
+  --out ./ds-bundle --remote <the anchor fetched from the project>
+```
+
+`--node-modules` is command-line only — `client/node_modules` holds react,
+and the repo root has none. `--entry` is `cfg.entry` now, so it can be left
+off; it is what walks the builder up to `client/package.json` as the package
+root. Without it the builder looks for `client/node_modules/lawlibrary-reader`
+and stops.
+
+Fetch the anchor first (`DesignSync get_file _ds_sync.json`) and save it to a
+file — `--remote` reads a path, and `ds-bundle/_ds_sync.json` is the local
+one, not the project's.

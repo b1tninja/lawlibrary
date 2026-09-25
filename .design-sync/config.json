@@ -33,5 +33,6 @@
     "TermCard": {
       "cardMode": "column"
     }
-  }
+  },
+  "entry": "client/dist/lawlibrary-reader.js"
 }
