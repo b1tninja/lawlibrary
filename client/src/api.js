@@ -5,23 +5,17 @@
  * the closed sets are read once and kept.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-function search(params) {
-  const asked = new URLSearchParams()
-  Object.keys(params || {}).forEach((name) => {
-    const value = params[name]
-    if (value === undefined || value === null || value === '' || value === false) return
-    asked.set(name, value === true ? '1' : String(value))
-  })
-  const text = asked.toString()
-  return text ? '?' + text : ''
-}
+import { clean } from './place.js'
 
 export function route(path, params) {
-  return path + search(params)
+  return path + clean(params)
 }
 
+/* A route asked for once: the open promise while it is in flight, the answer
+ * after. Two views that mount together share one GET. */
+const asking = new Map()
 const held = new Map()
 
 async function read(url, signal) {
@@ -32,6 +26,13 @@ async function read(url, signal) {
   } catch (error) {
     return { found: false, reason: 'not_found' }
   }
+}
+
+/* A request the reader abandoned is not a miss — a view that moved on keeps
+ * what it had. Anything else is a miss, so the page says so instead of
+ * holding a spinner the server will never answer. */
+function gone(error) {
+  return Boolean(error) && (error.name === 'AbortError' || error.code === 20)
 }
 
 /* One GET. `url` empty holds the view at rest. A second call for the same url
@@ -47,7 +48,10 @@ export function useJson(url) {
     setState((was) => ({ url, body: was.url === url ? was.body : null, loading: true }))
     read(url, controller.signal).then(
       (body) => setState({ url, body, loading: false }),
-      () => {},
+      (error) => {
+        if (gone(error)) return
+        setState({ url, body: { found: false, reason: 'not_found' }, loading: false })
+      },
     )
     return () => controller.abort()
   }, [url])
@@ -63,10 +67,19 @@ export function useKept(url, empty) {
       return undefined
     }
     let live = true
-    read(url).then((payload) => {
-      held.set(url, payload)
-      if (live) setBody(payload)
-    }, () => {})
+    let open = asking.get(url)
+    if (!open) {
+      open = read(url).then((payload) => {
+        held.set(url, payload)
+        asking.delete(url)
+        return payload
+      }, (error) => {
+        asking.delete(url)
+        throw error
+      })
+      asking.set(url, open)
+    }
+    open.then((payload) => { if (live) setBody(payload) }, () => {})
     return () => { live = false }
   }, [url])
   return body
@@ -82,13 +95,25 @@ export function useCatalog() {
   return { codes, sessions }
 }
 
-const NO_SURFACES = { note: [], cite: [], join: [], cut: [], use: [], gap: [], hint: [] }
+const NO_SURFACE = []
+
+const NO_SURFACES = { surfaces: {}, units: [] }
 
 /* The closed sets, so the legend and the filters are the words the server
- * stores and not a copy kept here. */
+ * stores and not a copy kept here — the names of the sets included. Until the
+ * route answers there are none, so reach for a set through `members`. */
 export function useSurfaces() {
-  const body = useKept('/surfaces', { surfaces: NO_SURFACES, units: [] })
-  return { ...NO_SURFACES, ...(body.surfaces || {}), units: body.units || [] }
+  const body = useKept('/surfaces', NO_SURFACES)
+  const sets = body.surfaces || NO_SURFACES.surfaces
+  const units = body.units || NO_SURFACES.units
+  return useMemo(() => ({ ...sets, units }), [sets, units])
+}
+
+/* One closed set by name. A set the server has not answered with yet is
+ * empty, and stays the same array, so a view may draw before it arrives. */
+export function members(surfaces, name) {
+  const held = (surfaces || {})[name]
+  return Array.isArray(held) ? held : NO_SURFACE
 }
 
 export function codeTitle(codes, token) {
@@ -109,7 +134,10 @@ export function useText(url) {
     setState({ url, raw: '', loading: true })
     fetch(url, { signal: controller.signal })
       .then((reply) => reply.text())
-      .then((raw) => setState({ url, raw, loading: false }), () => {})
+      .then(
+        (raw) => setState({ url, raw, loading: false }),
+        (error) => { if (!gone(error)) setState({ url, raw: '', loading: false }) },
+      )
     return () => controller.abort()
   }, [url])
   return state

@@ -94,18 +94,24 @@ def _statutes(text, code=None):
 
 
 def _resolve(text, spans, code=None):
-    """Give a bare section number the book the sentence named."""
+    """Give a section number the book the sentence named.
+
+    ``annotate`` sees ``Section 7280`` and no book. ``find_links`` sees the
+    whole phrase, so it knows the book the number was sent to. The phrase is
+    the better evidence and wins — including over the open book, which an
+    active ``context`` stamps on every bare number it meets.
+    """
     rows = _statutes(text, code)
     if not rows:
         return spans
     for span in spans:
         if span.layer is not Layer.NOTE or span.kind not in ('citation', 'cross_reference'):
             continue
-        target = (span.target or '').strip()
-        if not target or not target[0].isdigit():
+        words = (span.target or '').strip().split()
+        if not words or not words[-1][:1].isdigit():
             continue
         for start, end, book, section in rows:
-            if span.start >= start and span.end <= end and target.split()[0] == section:
+            if span.start >= start and span.end <= end and words[-1] == section:
                 span.target = '%s %s' % (book, section)
                 span.detail['book'] = book
                 break

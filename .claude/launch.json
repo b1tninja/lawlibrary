@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "lawlibrary",
+      "runtimeExecutable": ".venv\\Scripts\\python.exe",
+      "runtimeArgs": [
+        "-c",
+        "from application import serve; serve(8765)"
+      ],
+      "port": 8765
+    }
+  ]
+}

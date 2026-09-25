@@ -12,10 +12,9 @@ import { route, useJson } from './api.js'
 import { Layered } from './layers.jsx'
 import { local } from './place.js'
 import { Reading } from './reading.js'
+import { HOVER_MS } from './spans.js'
 
 export { Reading }
-
-const HOVER_MS = 450
 
 export const NOTE_WORDS = {
   cross_reference: 'cross reference',
@@ -45,6 +44,7 @@ export function Link({ href, go, title, className, children }) {
 function Mark({ piece, code }) {
   const { shown, look, go } = useContext(Reading)
   const wait = useRef(0)
+  useEffect(() => () => window.clearTimeout(wait.current), [])
   const kind = piece.kind
   const off = !shown.has('note', kind)
   const detail = {

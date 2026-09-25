@@ -164,11 +164,18 @@ def books(words, most=240):
     """
     from indexer import Indexer
     wanted = list(words)[:most]
-    terms = [word for family, word in wanted if family == 'term']
-    named = [word for family, word in wanted if family in ('act', 'body')]
     found = {}
     if not wanted:
         return found
+    terms = [word for family, word in wanted if family == 'term']
+    # One name can be asked for as an act and as a body, and the index keeps
+    # both under the same row, so the families a name was asked under decide
+    # which keys its codes land on.
+    families = {}
+    for family, word in wanted:
+        if family in ('act', 'body'):
+            families.setdefault(word, set()).add(family)
+    named = list(families)
     db = Indexer()._needle_db()
     try:
         for word, code, many in _ask(
@@ -184,11 +191,9 @@ def books(words, most=240):
             "AND note IN ('case', 'named_act') GROUP BY text, code",
             named,
         ):
-            for family in ('act', 'body'):
-                key = '%s|%s' % (family, word)
-                if key in found or any(f == family and w == word for f, w in wanted):
-                    held = found.setdefault(key, {})
-                    held[code] = held.get(code, 0) + many
+            for family in families.get(word) or ():
+                held = found.setdefault('%s|%s' % (family, word), {})
+                held[code] = held.get(code, 0) + many
         for note, code, many in _ask(
             db,
             'SELECT note, code, COUNT(*) FROM annotation WHERE note IN (%s) GROUP BY note, code',
@@ -231,15 +236,16 @@ def scope(url, limit=LEAVES):
     titles = {row['code']: row['title'] for row in idxer.list_codes()}
     rows = [(doc, _rungs(doc)) for doc in docs]
     tree = _nest(rows, code, titles.get(code, code))
-    marked = counts(['%s %s' % (code, doc.get('SECTION_NUM') or '') for doc in docs])
+    numbers = [doc.get('SECTION_NUM') or '' for doc in docs]
+    marked = counts(['%s %s' % (code, number) for number in numbers])
     leaves = [
         {
-            'id': '%s %s' % (code, doc.get('SECTION_NUM') or ''),
+            'id': '%s %s' % (code, number),
             'code': code,
-            'num': doc.get('SECTION_NUM') or '',
-            'counts': marked.get('%s %s' % (code, doc.get('SECTION_NUM') or ''), {}),
+            'num': number,
+            'counts': marked.get('%s %s' % (code, number), {}),
         }
-        for doc in docs
+        for number in numbers
     ]
     seen = {}
     for leaf in leaves:

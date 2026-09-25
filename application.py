@@ -170,10 +170,7 @@ def _cloud(start_response, query):
     """
     import cloud as words
     asked = _one(query, 'url') or ''
-    try:
-        limit = max(1, min(int(_one(query, 'limit') or words.LEAVES), 1000))
-    except ValueError:
-        limit = words.LEAVES
+    limit = _limit(query, words.LEAVES, 1000)
     body = words.scope(asked, limit=limit)
     status = '200 OK' if body.get('found') else '404 Not Found'
     return _send(start_response, status, body)
@@ -351,10 +348,7 @@ def _citing(start_response, query):
         return _send(start_response, '404 Not Found', {
             'found': False, 'reason': 'not_in_index', 'expression': '',
         })
-    try:
-        limit = max(1, min(int(_one(query, 'limit') or '40'), 200))
-    except ValueError:
-        limit = 40
+    limit = _limit(query, 40, 200)
     rows = []
     seen = set()
     edges = Indexer().reference_edges(citation, limit=min(400, limit * 8))
@@ -410,10 +404,7 @@ def _search(start_response, query):
     phrase = _one(query, 'q')
     if not phrase:
         return _send(start_response, '404 Not Found', {'found': False, 'reason': 'not_in_index', 'expression': ''})
-    try:
-        limit = max(1, min(int(_one(query, 'limit') or '10'), 50))
-    except ValueError:
-        limit = 10
+    limit = _limit(query, 10, 50)
     code = _one(query, 'code') or None
     start = _one(query, 'start') or None
     end = _one(query, 'end') or None
@@ -456,10 +447,7 @@ def _term(start_response, query):
     term = phrase or target
     if not term:
         return _send(start_response, '404 Not Found', {'found': False, 'reason': 'not_in_index', 'term': ''})
-    try:
-        limit = max(1, min(int(_one(query, 'limit') or '24'), 50))
-    except ValueError:
-        limit = 24
+    limit = _limit(query, 24, 50)
     code = _one(query, 'code') or None
     kind = 'annotation' if note else ('phrase' if ' ' in term.strip() else 'term')
     if note:
@@ -614,11 +602,7 @@ def _annotations(start_response, query):
     note = _one(query, 'note')
     code = _one(query, 'code')
     target = _one(query, 'target')
-    limit = _one(query, 'limit') or '24'
-    try:
-        capped = max(1, min(int(limit), 100))
-    except ValueError:
-        capped = 24
+    capped = _limit(query, 24, 100)
     rows = Indexer().annotations(note=note, code=code, target=target, limit=capped)
     return _send(start_response, '200 OK', {'found': True, 'annotations': rows})
 
@@ -626,6 +610,18 @@ def _annotations(start_response, query):
 def _one(query, name):
     values = query.get(name) or []
     return values[0] if values else ''
+
+
+def _limit(query, default, most):
+    """A caller's ``limit``, held between one and ``most``.
+
+    A word that is not a number is the default, not a miss: the reply is the
+    rows, and how many of them was never the question.
+    """
+    try:
+        return max(1, min(int(_one(query, 'limit') or default), most))
+    except ValueError:
+        return default
 
 
 def _view(start_response, path, query, environ=None, hint=None):
@@ -805,7 +801,7 @@ def _library_crumbs(url, code_label=''):
     parts = [part for part in (url or 'us-ca').split('/') if part]
     names = {
         'division': 'Division', 'title': 'Title', 'part': 'Part',
-        'chapter': 'Chapter', 'article': 'Article', 'section': '§',
+        'chapter': 'Chapter', 'article': 'Article', 'section': 'Â§',
         'subdivision': 'Subdivision',
     }
     units = set(names)

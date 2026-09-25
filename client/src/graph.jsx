@@ -144,7 +144,7 @@ function curve(from, to) {
 
 /* The walk: one column per hop, left to right. A node keeps its own label, so
  * identity never rests on the colour. */
-function Walk({ rows, edges, paint, go, here, over, setOver }) {
+function Walk({ rows, edges, paint, go, here, over, setOver, onNode }) {
   const depth = layers(rows, edges)
   const laid = layered(rows, depth)
   const [, , boxWidth, boxHeight] = laid.box
@@ -221,7 +221,9 @@ function Walk({ rows, edges, paint, go, here, over, setOver }) {
               className={target ? 'node open' : 'node'}
               onMouseEnter={() => setOver(row.id)}
               onMouseLeave={() => setOver('')}
-              onClick={target ? (event) => go(event, target) : undefined}
+              onClick={target
+                ? (event) => go(event, target)
+                : (onNode ? (event) => onNode(event, row.id) : undefined)}
               opacity={!over || over === row.id ? 1 : 0.45}
             >
               <rect
@@ -270,7 +272,7 @@ function shade(weight, most) {
 /* Every pair at once. A hairball of a few hundred edges says nothing, so a
  * dense graph is a grid: the row cites, the column is cited, and the shade is
  * how many stored citations that pair holds. */
-function Matrix({ rows, edges, go, over, setOver }) {
+function Matrix({ rows, edges, go, over, setOver, onNode }) {
   const books = Array.from(rows.keys()).sort()
   const cell = 17
   const gutter = 92
@@ -319,7 +321,9 @@ function Matrix({ rows, edges, go, over, setOver }) {
               className={target ? 'side open' : 'side'}
               onMouseEnter={() => setOver(name)}
               onMouseLeave={() => setOver('')}
-              onClick={target ? (event) => go(event, target) : undefined}
+              onClick={target
+                ? (event) => go(event, target)
+                : (onNode ? (event) => onNode(event, name) : undefined)}
             >
               {name}
             </text>
@@ -376,7 +380,7 @@ function Matrix({ rows, edges, go, over, setOver }) {
 /* One drawing of an edge list. `here` is the node the reader came from. A
  * walk is a few nodes and reads as a tree; a whole book-to-book relation is
  * hundreds of edges and reads as a grid. */
-export function Graph({ edges, nodes, go, here, empty }) {
+export function Graph({ edges, nodes, go, here, empty, onNode }) {
   const [over, setOver] = useState('')
   const [only, setOnly] = useState('')
   const kept = useMemo(() => {
@@ -428,7 +432,7 @@ export function Graph({ edges, nodes, go, here, empty }) {
         )}
       </p>
       {dense
-        ? <Matrix rows={rows} edges={kept} go={go} over={over} setOver={setOver} />
+        ? <Matrix rows={rows} edges={kept} go={go} over={over} setOver={setOver} onNode={onNode} />
         : (
           <Walk
             rows={rows}
@@ -438,6 +442,7 @@ export function Graph({ edges, nodes, go, here, empty }) {
             here={here}
             over={over}
             setOver={setOver}
+            onNode={onNode}
           />
         )}
       <details className="graph-table">

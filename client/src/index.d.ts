@@ -249,6 +249,12 @@ export interface GraphProps {
   here?: string
   /** What to say when nothing is stored. */
   empty?: string
+  /**
+   * A node with nowhere to open. A book in a book-to-book relation is not a
+   * section, so it has no address; this is called with its name instead, and
+   * the walk can be centred on it.
+   */
+  onNode?: (event: MouseEvent | null, name: string) => void
 }
 
 /**

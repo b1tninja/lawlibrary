@@ -25,6 +25,7 @@
   },
   "scripts": {
     "tokens": "node tokens.mjs",
+    "test": "node --test \"test/*.test.mjs\"",
     "prebuild": "node tokens.mjs",
     "build": "vite build",
     "prebuild:lib": "node tokens.mjs",

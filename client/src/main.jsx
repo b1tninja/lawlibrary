@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import './reader.css'
-import { route, useCatalog, useJson, useSurfaces } from './api.js'
+import { members, route, useCatalog, useJson, useSurfaces } from './api.js'
 import { Closure, GraphView } from './closure.jsx'
 import { Annotations, Cite, OutlineView } from './find.jsx'
 import { Search } from './search.jsx'
@@ -314,7 +314,7 @@ function Shell() {
         ) : null}
         {here.kind === 'cloud' ? <Explore here={here} go={go} /> : null}
         {here.kind === 'annotations' ? (
-          <Annotations here={here} notes={surfaces.note} codes={codes} go={go} />
+          <Annotations here={here} notes={members(surfaces, 'note')} codes={codes} go={go} />
         ) : null}
         {here.kind === 'leave' ? (
           <p className="miss">

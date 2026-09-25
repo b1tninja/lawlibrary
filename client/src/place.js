@@ -16,7 +16,10 @@ export const CLOSURE_UNITS = [
   'division', 'title', 'part', 'chapter', 'article', 'section', 'subdivision',
 ]
 
-function clean(params) {
+/* The query string a route carries. A name with nothing to say is left out,
+ * so an unasked filter is absent rather than empty. Both the reader's own
+ * places and the JSON routes are built with this. */
+export function clean(params) {
   const search = new URLSearchParams()
   Object.keys(params || {}).forEach((name) => {
     const value = params[name]
@@ -195,6 +198,7 @@ const REASONS = {
   unknown_book: 'That is not one of the books.',
   unknown_act: 'That named act is not one of the spans.',
   unknown_use: 'A closure reads, finds, walks references, or reports gaps.',
+  unknown_layer: 'That is not one of the readings a parser records.',
   ordinance_absent: 'A Sacramento ordinance is not in this index.',
   outside_us_ca: 'That is federal law, outside the California index.',
   span_too_large: 'That span is too large for text. The outline is below.',

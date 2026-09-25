@@ -8,10 +8,13 @@
  * underline for a name, a ring for a word class.
  */
 
-import { useContext, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import { local } from './place.js'
 import { Reading } from './reading.js'
+import { HOVER_MS, nest, spanClasses } from './spans.js'
+
+export { nest }
 
 export const LAYER_WORDS = {
   note: 'notes',
@@ -29,41 +32,14 @@ export const LAYER_ORDER = [
 
 const OPEN = ['note', 'clause']
 
-/* One tree of spans over one run of words. A span that runs past the end of
- * the span holding it is cut there, so the drawing stays well formed. */
-export function nest(spans, length) {
-  const root = { start: 0, end: length, span: null, children: [] }
-  const stack = [root]
-  const queue = (spans || [])
-    .filter((span) => span.end > span.start && span.start >= 0)
-    .slice()
-    .sort((one, two) => (one.start - two.start) || (two.end - one.end))
-  queue.forEach((span) => {
-    let from = span.start
-    const to = Math.min(span.end, length)
-    while (from < to) {
-      while (stack.length > 1 && stack[stack.length - 1].end <= from) stack.pop()
-      const top = stack[stack.length - 1]
-      const stop = Math.min(to, top.end)
-      if (stop <= from) break
-      const node = { start: from, end: stop, span, children: [] }
-      top.children.push(node)
-      stack.push(node)
-      from = stop
-    }
-  })
-  return root
-}
-
 function classes(span) {
-  const kind = String(span.kind || '').replace(/[^A-Za-z0-9_]/g, '')
-  if (span.layer === 'note') return `lay-note note-${kind}`
-  return `lay-${span.layer} ${span.layer}-${kind}`
+  return spanClasses(span.layer, span.kind)
 }
 
 function Piece({ node, text, code, path }) {
   const { look, go } = useContext(Reading)
   const wait = useRef(0)
+  useEffect(() => () => window.clearTimeout(wait.current), [])
   const inside = []
   let cursor = node.start
   node.children.forEach((child, index) => {
@@ -87,7 +63,7 @@ function Piece({ node, text, code, path }) {
       onMouseEnter={(event) => {
         const at = { x: event.clientX, y: event.clientY }
         window.clearTimeout(wait.current)
-        wait.current = window.setTimeout(() => look({ ...detail, ...at }), 500)
+        wait.current = window.setTimeout(() => look({ ...detail, ...at }), HOVER_MS)
       }}
       onMouseLeave={() => window.clearTimeout(wait.current)}
       onClick={(event) => {
@@ -137,7 +113,9 @@ function write(state) {
  * is on when the reader opens the page; the rest are asked for. */
 export function useShown() {
   const [state, setState] = useState(read)
-  const shown = {
+  // Every mark on the page reads this through the context, so it keeps its
+  // identity until a layer actually moves.
+  const shown = useMemo(() => ({
     layers: state.layers,
     has(layer, kind) {
       return state.layers.includes(layer) && !state.off.includes(`${layer}.${kind}`)
@@ -148,7 +126,7 @@ export function useShown() {
     kind(layer, kind) {
       return !state.off.includes(`${layer}.${kind}`)
     },
-  }
+  }), [state])
   function toggleLayer(name) {
     setState((was) => {
       const layers = was.layers.includes(name)
@@ -181,9 +159,7 @@ export function useShown() {
 }
 
 function sample(layer, kind) {
-  const word = String(kind).replace(/_/g, ' ')
-  if (layer === 'note') return <mark className={`lay-note note-${kind}`}>{word}</mark>
-  return <mark className={`lay-${layer} ${layer}-${kind}`}>{word}</mark>
+  return <mark className={spanClasses(layer, kind)}>{String(kind).replace(/_/g, ' ')}</mark>
 }
 
 /* The legend, and the count of every reading on this section. A kind with no
