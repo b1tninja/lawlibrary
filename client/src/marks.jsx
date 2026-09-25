@@ -235,20 +235,23 @@ function plain(kind) {
  *
  * A note is a stored annotation, so the count is its target across the index.
  * A canon, a clause, or a word class is read from the words each time, so the
- * count is the phrase itself. Either way the card is a way out: the section
+ * count is the phrase itself. `reply` is that count already in hand, which is
+ * what a page with no index behind it passes. Either way the card is a way out: the section
  * the citation names, the heading `this chapter` means, the other sections
  * that carry the same reading.
  */
-export function TermCard({ looking, go, onPin, onClose, pinned }) {
+export function TermCard({ looking, go, onPin, onClose, pinned, reply }) {
   const [asked, setAsked] = useState(looking)
   useEffect(() => { setAsked(looking) }, [looking])
   const stored = asked && asked.layer === 'note' && asked.kind
-  const url = asked && (asked.term || asked.target)
-    ? route('/term', stored
+  const url = reply || !(asked && (asked.term || asked.target))
+    ? ''
+    : route('/term', stored
       ? { note: asked.kind, target: asked.target || asked.term, code: asked.code || '' }
       : { q: asked.term || asked.text, code: asked.code || '' })
-    : ''
-  const { body, loading } = useJson(url)
+  const asking = useJson(url)
+  const body = reply || asking.body
+  const loading = reply ? false : asking.loading
   if (!asked) return null
   const style = pinned ? undefined : {
     left: Math.min(Math.max(8, (asked.x || 0) - 40), Math.max(8, window.innerWidth - 336)),
@@ -301,8 +304,8 @@ export function TermCard({ looking, go, onPin, onClose, pinned }) {
       {body && body.found ? (
         <>
           <p className="term-count thin">
-            {`${frequency.pf || 0} here, ${count(frequency.df || 0, 'section')}`}
-            {frequency.indexed != null ? `, ${frequency.indexed} indexed` : ''}
+            {`${frequency.pf || 0} in the hits, ${count(frequency.df || 0, 'book')}`}
+            {frequency.indexed != null ? `, ${count(frequency.indexed, 'section')} indexed` : ''}
           </p>
           {(body.neighbors || []).length ? (
             <p className="term-neighbors">

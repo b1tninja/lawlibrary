@@ -1,7 +1,7 @@
 /* The reader's own chrome. The type, the marks, and the cut rules come from
  * templates/style.html, so the script-free page and this one read alike. */
 
-body.reader {
+.reader {
   max-width: 76rem;
   margin: 1.6rem auto;
 }
@@ -183,20 +183,20 @@ a.mark-link {
 
 /* The cut tree. Nesting carries the depth, so the flat page's indents are
  * dropped here and each further cut steps in once. */
-body.reader ol.cuts.reading li.cut-division,
-body.reader ol.cuts.reading li.cut-title,
-body.reader ol.cuts.reading li.cut-part,
-body.reader ol.cuts.reading li.cut-chapter,
-body.reader ol.cuts.reading li.cut-article,
-body.reader ol.cuts.reading li.cut-section,
-body.reader ol.cuts.reading li.cut-subdivision,
-body.reader ol.cuts.reading li.cut-subsection,
-body.reader ol.cuts.reading li.cut-paragraph,
-body.reader ol.cuts.reading li.cut-subparagraph,
-body.reader ol.cuts.reading li.cut-clause,
-body.reader ol.cuts.reading li.cut-subclause,
-body.reader ol.cuts.reading li.cut-item,
-body.reader ol.cuts.reading li.cut-subitem {
+.reader ol.cuts.reading li.cut-division,
+.reader ol.cuts.reading li.cut-title,
+.reader ol.cuts.reading li.cut-part,
+.reader ol.cuts.reading li.cut-chapter,
+.reader ol.cuts.reading li.cut-article,
+.reader ol.cuts.reading li.cut-section,
+.reader ol.cuts.reading li.cut-subdivision,
+.reader ol.cuts.reading li.cut-subsection,
+.reader ol.cuts.reading li.cut-paragraph,
+.reader ol.cuts.reading li.cut-subparagraph,
+.reader ol.cuts.reading li.cut-clause,
+.reader ol.cuts.reading li.cut-subclause,
+.reader ol.cuts.reading li.cut-item,
+.reader ol.cuts.reading li.cut-subitem {
   margin-left: 0;
 }
 

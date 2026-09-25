@@ -1,0 +1,36 @@
+{
+  "shape": "package",
+  "pkg": "lawlibrary-reader",
+  "globalName": "LawLibraryReader",
+  "buildCmd": "npm --prefix client run build:lib",
+  "srcDir": "src",
+  "cssEntry": "dist/lawlibrary-reader.css",
+  "readmeHeader": ".design-sync/conventions.md",
+  "provider": {
+    "component": "Reader"
+  },
+  "componentSrcMap": {
+    "Reader": "src/root.jsx",
+    "Crumbs": "src/library.jsx",
+    "Contents": "src/library.jsx",
+    "Cuts": "src/marks.jsx",
+    "Pieces": "src/marks.jsx",
+    "Link": "src/marks.jsx",
+    "TermCard": "src/marks.jsx",
+    "Layered": "src/layers.jsx",
+    "Layers": "src/layers.jsx",
+    "Graph": "src/graph.jsx",
+    "Hits": "src/find.jsx",
+    "Sides": "src/section.jsx",
+    "Formats": "src/section.jsx",
+    "Reading": null
+  },
+  "overrides": {
+    "Cuts": {
+      "cardMode": "column"
+    },
+    "TermCard": {
+      "cardMode": "column"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+/* Everything a page of this library needs, in one import closure: the token
+ * sheet the script-free pages already carry, then the reader's own chrome. */
+
+@import './tokens.css';
+@import './reader.css';

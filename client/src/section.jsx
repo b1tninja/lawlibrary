@@ -21,7 +21,7 @@ const HOPS = [
   ['all', 'until a repeat'],
 ]
 
-function Formats({ formats }) {
+export function Formats({ formats }) {
   if (!formats || !formats.length) return null
   return (
     <p className="formats">
@@ -32,7 +32,7 @@ function Formats({ formats }) {
   )
 }
 
-function Sides({ code, previous, next, session, go }) {
+export function Sides({ code, previous, next, session, go }) {
   if (!previous && !next) return null
   return (
     <p className="beside">
@@ -291,7 +291,7 @@ export function Section({ code, number, session, sessions, order, sides, go }) {
           <Gaps code={code} number={number} session={session} go={go} />
         </div>
         <aside className="rail">
-          <Contents items={body.contents} go={go} heading="Beside it" sift short />
+          <Contents items={body.contents} go={go} heading="Beside it" sift />
           <NamedBy citation={body.citation || `${code} ${number}`} go={go} />
           {(body.links || []).length ? (
             <section className="contents-block">

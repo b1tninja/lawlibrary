@@ -138,3 +138,11 @@ client/node_modules/
 
 # Captured traffic. A HAR often holds live credentials.
 *.har
+# Generated from templates/style.html by client/tokens.mjs
+client/src/tokens.css
+client/dist/
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules

@@ -1,16 +1,44 @@
 {
-  "name": "lawlibrary-client",
+  "name": "lawlibrary-reader",
   "private": true,
+  "version": "0.1.0",
+  "description": "The law library's reading components: the trail, the cuts, the layered readings, and the citation graph.",
+  "license": "CC0-1.0",
   "type": "module",
-  "scripts": {
-    "build": "vite build"
+  "main": "./dist/lawlibrary-reader.js",
+  "module": "./dist/lawlibrary-reader.js",
+  "types": "./dist/index.d.ts",
+  "style": "./dist/lawlibrary-reader.css",
+  "sideEffects": [
+    "*.css"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/lawlibrary-reader.js"
+    },
+    "./styles.css": "./dist/lawlibrary-reader.css",
+    "./package.json": "./package.json"
   },
-  "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+  "scripts": {
+    "tokens": "node tokens.mjs",
+    "prebuild": "node tokens.mjs",
+    "build": "vite build",
+    "prebuild:lib": "node tokens.mjs",
+    "build:lib": "vite build --config vite.lib.config.js && node -e \"import('node:fs').then(f=>f.copyFileSync('src/index.d.ts','dist/index.d.ts'))\""
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
   },
   "devDependencies": {
+    "@types/react": "^19.3.0",
     "@vitejs/plugin-react": "^5.0.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
     "vite": "^7.1.3"
   }
 }
