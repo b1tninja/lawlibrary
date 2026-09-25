@@ -95,3 +95,22 @@ export function codeTitle(codes, token) {
   const row = (codes || []).find((item) => item.code === token)
   return row ? row.title : token
 }
+
+/* A route that answers with words rather than JSON: a section as text,
+ * Markdown, or XML. */
+export function useText(url) {
+  const [state, setState] = useState(() => ({ url, raw: '', loading: Boolean(url) }))
+  useEffect(() => {
+    if (!url) {
+      setState({ url, raw: '', loading: false })
+      return undefined
+    }
+    const controller = new AbortController()
+    setState({ url, raw: '', loading: true })
+    fetch(url, { signal: controller.signal })
+      .then((reply) => reply.text())
+      .then((raw) => setState({ url, raw, loading: false }), () => {})
+    return () => controller.abort()
+  }, [url])
+  return state
+}

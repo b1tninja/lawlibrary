@@ -1,0 +1,419 @@
+/* The statute reader: a section with its cuts, the readings drawn over them,
+ * and a panel that carries the layers, the cards, the walk, or the chapter.
+ */
+
+@import './page.css';
+
+body:has(.ll.ll-statute) {
+  max-width: 84rem;
+}
+
+.ll .spread {
+  grid-template-columns: minmax(0, 1fr) 23rem;
+  gap: 2.5rem;
+  transition: grid-template-columns 0.25s ease;
+}
+
+.ll .spread[data-wide="true"] {
+  grid-template-columns: minmax(0, 1fr) 46rem;
+}
+
+@media (max-width: 62rem) {
+  .ll .spread,
+  .ll .spread[data-wide="true"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ll .ll-panel {
+    position: static;
+    max-height: none;
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid var(--ll-rule);
+  }
+}
+
+.ll nav.crumbs ol {
+  font-size: 0.86rem;
+  margin-bottom: 1.1rem;
+}
+
+.ll nav.crumbs li + li::before {
+  color: var(--ll-muted);
+}
+
+.ll ol.contents li,
+.ll ol.refs li,
+.ll .layers,
+.ll .section-bar,
+.ll .term-ways {
+  border-color: var(--ll-rule);
+}
+
+.ll ol.contents li.cut-section {
+  margin-left: 0;
+  border-left-color: var(--ll-rule);
+  transition: background 0.12s;
+}
+
+.ll ol.contents li.cut-section:hover {
+  background: var(--ll-wash);
+}
+
+.ll ol.contents li:has([aria-current]) {
+  border-left: 3px solid var(--ll-ink);
+  background: var(--ll-wash);
+}
+
+/* The words. The size is the reader's own, and the section's own head is not
+ * repeated above its cuts. */
+.ll ol.cuts.reading {
+  font-size: 1.07rem;
+  line-height: 1.75;
+}
+
+.ll[data-size="s"] ol.cuts.reading { font-size: 0.96rem; }
+.ll[data-size="l"] ol.cuts.reading { font-size: 1.22rem; }
+
+.ll .ll-text > ol.cuts.reading > li > .cut-head { display: none; }
+.ll .ll-text > ol.cuts.reading > li > ol.cuts { margin-left: 0; }
+.ll .ll-text > ol.cuts.reading > li { padding-left: 0; }
+
+.ll ol.cuts.reading li {
+  padding: 0.18rem 0 0.18rem 0.4rem;
+}
+
+.ll .cut-head {
+  border-radius: 4px;
+  padding: 0.15rem 0.3rem;
+  transition: background 0.12s;
+}
+
+.ll .cut-head:hover {
+  background: var(--ll-wash);
+}
+
+.ll .cut-unit {
+  color: var(--ll-muted);
+  flex-basis: 5rem;
+}
+
+.ll button.fold {
+  border-color: var(--ll-rule);
+  color: var(--ll-small);
+  border-radius: 3px;
+  height: 1.2rem;
+  line-height: 1rem;
+  align-self: center;
+}
+
+.ll button.fold:hover {
+  border-color: var(--ll-ink);
+  color: var(--ll-ink);
+}
+
+.ll button.cut-cite {
+  color: var(--ll-muted);
+  transition: opacity 0.12s;
+}
+
+.ll button.cut-cite:hover {
+  color: var(--ll-link);
+}
+
+/* The marks stay legible when the paper turns dark, and say they can be read. */
+.ll mark.lay-note,
+.ll mark[class*="note-"]:not(.off) {
+  color: #1a1814;
+}
+
+.ll[data-theme="dark"] mark.lay-clause {
+  box-shadow: inset 0 -0.32em rgba(150, 190, 150, 0.3);
+}
+
+.ll mark.off {
+  color: var(--ll-small);
+  box-shadow: inset 0 -1px var(--ll-rule);
+}
+
+.ll .reading mark {
+  cursor: pointer;
+  transition: outline-color 0.1s;
+}
+
+.ll .reading mark:hover {
+  outline: 1px solid var(--ll-link);
+  outline-offset: 1px;
+}
+
+/* The readings bar, as chips. */
+.ll .layers {
+  border: 0;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.ll .layers-bar { gap: 0.4rem; }
+
+.ll button.layer {
+  border-color: var(--ll-rule);
+  color: var(--ll-small);
+  border-radius: 999px;
+  padding: 0.12rem 0.65rem;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.ll button.layer:hover { border-color: var(--ll-muted); }
+
+.ll button.layer.on {
+  border-color: var(--ll-ink);
+  color: var(--ll-ink);
+  background: var(--ll-card);
+}
+
+.ll button.plain {
+  color: var(--ll-link);
+  border-bottom-color: var(--ll-link);
+}
+
+.ll .layer-row > span.thin { flex-basis: 4.8rem; }
+
+/* A card reads the same floating over the words or kept in the panel. */
+.ll .term-card {
+  background: var(--ll-card);
+  border-color: var(--ll-ink);
+  color: var(--ll-ink);
+  box-shadow: var(--ll-shadow);
+  border-radius: 6px;
+  animation: llIn 0.16s ease-out;
+}
+
+.ll .ll-panel .term-card {
+  position: static;
+  width: auto;
+  box-shadow: none;
+  border-color: var(--ll-rule);
+  margin: 0 0 0.75rem;
+}
+
+.ll .term-card button {
+  background: var(--ll-accent);
+  color: var(--ll-ink);
+  border-radius: 3px;
+}
+
+.ll .term-kind { color: var(--ll-muted); }
+.ll .term-reading { color: var(--ll-small); }
+.ll .term-count { color: var(--ll-small); }
+
+.ll .miss {
+  background: var(--ll-wash);
+  border-radius: 0 4px 4px 0;
+}
+
+.ll .graph-frame {
+  border-color: var(--ll-rule);
+  border-radius: 6px;
+  background: #fffdf8;
+}
+
+.ll .graph-bar input,
+.ll .sift input {
+  background: var(--ll-card);
+  color: var(--ll-ink);
+  border-color: var(--ll-rule);
+  border-radius: 3px;
+  padding: 0.2rem 0.4rem;
+}
+
+.ll .sift input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ll details.graph-table summary { color: var(--ll-small); }
+
+.ll button[data-ll="tab"][aria-selected="true"] {
+  color: var(--ll-ink);
+  border-bottom-color: var(--ll-ink);
+}
+
+.ll button[data-ll="fmt"][aria-selected="true"] {
+  background: var(--ll-ink);
+  color: var(--ll-paper);
+}
+
+.ll pre[data-fmt="txt"] { font-family: inherit; }
+
+/* The page's own furniture. */
+.ll-statute h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: 0.01em;
+}
+
+.ll-caption {
+  margin: 0 0 1.1rem;
+  font-style: italic;
+  color: var(--ll-small);
+  font-size: 0.95rem;
+  min-height: 1.4em;
+}
+
+.ll-statute .section-bar {
+  position: sticky;
+  top: 3.35rem;
+  z-index: 3;
+  background: var(--ll-paper);
+  padding: 0.55rem 0;
+  margin-bottom: 1.1rem;
+  align-items: center;
+  gap: 0.6rem 1.4rem;
+}
+
+.ll-where-in {
+  color: var(--ll-muted);
+  font-size: 0.85rem;
+}
+
+.ll-fmts {
+  display: flex;
+  border: 1px solid var(--ll-rule);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-left: auto;
+}
+
+button[data-ll="fmt"] {
+  font: inherit;
+  font-size: 0.82rem;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  border: 0;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+  background: transparent;
+  color: var(--ll-small);
+}
+
+.ll-plain-link {
+  font: inherit;
+  font-size: 0.85rem;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--ll-link);
+  color: var(--ll-link);
+  padding: 0;
+  cursor: pointer;
+}
+
+.ll-chosen {
+  display: flex;
+  gap: 0.8rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+  background: var(--ll-wash);
+  border-left: 3px solid var(--ll-link);
+  border-radius: 0 4px 4px 0;
+  padding: 0.4rem 0.7rem;
+  margin: 0 0 1rem;
+  animation: llIn 0.16s ease-out;
+}
+
+.ll-chosen .ll-unit {
+  color: var(--ll-muted);
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  font-size: 0.88rem;
+}
+
+.ll-chosen .ll-ways { margin-left: auto; gap: 0.9rem; }
+
+.ll-hint {
+  margin: 1.6rem 0 0;
+  color: var(--ll-muted);
+  font-size: 0.85rem;
+}
+
+.ll-plain {
+  position: relative;
+  animation: llIn 0.16s ease-out;
+}
+
+.ll-plain pre {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  background: var(--ll-card);
+  border: 1px solid var(--ll-rule);
+  border-radius: 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: "Courier New", monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--ll-ink);
+}
+
+.ll-plain .ll-copy-plain {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  background: var(--ll-paper);
+  border: 1px solid var(--ll-rule);
+  border-radius: 3px;
+  color: var(--ll-ink);
+  padding: 0.1rem 0.5rem;
+  cursor: pointer;
+}
+
+.ll-tabs {
+  display: flex;
+  gap: 1.1rem;
+  border-bottom: 1px solid var(--ll-rule);
+  margin-bottom: 1rem;
+  position: sticky;
+  top: 0;
+  background: var(--ll-paper);
+  z-index: 1;
+}
+
+button[data-ll="tab"] {
+  font: inherit;
+  font-size: 0.9rem;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--ll-small);
+  padding: 0.45rem 0 0.4rem;
+  margin-bottom: -1px;
+  cursor: pointer;
+  display: flex;
+  gap: 0.3rem;
+  align-items: baseline;
+}
+
+.ll-presets {
+  display: flex;
+  gap: 0.9rem;
+  align-items: baseline;
+  margin: 0 0 1.2rem;
+  font-size: 0.86rem;
+  flex-wrap: wrap;
+}
+
+.ll-drawn {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.45rem 0.9rem;
+  align-items: baseline;
+}
+
+.ll-drawn dt,
+.ll-drawn dd { margin: 0; }
+.ll-drawn dd { color: var(--ll-small); }

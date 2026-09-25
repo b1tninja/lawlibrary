@@ -1,84 +1,8 @@
-/* The search page, as designed: paper or dark, a selectable result list, and
- * a panel that previews the section before the reader opens it.
- *
- * The tokens live on `.ll` so the theme is the page's, not the whole app's.
- * The library's own sheet is unchanged; these rules only re-dress it here.
+/* The search page: the box, the book chips, the result list a reader walks,
+ * and the panel that shows a section before the reader opens it.
  */
 
-.ll {
-  --ll-paper: #f4f0e6;
-  --ll-card: #fffdf8;
-  --ll-ink: #1a1814;
-  --ll-muted: #8a8172;
-  --ll-small: #5c4a32;
-  --ll-rule: #ddd6c8;
-  --ll-link: #1a3654;
-  --ll-wash: #ece6d8;
-  --ll-accent: #f3e6c4;
-  --ll-shadow: 0 1px 2px rgba(26, 24, 20, 0.08), 0 10px 28px rgba(26, 24, 20, 0.1);
-  min-height: 100vh;
-  background: var(--ll-paper);
-  color: var(--ll-ink);
-  transition: background 0.2s, color 0.2s;
-}
-
-.ll[data-theme="dark"] {
-  --ll-paper: #1c1b18;
-  --ll-card: #26241f;
-  --ll-ink: #e8e2d4;
-  --ll-muted: #9b927f;
-  --ll-small: #bcae95;
-  --ll-rule: #3b372f;
-  --ll-link: #a9c3e6;
-  --ll-wash: #2a2722;
-  --ll-accent: #4d4128;
-  --ll-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 30px rgba(0, 0, 0, 0.4);
-}
-
-body:has(.ll[data-theme="dark"]) {
-  background: #1c1b18;
-}
-
-.ll h1,
-.ll h2 {
-  color: var(--ll-ink);
-}
-
-.ll h1 {
-  border-bottom-color: var(--ll-ink);
-}
-
-.ll a {
-  color: var(--ll-link);
-  text-underline-offset: 0.18em;
-}
-
-.ll a:hover {
-  text-decoration-thickness: 2px;
-}
-
-.ll .thin {
-  color: var(--ll-small);
-}
-
-.ll .spread {
-  grid-template-columns: minmax(0, 1fr) 26rem;
-  gap: 2.5rem;
-}
-
-@media (max-width: 62rem) {
-  .ll .spread {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .ll .ll-panel {
-    position: static;
-    max-height: none;
-    border-left: 0;
-    padding-left: 0;
-    border-top: 1px solid var(--ll-rule);
-    padding-top: 1rem;
-  }
-}
+@import './page.css';
 
 /* The result list. A row is a target; the selected one carries the rule. */
 .ll ol.hits {
@@ -150,85 +74,14 @@ body:has(.ll[data-theme="dark"]) {
   background: var(--ll-wash);
 }
 
-.ll aside.keys {
-  background: var(--ll-card);
-  border-color: var(--ll-rule);
-  color: var(--ll-ink);
-  box-shadow: var(--ll-shadow);
-  border-radius: 8px;
-  animation: llIn 0.16s ease-out;
-}
-
-.ll kbd,
-.ll aside.keys kbd {
-  font-family: "Courier New", monospace;
-  font-size: 0.8rem;
-  background: var(--ll-paper);
-  border: 1px solid var(--ll-rule);
-  border-radius: 3px;
-  padding: 0 0.3rem;
-  color: var(--ll-small);
-}
-
-.ll :focus-visible {
-  outline: 2px solid var(--ll-link);
-  outline-offset: 2px;
-}
-
 .ll button[data-ll="chip"][aria-pressed="true"] {
   border-color: var(--ll-ink);
   background: var(--ll-card);
   color: var(--ll-ink);
 }
 
-@keyframes llIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: none; }
-}
 
 /* The page's own chrome: the bar, the box, the chips, the panel, the toast. */
-.ll-bar {
-  position: sticky;
-  top: 0;
-  z-index: 6;
-  background: var(--ll-paper);
-  border-bottom: 3px double var(--ll-ink);
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  flex-wrap: wrap;
-  padding: 0.55rem 0;
-  margin-bottom: 1rem;
-}
-
-.ll-bar .ll-where {
-  color: var(--ll-muted);
-  font-size: 0.88rem;
-}
-
-.ll-bar .ll-switches {
-  display: flex;
-  gap: 0.4rem;
-  margin-left: auto;
-}
-
-.ll-switch {
-  font: inherit;
-  font-size: 0.85rem;
-  font-variant: small-caps;
-  letter-spacing: 0.05em;
-  background: none;
-  border: 1px solid var(--ll-rule);
-  border-radius: 4px;
-  color: var(--ll-ink);
-  padding: 0.25rem 0.65rem;
-  cursor: pointer;
-}
-
-.ll-switch:hover {
-  border-color: var(--ll-ink);
-}
-
 .ll-ask {
   position: relative;
   display: flex;
@@ -361,30 +214,4 @@ button[data-ll="chip"] {
   cursor: pointer;
 }
 
-.ll-toast {
-  position: fixed;
-  left: 50%;
-  bottom: 1.4rem;
-  transform: translateX(-50%);
-  z-index: 7;
-  background: var(--ll-ink);
-  color: var(--ll-paper);
-  padding: 0.45rem 0.9rem;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  box-shadow: var(--ll-shadow);
-  animation: llIn 0.16s ease-out;
-}
 
-/* The page dresses the whole window when it is dark, so the library's own
- * masthead above it takes the same ink rather than sitting unreadable. */
-body:has(.ll[data-theme="dark"]) header.mast {
-  border-bottom-color: #e8e2d4;
-}
-
-body:has(.ll[data-theme="dark"]) header.mast p,
-body:has(.ll[data-theme="dark"]) nav.site a,
-body:has(.ll[data-theme="dark"]) nav.site button.plain {
-  color: #e8e2d4;
-  border-bottom-color: #e8e2d4;
-}

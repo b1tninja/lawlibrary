@@ -18,7 +18,7 @@ import { Library } from './library.jsx'
 import { useShown } from './layers.jsx'
 import { Link, TermCard } from './marks.jsx'
 import { Reading } from './reading.js'
-import { Section } from './section.jsx'
+import { StatuteReader } from './statute.jsx'
 import {
   annotationsHref, citeHref, closureHref, diagramHref, libraryHref,
   readPlace, reasonWords, searchHref, sectionHref,
@@ -266,19 +266,14 @@ function Shell() {
           <a href="/mirror">Reference</a>
           <button type="button" className="plain" onClick={() => setHelp(true)}>keys</button>
         </nav>
-        {here.kind === 'search' ? null : <Ask here={here} go={go} />}
+        {here.kind === 'search' || here.kind === 'section' ? null : <Ask here={here} go={go} />}
       </header>
       <main id="main">
         {here.kind === 'library' ? <Library url={here.url} go={go} /> : null}
         {here.kind === 'section' ? (
-          <Section
+          <StatuteReader
             key={`${here.code}/${here.number}/${here.session}`}
-            code={here.code}
-            number={here.number}
-            session={here.session}
-            sessions={sessions}
-            order={surfaces.layer}
-            sides={sides}
+            here={here}
             go={go}
           />
         ) : null}
