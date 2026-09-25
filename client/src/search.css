@@ -1,0 +1,390 @@
+/* The search page, as designed: paper or dark, a selectable result list, and
+ * a panel that previews the section before the reader opens it.
+ *
+ * The tokens live on `.ll` so the theme is the page's, not the whole app's.
+ * The library's own sheet is unchanged; these rules only re-dress it here.
+ */
+
+.ll {
+  --ll-paper: #f4f0e6;
+  --ll-card: #fffdf8;
+  --ll-ink: #1a1814;
+  --ll-muted: #8a8172;
+  --ll-small: #5c4a32;
+  --ll-rule: #ddd6c8;
+  --ll-link: #1a3654;
+  --ll-wash: #ece6d8;
+  --ll-accent: #f3e6c4;
+  --ll-shadow: 0 1px 2px rgba(26, 24, 20, 0.08), 0 10px 28px rgba(26, 24, 20, 0.1);
+  min-height: 100vh;
+  background: var(--ll-paper);
+  color: var(--ll-ink);
+  transition: background 0.2s, color 0.2s;
+}
+
+.ll[data-theme="dark"] {
+  --ll-paper: #1c1b18;
+  --ll-card: #26241f;
+  --ll-ink: #e8e2d4;
+  --ll-muted: #9b927f;
+  --ll-small: #bcae95;
+  --ll-rule: #3b372f;
+  --ll-link: #a9c3e6;
+  --ll-wash: #2a2722;
+  --ll-accent: #4d4128;
+  --ll-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+body:has(.ll[data-theme="dark"]) {
+  background: #1c1b18;
+}
+
+.ll h1,
+.ll h2 {
+  color: var(--ll-ink);
+}
+
+.ll h1 {
+  border-bottom-color: var(--ll-ink);
+}
+
+.ll a {
+  color: var(--ll-link);
+  text-underline-offset: 0.18em;
+}
+
+.ll a:hover {
+  text-decoration-thickness: 2px;
+}
+
+.ll .thin {
+  color: var(--ll-small);
+}
+
+.ll .spread {
+  grid-template-columns: minmax(0, 1fr) 26rem;
+  gap: 2.5rem;
+}
+
+@media (max-width: 62rem) {
+  .ll .spread {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ll .ll-panel {
+    position: static;
+    max-height: none;
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid var(--ll-rule);
+    padding-top: 1rem;
+  }
+}
+
+/* The result list. A row is a target; the selected one carries the rule. */
+.ll ol.hits {
+  margin: 0;
+}
+
+.ll ol.hits li {
+  border-color: var(--ll-rule);
+  padding: 0.7rem 0.8rem;
+  border-radius: 5px;
+  border-bottom: 1px solid var(--ll-rule);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.ll ol.hits li:hover {
+  background: var(--ll-wash);
+}
+
+.ll .hit-head a {
+  font-size: 1.08rem;
+  font-weight: 600;
+}
+
+.ll .hit-words {
+  color: var(--ll-ink);
+  line-height: 1.55;
+  margin-top: 0.3rem;
+}
+
+.ll .hit-path {
+  display: block;
+  flex-basis: 100%;
+  color: var(--ll-muted);
+}
+
+.ll .ll-hits[data-sel="0"] ol.hits li:nth-child(1),
+.ll .ll-hits[data-sel="1"] ol.hits li:nth-child(2),
+.ll .ll-hits[data-sel="2"] ol.hits li:nth-child(3),
+.ll .ll-hits[data-sel="3"] ol.hits li:nth-child(4),
+.ll .ll-hits[data-sel="4"] ol.hits li:nth-child(5),
+.ll .ll-hits[data-sel="5"] ol.hits li:nth-child(6),
+.ll .ll-hits[data-sel="6"] ol.hits li:nth-child(7),
+.ll .ll-hits[data-sel="7"] ol.hits li:nth-child(8),
+.ll .ll-hits[data-sel="8"] ol.hits li:nth-child(9),
+.ll .ll-hits[data-sel="9"] ol.hits li:nth-child(10),
+.ll .ll-hits[data-sel="10"] ol.hits li:nth-child(11),
+.ll .ll-hits[data-sel="11"] ol.hits li:nth-child(12) {
+  background: var(--ll-card);
+  box-shadow: inset 3px 0 var(--ll-link), var(--ll-shadow);
+}
+
+/* Where the section sits, as the ladder the library already draws. */
+.ll ol.contents li {
+  border-color: var(--ll-rule);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.ll ol.contents li.cut-division { margin-left: 0; }
+.ll ol.contents li.cut-part { margin-left: 0.9rem; }
+.ll ol.contents li.cut-title { margin-left: 0.9rem; }
+.ll ol.contents li.cut-chapter { margin-left: 1.8rem; }
+.ll ol.contents li.cut-article { margin-left: 2.2rem; }
+
+.ll ol.contents li.cut-section {
+  margin-left: 2.7rem;
+  border-left: 3px solid var(--ll-ink);
+  background: var(--ll-wash);
+}
+
+.ll aside.keys {
+  background: var(--ll-card);
+  border-color: var(--ll-rule);
+  color: var(--ll-ink);
+  box-shadow: var(--ll-shadow);
+  border-radius: 8px;
+  animation: llIn 0.16s ease-out;
+}
+
+.ll kbd,
+.ll aside.keys kbd {
+  font-family: "Courier New", monospace;
+  font-size: 0.8rem;
+  background: var(--ll-paper);
+  border: 1px solid var(--ll-rule);
+  border-radius: 3px;
+  padding: 0 0.3rem;
+  color: var(--ll-small);
+}
+
+.ll :focus-visible {
+  outline: 2px solid var(--ll-link);
+  outline-offset: 2px;
+}
+
+.ll button[data-ll="chip"][aria-pressed="true"] {
+  border-color: var(--ll-ink);
+  background: var(--ll-card);
+  color: var(--ll-ink);
+}
+
+@keyframes llIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* The page's own chrome: the bar, the box, the chips, the panel, the toast. */
+.ll-bar {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--ll-paper);
+  border-bottom: 3px double var(--ll-ink);
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  padding: 0.55rem 0;
+  margin-bottom: 1rem;
+}
+
+.ll-bar .ll-where {
+  color: var(--ll-muted);
+  font-size: 0.88rem;
+}
+
+.ll-bar .ll-switches {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.ll-switch {
+  font: inherit;
+  font-size: 0.85rem;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  background: none;
+  border: 1px solid var(--ll-rule);
+  border-radius: 4px;
+  color: var(--ll-ink);
+  padding: 0.25rem 0.65rem;
+  cursor: pointer;
+}
+
+.ll-switch:hover {
+  border-color: var(--ll-ink);
+}
+
+.ll-ask {
+  position: relative;
+  display: flex;
+  margin: 0 0 1rem;
+}
+
+.ll-ask input {
+  flex: 1;
+  font: inherit;
+  font-size: 1.3rem;
+  padding: 0.6rem 2.6rem 0.6rem 0.8rem;
+  border: 1px solid var(--ll-ink);
+  border-radius: 5px;
+  background: var(--ll-card);
+  color: var(--ll-ink);
+}
+
+.ll-ask kbd {
+  position: absolute;
+  right: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.ll-books {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.5rem;
+  align-items: baseline;
+  margin: 0 0 0.5rem;
+}
+
+.ll-books > span.thin {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  font-size: 0.88rem;
+  margin-right: 0.2rem;
+}
+
+button[data-ll="chip"] {
+  font: inherit;
+  font-size: 0.85rem;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--ll-rule);
+  background: transparent;
+  color: var(--ll-small);
+  border-radius: 999px;
+  padding: 0.1rem 0.65rem;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: baseline;
+}
+
+.ll-summary {
+  margin: 0 0 0.6rem;
+  color: var(--ll-small);
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--ll-rule);
+  padding-bottom: 0.6rem;
+}
+
+.ll-panel {
+  position: sticky;
+  top: 4.6rem;
+  max-height: calc(100vh - 5.6rem);
+  overflow-y: auto;
+  border-left: 1px solid var(--ll-rule);
+  padding-left: 1.4rem;
+  min-width: 0;
+}
+
+.ll-panel .ll-book {
+  margin: 0 0 0.2rem;
+  color: var(--ll-muted);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  font-size: 0.85rem;
+}
+
+.ll-panel h1 {
+  font-size: 1.8rem;
+  margin: 0 0 0.9rem;
+}
+
+.ll-panel h2 {
+  margin: 0 0 0.4rem;
+  font-size: 0.92rem;
+}
+
+.ll-words {
+  margin: 0 0 1.2rem;
+  line-height: 1.7;
+  font-size: 1.02rem;
+  background: var(--ll-card);
+  border: 1px solid var(--ll-rule);
+  border-radius: 5px;
+  padding: 0.8rem 0.9rem;
+  white-space: pre-wrap;
+}
+
+.ll-ways {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ll-open {
+  font: inherit;
+  font-size: 0.95rem;
+  background: var(--ll-ink);
+  color: var(--ll-paper);
+  border: 0;
+  border-radius: 4px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+
+.ll-copy {
+  font: inherit;
+  font-size: 0.9rem;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--ll-link);
+  color: var(--ll-link);
+  padding: 0;
+  cursor: pointer;
+}
+
+.ll-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.4rem;
+  transform: translateX(-50%);
+  z-index: 7;
+  background: var(--ll-ink);
+  color: var(--ll-paper);
+  padding: 0.45rem 0.9rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  box-shadow: var(--ll-shadow);
+  animation: llIn 0.16s ease-out;
+}
+
+/* The page dresses the whole window when it is dark, so the library's own
+ * masthead above it takes the same ink rather than sitting unreadable. */
+body:has(.ll[data-theme="dark"]) header.mast {
+  border-bottom-color: #e8e2d4;
+}
+
+body:has(.ll[data-theme="dark"]) header.mast p,
+body:has(.ll[data-theme="dark"]) nav.site a,
+body:has(.ll[data-theme="dark"]) nav.site button.plain {
+  color: #e8e2d4;
+  border-bottom-color: #e8e2d4;
+}

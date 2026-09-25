@@ -11,7 +11,8 @@ import { createRoot } from 'react-dom/client'
 import './reader.css'
 import { route, useCatalog, useJson, useSurfaces } from './api.js'
 import { Closure, GraphView } from './closure.jsx'
-import { Annotations, Cite, OutlineView, Search } from './find.jsx'
+import { Annotations, Cite, OutlineView } from './find.jsx'
+import { Search } from './search.jsx'
 import { Graph } from './graph.jsx'
 import { Library } from './library.jsx'
 import { useShown } from './layers.jsx'
@@ -265,7 +266,7 @@ function Shell() {
           <a href="/mirror">Reference</a>
           <button type="button" className="plain" onClick={() => setHelp(true)}>keys</button>
         </nav>
-        <Ask here={here} go={go} />
+        {here.kind === 'search' ? null : <Ask here={here} go={go} />}
       </header>
       <main id="main">
         {here.kind === 'library' ? <Library url={here.url} go={go} /> : null}
