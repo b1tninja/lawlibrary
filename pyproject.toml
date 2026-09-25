@@ -21,7 +21,7 @@ lawlibrary = "ca:main"
 lawlibrary-mcp = "mcp_server:main"
 
 [tool.setuptools]
-py-modules = ["agency", "analysis", "apa", "application", "ca", "california", "canons", "citations", "companions", "config", "core", "corpus", "court", "drafting", "entities", "government", "hierarchy", "indexer", "jurisdiction", "lexical", "mcp_server", "mentions", "muster", "needles", "outline", "parsers", "places", "publication", "query", "sample", "styles", "styles_alwd", "styles_bluebook", "styles_chicago", "styles_indigo", "styles_universal", "structure", "utils", "vesting", "weight"]
+py-modules = ["agency", "analysis", "apa", "application", "ca", "california", "canons", "citations", "companions", "config", "core", "corpus", "court", "drafting", "entities", "government", "hierarchy", "indexer", "jurisdiction", "lexical", "marks", "mcp_server", "mentions", "muster", "needles", "outline", "parsers", "places", "publication", "query", "sample", "styles", "styles_alwd", "styles_bluebook", "styles_chicago", "styles_indigo", "styles_universal", "structure", "utils", "vesting", "weight"]
 
 [tool.setuptools.packages.find]
 include = ["us*"]

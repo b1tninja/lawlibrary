@@ -1,8 +1,8 @@
 from jurisdiction import Country, Region
 from us import UnitedStates
-from us.ca import California
-from us.ca.counties.sacramento import SacramentoCounty
-from us.ca.counties.sacramento.cities.sacramento import Sacramento
+from us.states.ca import California
+from us.counties.ca.sacramento import SacramentoCounty
+from us.counties.ca.sacramento.cities.sacramento import Sacramento
 
 from corpus import Catalog, alias_for, connect, corpus_path, corpus_path_for, statute_corpus_path
 

@@ -1,8 +1,9 @@
 """Electronic Code of Federal Regulations — one parser for every title.
 
-Parse format: govinfo / eCFR bulk XML (DIV5 PART, DIV8 SECTION). The annual
-CFR PDF and Text on govinfo remain the official legal edition; eCFR XML is
-not. Commercial hosts are not sources.
+Parse format: the annual CFR XML on govinfo (``CFRDOC`` / ``SECTION``), which
+is the official edition and keeps part and chapter. eCFR bulk XML
+(``DIV8`` SECTION) still parses when that is the file on disk. PDF is the
+print copy of the same title. Commercial hosts are not sources.
 """
 
 import os
@@ -54,7 +55,23 @@ def _title_from_path(path):
     return match.group(1) if match else None
 
 
+def _child_text(el, name):
+    for child in el:
+        if _local(child.tag).upper() == name:
+            text = _plain(child)
+            if text:
+                return text
+    return ''
+
+
 def _title_from_tree(root):
+    if _local(root.tag).upper() == 'CFRDOC':
+        for el in root.iter():
+            if _local(el.tag).upper() != 'TITLENUM':
+                continue
+            text = ''.join(el.itertext()).strip()
+            if text.isdigit():
+                return text
     for el in root.iter():
         if _local(el.tag).upper() != 'IDNO':
             continue
@@ -70,6 +87,119 @@ def _title_from_tree(root):
             if n and str(n).strip().isdigit():
                 return str(n).strip()
     return None
+
+
+def _title_heading(root, title):
+    """Printed title name when the eCFR file names it (DIV1 HEAD)."""
+    for el in root.iter():
+        if _local(el.tag).upper() != 'DIV1':
+            continue
+        if (_attr(el, 'TYPE') or '').upper() != 'TITLE':
+            continue
+        for child in el:
+            if _local(child.tag).upper() == 'HEAD':
+                text = _plain(child)
+                if text:
+                    return text
+    if title:
+        return 'Title %s' % title
+    return None
+
+
+def _law_code(title):
+    """Whoosh token such as ``1CFR`` from the title number."""
+    if not title:
+        return None
+    text = str(title).strip()
+    if text.upper().endswith('CFR'):
+        return text.upper() if text[-3:].isalpha() else text
+    return '%sCFR' % text
+
+
+def _title_num_for_path(law_code):
+    """Numeric title for ``cfr_corpus_path`` from a ``1CFR`` token."""
+    text = str(law_code or '').strip()
+    if text.upper().endswith('CFR'):
+        return text[:-3]
+    return text
+
+
+def _outline(el, parents):
+    """Title, chapter, and part that contain this section."""
+    fields = {}
+    cur = parents.get(el)
+    while cur is not None:
+        kind = (_attr(cur, 'TYPE') or '').upper()
+        if kind in ('TITLE', 'CHAPTER', 'PART') and kind not in fields:
+            number = (_attr(cur, 'N') or '').strip()
+            head = ''
+            for child in cur:
+                if _local(child.tag).upper() == 'HEAD':
+                    head = _plain(child)
+                    break
+            if number:
+                fields[kind] = number
+            if head:
+                fields['%s_HEADING' % kind] = head
+        cur = parents.get(cur)
+    return fields
+
+
+def _annual_outline(el, parents):
+    """Title, chapter, and part printed on the annual CFR XML."""
+    fields = {}
+    cur = parents.get(el)
+    while cur is not None:
+        tag = _local(cur.tag).upper()
+        if tag in ('TITLE', 'CHAPTER', 'PART') and tag not in fields:
+            if tag == 'TITLE':
+                head = _child_text(cur, 'CFRTITLE') or _child_text(cur, 'HD')
+            else:
+                head = _child_text(cur, 'HD')
+            number = ''
+            if tag == 'PART':
+                raw = _child_text(cur, 'EAR') or head
+                match = re.search(r'\d+', raw)
+                number = match.group(0) if match else ''
+            elif tag == 'TITLE' and head:
+                match = re.search(r'\d+', head)
+                number = match.group(0) if match else ''
+            if number:
+                fields[tag] = number
+            if head:
+                fields['%s_HEADING' % tag] = head
+        cur = parents.get(cur)
+    return fields
+
+
+def _annual_sections(root, parents, law_code, code_heading):
+    for el in root.iter():
+        if _local(el.tag).upper() != 'SECTION':
+            continue
+        num = _section_num(_child_text(el, 'SECTNO'))
+        parts = []
+        for child in el:
+            if _local(child.tag).upper() == 'P':
+                text = _plain(child)
+                if text:
+                    parts.append(text)
+        text = '\n\n'.join(parts)
+        if not num or not text:
+            continue
+        row = {
+            'COUNTRY': 'US',
+            'SUBDIVISION': 'US',
+            'LAW_CODE': law_code,
+            'SECTION_NUM': num,
+            'LEGAL_TEXT': text,
+        }
+        subject = _child_text(el, 'SUBJECT')
+        if subject:
+            row['SECTION_TITLE'] = subject
+        if code_heading:
+            row['CODE_HEADING'] = code_heading
+        row.update(_annual_outline(el, parents))
+        yield row
 
 
 def _section_text(section):
@@ -90,7 +220,7 @@ def _section_text(section):
 
 
 class CFR(Publication):
-    """eCFR bulk XML for any title. One class; do not fork per agency."""
+    """Annual CFR XML, or eCFR bulk XML. One class; do not fork per agency."""
 
     instrument = Instrument.REGULATION
 
@@ -99,14 +229,30 @@ class CFR(Publication):
         if isinstance(names, (set, frozenset)):
             return False
         name = os.path.basename(str(names)).lower()
-        return name.endswith('.xml') and ('ecfr' in name or 'title' in name)
+        return name.endswith('.xml') and (
+            'ecfr' in name or 'cfr' in name or 'title' in name
+        )
 
     def sections(self, path):
+        from readers import parent_map
         tree = ET.parse(path)
         root = tree.getroot()
+        parents = parent_map(root)
         title = _title_from_tree(root) or _title_from_path(path)
         if not title:
             raise ValueError('CFR title number not found in %s' % path)
+        law_code = _law_code(title)
+        code_heading = _title_heading(root, title)
+        if _local(root.tag).upper() == 'CFRDOC':
+            if not code_heading or code_heading == 'Title %s' % title:
+                for el in root.iter():
+                    if _local(el.tag).upper() == 'CFRTITLE':
+                        text = _plain(el)
+                        if text:
+                            code_heading = text
+                            break
+            yield from _annual_sections(root, parents, law_code, code_heading)
+            return
         for el in root.iter():
             if _local(el.tag).upper() != 'DIV8':
                 continue
@@ -116,39 +262,45 @@ class CFR(Publication):
             text = _section_text(el)
             if not num or not text:
                 continue
-            yield {
+            row = {
                 'COUNTRY': 'US',
-                'LAW_CODE': str(title),
+                'SUBDIVISION': 'US',
+                'LAW_CODE': law_code,
                 'SECTION_NUM': num,
                 'LEGAL_TEXT': text,
             }
+            if code_heading:
+                row['CODE_HEADING'] = code_heading
+            row.update(_outline(el, parents))
+            yield row
 
     def load(self, path, root=None):
         """Parse local title XML into ``data/codes/US/cfr/{title}.sqlite``.
 
         Replaces existing rows for that title so a second load does not
         duplicate. ``pk`` is ``{title}:{section}``; citation is
-        ``{title} CFR {section}``.
+        ``{LAW_CODE} {section}``.
         """
         rows = list(self.sections(path))
         if not rows:
             raise ValueError('no CFR sections in %s' % path)
-        title = rows[0]['LAW_CODE']
-        db_path = cfr_corpus_path(title, root=root)
+        law_code = rows[0]['LAW_CODE']
+        title_num = _title_num_for_path(law_code)
+        db_path = cfr_corpus_path(title_num, root=root)
         db = connect(db_path)
         try:
-            db.execute('DELETE FROM section WHERE law_code = ?', (title,))
+            db.execute('DELETE FROM section WHERE law_code = ?', (law_code,))
             db.executemany(
                 'INSERT INTO section '
                 '(pk, law_code, section_num, legal_text, citation, session) '
                 'VALUES (?, ?, ?, ?, ?, ?)',
                 [
                     (
-                        '%s:%s' % (title, row['SECTION_NUM']),
-                        title,
+                        '%s:%s' % (law_code, row['SECTION_NUM']),
+                        law_code,
                         row['SECTION_NUM'],
                         row['LEGAL_TEXT'],
-                        '%s CFR %s' % (title, row['SECTION_NUM']),
+                        '%s %s' % (law_code, row['SECTION_NUM']),
                         None,
                     )
                     for row in rows

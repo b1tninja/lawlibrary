@@ -1,0 +1,667 @@
+/* The reader's own chrome. The type, the marks, and the cut rules come from
+ * templates/style.html, so the script-free page and this one read alike. */
+
+body.reader {
+  max-width: 76rem;
+  margin: 1.6rem auto;
+}
+
+.thin {
+  color: #5c4a32;
+  font-size: 0.88rem;
+}
+
+.miss {
+  border-left: 3px solid #8a4b12;
+  padding: 0.3rem 0 0.3rem 0.7rem;
+  background: #fbf8f1;
+}
+
+button.plain {
+  font: inherit;
+  font-size: 0.88rem;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid #1a3654;
+  color: #1a3654;
+  padding: 0;
+  margin-left: 0.7rem;
+  cursor: pointer;
+}
+
+a.plain {
+  margin-left: 0.7rem;
+  font-size: 0.88rem;
+}
+
+nav.site button.plain {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  font-size: 0.92rem;
+  color: #1a1814;
+  border-bottom-color: #1a1814;
+  margin-left: 0;
+  margin-right: 1rem;
+}
+
+form.ask {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.7rem 0 0;
+}
+
+form.ask input {
+  font: inherit;
+  flex: 1 1 22rem;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid #1a1814;
+  background: #fffdf8;
+}
+
+form.find.wide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.9rem;
+  align-items: flex-end;
+}
+
+form.find label,
+.section-bar label,
+.graph-bar label {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: baseline;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  font-size: 0.9rem;
+}
+
+form.find input,
+form.find select,
+.section-bar select,
+.graph-bar input,
+.graph-bar select,
+.sift input {
+  font: inherit;
+  font-size: 0.92rem;
+  font-variant: normal;
+  padding: 0.15rem 0.3rem;
+  border: 1px solid #8a8172;
+  background: #fffdf8;
+}
+
+form.find.closure label.flag {
+  font-variant: normal;
+}
+
+.section-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.2rem;
+  align-items: baseline;
+  border-bottom: 1px solid #ddd6c8;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.section-bar p {
+  margin: 0;
+}
+
+.spread {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17rem;
+  gap: 2rem;
+  align-items: start;
+}
+
+.rail {
+  border-left: 1px solid #ddd6c8;
+  padding-left: 1rem;
+  font-size: 0.92rem;
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 3rem);
+  overflow-y: auto;
+}
+
+.rail h2 {
+  margin-top: 0;
+}
+
+@media (max-width: 62rem) {
+  .spread {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rail {
+    border-left: 0;
+    border-top: 1px solid #ddd6c8;
+    padding-left: 0;
+    padding-top: 0.6rem;
+    position: static;
+    max-height: none;
+  }
+}
+
+.contents-block h2,
+.refs-block h2,
+.gaps-block h2 {
+  border-bottom: 1px solid #ddd6c8;
+  padding-bottom: 0.2rem;
+}
+
+.sift {
+  margin: 0 0 0.4rem;
+}
+
+ul.legend {
+  margin: 0 0 0.8rem;
+}
+
+button.legend-toggle {
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+button.legend-toggle mark {
+  font-size: 0.85rem;
+}
+
+mark.off {
+  background: transparent;
+  color: #5c4a32;
+  box-shadow: inset 0 -1px 0 #ddd6c8;
+}
+
+a.mark-link {
+  text-decoration: none;
+}
+
+/* The cut tree. Nesting carries the depth, so the flat page's indents are
+ * dropped here and each further cut steps in once. */
+body.reader ol.cuts.reading li.cut-division,
+body.reader ol.cuts.reading li.cut-title,
+body.reader ol.cuts.reading li.cut-part,
+body.reader ol.cuts.reading li.cut-chapter,
+body.reader ol.cuts.reading li.cut-article,
+body.reader ol.cuts.reading li.cut-section,
+body.reader ol.cuts.reading li.cut-subdivision,
+body.reader ol.cuts.reading li.cut-subsection,
+body.reader ol.cuts.reading li.cut-paragraph,
+body.reader ol.cuts.reading li.cut-subparagraph,
+body.reader ol.cuts.reading li.cut-clause,
+body.reader ol.cuts.reading li.cut-subclause,
+body.reader ol.cuts.reading li.cut-item,
+body.reader ol.cuts.reading li.cut-subitem {
+  margin-left: 0;
+}
+
+ol.cuts.reading,
+ol.cuts.reading ol.cuts {
+  margin-bottom: 0;
+}
+
+ol.cuts.reading ol.cuts {
+  margin-left: 1.1rem;
+}
+
+ol.cuts.reading li {
+  border-bottom: 0;
+  padding: 0.12rem 0 0.12rem 0.55rem;
+}
+
+.cut-head {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+}
+
+.cut-words {
+  white-space: pre-wrap;
+  flex: 1 1 auto;
+}
+
+.cut-unit {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+  color: #8a8172;
+  flex: 0 0 5.6rem;
+  text-align: right;
+  user-select: none;
+}
+
+button.fold,
+span.fold {
+  font: inherit;
+  font-size: 0.8rem;
+  width: 1.1rem;
+  flex: 0 0 1.1rem;
+  text-align: center;
+  background: none;
+  border: 1px solid #ddd6c8;
+  color: #5c4a32;
+  cursor: pointer;
+  padding: 0;
+}
+
+span.fold.blank {
+  border-color: transparent;
+}
+
+button.cut-cite {
+  font: inherit;
+  background: none;
+  border: 0;
+  color: #8a8172;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.cut-head:hover button.cut-cite {
+  opacity: 1;
+}
+
+.cut-chosen,
+p.reference {
+  background: #fbf8f1;
+  border-left: 3px solid #1a3654;
+  padding: 0.3rem 0.6rem;
+  display: flex;
+  gap: 0.7rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+article.plain-words {
+  white-space: pre-wrap;
+  border-left: 1px solid #ddd6c8;
+  padding-left: 0.7rem;
+}
+
+ol.hits {
+  list-style: none;
+  padding: 0;
+}
+
+ol.hits li {
+  border-bottom: 1px solid #ddd6c8;
+  padding: 0.4rem 0;
+}
+
+.hit-head {
+  margin: 0;
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.hit-words {
+  margin: 0.15rem 0 0;
+  color: #3f3a32;
+  font-size: 0.92rem;
+}
+
+.hit-path {
+  font-size: 0.8rem;
+}
+
+li.gap-short_title { border-left: 3px solid #a35a12; }
+li.gap-unresolved { border-left: 3px solid #1f5aa8; }
+li.gap-unlinked { border-left: 3px solid #2f7d4f; }
+ol.refs li { display: flex; gap: 0.6rem; align-items: baseline; flex-wrap: wrap; }
+
+/* The drawing. The frame scrolls sideways so a wide walk never pushes the
+ * page out. */
+.graph-frame {
+  overflow-x: auto;
+  border: 1px solid #ddd6c8;
+  background: #fffdf8;
+  padding: 0.4rem;
+}
+
+.graph-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.1rem;
+  align-items: baseline;
+  margin: 0.3rem 0;
+}
+
+.graph-legend {
+  display: flex;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.graph-kind {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #3f3a32;
+}
+
+.graph svg g.node text {
+  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+}
+
+.graph svg g.node.open {
+  cursor: pointer;
+}
+
+.graph svg g.node.open:hover rect {
+  fill: #f3e6c4;
+}
+
+details.graph-table,
+details.links-block {
+  margin: 0.6rem 0 1rem;
+}
+
+details.graph-table summary,
+details.links-block summary {
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+/* A card, floating where the pointer asked, or kept in the corner. */
+.term-card {
+  width: 20rem;
+  padding: 0.55rem 0.7rem;
+  background: #fffdf8;
+  border: 1px solid #1a1814;
+  box-shadow: 0 1px 4px rgba(26, 24, 20, 0.18);
+  font-size: 0.88rem;
+}
+
+.term-card.floating {
+  position: fixed;
+  z-index: 4;
+}
+
+aside.keeps {
+  position: fixed;
+  right: 0.8rem;
+  top: 0.8rem;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: calc(100vh - 1.6rem);
+  overflow-y: auto;
+}
+
+.term-title {
+  margin: 0 0 0.25rem;
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+}
+
+.term-kind {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  color: #8a8172;
+}
+
+.term-shut {
+  margin-left: auto;
+  display: flex;
+  gap: 0.3rem;
+}
+
+.term-card button {
+  font: inherit;
+  font-size: 0.82rem;
+  background: #f3e6c4;
+  border: 0;
+  padding: 0.05rem 0.35rem;
+  cursor: pointer;
+}
+
+.term-count {
+  margin: 0 0 0.3rem;
+}
+
+.term-neighbors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.3rem 0;
+}
+
+ul.term-hits {
+  margin: 0.3rem 0 0;
+  padding-left: 1rem;
+}
+
+aside.keys {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 5;
+  width: 21rem;
+  background: #fffdf8;
+  border: 1px solid #1a1814;
+  padding: 0.6rem 0.8rem;
+  box-shadow: 0 1px 4px rgba(26, 24, 20, 0.18);
+}
+
+aside.keys dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.7rem;
+  font-size: 0.88rem;
+}
+
+aside.keys dl div {
+  display: contents;
+}
+
+aside.keys dt,
+aside.keys dd {
+  margin: 0;
+}
+
+aside.keys kbd {
+  font-family: "Courier New", monospace;
+  font-size: 0.82rem;
+  border: 1px solid #ddd6c8;
+  padding: 0 0.25rem;
+  background: #f4f0e6;
+}
+
+/* Layers. Each surface takes a channel of its own, so a phrase that is a
+ * note, a clause, and a canon at once shows all three without one hiding
+ * another: a tint for the note, a bar under the clause, a dotted rule under
+ * the canon, an underline for a name, a ring around a word class. */
+mark.lay-note {
+  padding: 0 0.1em;
+  border-radius: 0.15em;
+}
+
+mark.lay-clause {
+  box-shadow: inset 0 -0.32em 0 rgba(90, 120, 90, 0.16);
+  padding-bottom: 0.04em;
+}
+
+mark.lay-clause,
+mark.lay-canon,
+mark.lay-mention,
+mark.lay-relation,
+mark.lay-needle,
+mark.lay-abbreviation {
+  background: transparent;
+}
+
+mark.lay-canon {
+  border-bottom: 1px dotted #8a8172;
+}
+
+mark.lay-canon.canon-mandatory,
+mark.lay-canon.canon-permissive {
+  border-bottom: 1px dotted #a35a12;
+}
+
+mark.lay-canon.canon-closed_set,
+mark.lay-canon.canon-open_set,
+mark.lay-canon.canon-ejusdem_generis,
+mark.lay-canon.canon-expressio_unius {
+  border-bottom: 1px dotted #1f5aa8;
+}
+
+mark.lay-canon.canon-exception,
+mark.lay-canon.canon-proviso,
+mark.lay-canon.canon-last_antecedent,
+mark.lay-canon.canon-series_qualifier {
+  border-bottom: 1px dotted #2f7d4f;
+}
+
+mark.lay-mention {
+  text-decoration: underline;
+  text-decoration-color: #1f5aa8;
+  text-underline-offset: 0.22em;
+  font-variant: small-caps;
+  letter-spacing: 0.02em;
+}
+
+mark.lay-relation {
+  text-decoration: underline wavy;
+  text-decoration-color: #a35a12;
+  text-underline-offset: 0.22em;
+}
+
+mark.lay-abbreviation {
+  text-decoration: underline dashed;
+  text-decoration-color: #2f7d4f;
+  text-underline-offset: 0.22em;
+}
+
+mark.lay-needle {
+  box-shadow: inset 0 0 0 1px rgba(138, 129, 114, 0.5);
+  border-radius: 0.15em;
+  padding: 0 0.08em;
+}
+
+article.reading mark:hover {
+  outline: 1px solid rgba(26, 24, 20, 0.45);
+  outline-offset: 1px;
+  cursor: help;
+}
+
+article.reading a.mark-link mark:hover,
+article.reading mark.lay-note:hover {
+  cursor: pointer;
+}
+
+.layers {
+  border-bottom: 1px solid #ddd6c8;
+  margin-bottom: 0.7rem;
+  padding-bottom: 0.4rem;
+}
+
+.layers-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: baseline;
+  margin: 0;
+}
+
+button.layer {
+  font: inherit;
+  font-size: 0.85rem;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  background: none;
+  border: 1px solid #ddd6c8;
+  color: #5c4a32;
+  padding: 0.05rem 0.4rem;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: baseline;
+}
+
+button.layer.on {
+  border-color: #1a1814;
+  color: #1a1814;
+  background: #fbf8f1;
+}
+
+.layer-kinds {
+  margin-top: 0.4rem;
+}
+
+.layer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.45rem;
+  align-items: baseline;
+  margin: 0.2rem 0;
+}
+
+.layer-row > span.thin {
+  flex: 0 0 5.6rem;
+  text-align: right;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+button.kind {
+  font: inherit;
+  font-size: 0.85rem;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.35;
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: baseline;
+}
+
+button.kind.on {
+  opacity: 1;
+}
+
+.term-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: baseline;
+  margin: 0 0 0.3rem;
+}
+
+.term-reading {
+  margin: 0.2rem 0;
+  font-style: italic;
+  color: #3f3a32;
+}
+
+.term-ways {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0.35rem 0;
+  font-size: 0.85rem;
+  border-top: 1px solid #ddd6c8;
+  border-bottom: 1px solid #ddd6c8;
+  padding: 0.25rem 0;
+}
+
+article.reading mark.open {
+  cursor: pointer;
+}
+
+article.reading mark.open:hover {
+  outline: 1px solid #1a3654;
+}

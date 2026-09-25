@@ -5,8 +5,8 @@ from analysis import analyze, breakdown, capitals, compose, split_sentences
 from court import Court, SacramentoSuperiorCourt
 from jurisdiction import State
 from mentions import Relation
-from us.ca import California
-from us.ca.counties.sacramento.cities.sacramento import Sacramento
+from us.states.ca import California
+from us.counties.ca.sacramento.cities.sacramento import Sacramento
 
 
 def _dre():

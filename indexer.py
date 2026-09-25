@@ -596,10 +596,14 @@ class Indexer:
             for row in rows
         ]
 
-    def vesting_diagram(self, code=None, kind='vesting'):
-        """Stored edges of one kind. Vesting is the office graph. Citation is the section graph."""
+    def vesting_edges(self, code=None, kind='vesting'):
+        """Stored edges of one kind, as ``(source, target, label)`` triples.
+
+        Vesting is the office graph. Citation is the section graph. The chart
+        and the client's drawing read this one list.
+        """
         if not os.path.isfile(os.path.join(self.idx_path, 'needles.sqlite')):
-            return 'flowchart TD'
+            return []
         db = self._needle_db()
         try:
             query = 'SELECT DISTINCT prior, receiver FROM edge WHERE kind = ?'
@@ -611,15 +615,13 @@ class Indexer:
             rows = db.execute(query, args).fetchall()
         finally:
             db.close()
-        from structure import _chart
         label = 'vested' if kind == 'vesting' else kind
-        return _chart(rows, label)
+        return [(prior, receiver, label) for prior, receiver in rows]
 
-    def code_diagram(self):
-        """One node per book. An arrow is a stored citation from one book into another."""
-        from structure import code_chart
+    def code_edges(self):
+        """Book to book. The cited book is the first word of the stored target."""
         if not os.path.isfile(os.path.join(self.idx_path, 'needles.sqlite')):
-            return 'flowchart TD'
+            return []
         db = self._needle_db()
         try:
             rows = db.execute(
@@ -627,13 +629,20 @@ class Indexer:
             ).fetchall()
         finally:
             db.close()
-        return code_chart(rows)
+        counted = {}
+        for source, cited in rows:
+            book = (cited or '').split(' ', 1)[0]
+            if source and book:
+                counted[(source, book)] = counted.get((source, book), 0) + 1
+        return [
+            (source, book, 'cites', count)
+            for (source, book), count in counted.items()
+        ]
 
-    def enactment_diagram(self, code=None):
-        """A section and the Statutes chapter stored on its session note. The chapter is not opened."""
-        from structure import enactment_chart
+    def enactment_edges(self, code=None):
+        """A section and the Statutes chapter stored on its session note."""
         if not os.path.isfile(os.path.join(self.idx_path, 'needles.sqlite')):
-            return 'flowchart TD'
+            return []
         db = self._needle_db()
         try:
             query = "SELECT citation, target FROM annotation WHERE note = 'session' AND target != ''"
@@ -645,12 +654,12 @@ class Indexer:
             rows = db.execute(query, args).fetchall()
         finally:
             db.close()
-        return enactment_chart(rows)
+        return list(dict.fromkeys((citation, target, 'enacted') for citation, target in rows))
 
-    def reference_diagram(self, citation, limit=24):
-        """One section and the statute or article targets it names, plus sections that name it."""
+    def reference_edges(self, citation, limit=24):
+        """One section, the targets it names, and the sections that name it."""
         if not os.path.isfile(os.path.join(self.idx_path, 'needles.sqlite')):
-            return 'flowchart TD'
+            return []
         db = self._needle_db()
         try:
             rows = db.execute(
@@ -661,8 +670,28 @@ class Indexer:
             ).fetchall()
         finally:
             db.close()
+        return [(prior, receiver, kind) for prior, receiver, kind in rows]
+
+    def vesting_diagram(self, code=None, kind='vesting'):
+        """That edge list as a flowchart."""
         from structure import _chart
-        return _chart(rows, 'citation')
+        label = 'vested' if kind == 'vesting' else kind
+        return _chart(self.vesting_edges(code=code, kind=kind), label)
+
+    def code_diagram(self):
+        """One node per book. An arrow is a stored citation from one book into another."""
+        from structure import _chart
+        return _chart(self.code_edges(), 'cites')
+
+    def enactment_diagram(self, code=None):
+        """A section and the Statutes chapter stored on its session note. The chapter is not opened."""
+        from structure import _chart
+        return _chart(self.enactment_edges(code=code), 'enacted')
+
+    def reference_diagram(self, citation, limit=24):
+        """One section and the statute or article targets it names, plus sections that name it."""
+        from structure import _chart
+        return _chart(self.reference_edges(citation, limit=limit), 'citation')
 
     def _read_codes(self):
         if not os.path.isfile(self.codes_path):

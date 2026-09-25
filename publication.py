@@ -60,5 +60,38 @@ class Publication(ABC):
         yield from self.sections(path)
 
     def index(self, indexer, path, workers=None, subdivision=None):
-        """Editions join the code index by overriding this. Others are recognized and left alone."""
-        return 0
+        """Write ``sections()`` into the Whoosh index. An empty edition leaves no index."""
+        try:
+            from us.states.ca import stamp_subdivision
+        except ImportError:
+            stamp_subdivision = None
+
+        rows = []
+        for row in self.parallel_sections(path, workers=workers):
+            row = dict(row)
+            if subdivision is not None and not row.get('SUBDIVISION'):
+                row['SUBDIVISION'] = subdivision
+            if stamp_subdivision is not None and subdivision is not None:
+                stamp_subdivision(row, subdivision)
+            law_code = getattr(self, 'law_code', None)
+            if law_code and not row.get('LAW_CODE'):
+                row['LAW_CODE'] = law_code
+            heading = getattr(self, 'code_heading', None)
+            if heading and not row.get('CODE_HEADING'):
+                row['CODE_HEADING'] = heading
+            session = getattr(self, 'session', None)
+            if session and not row.get('SESSION'):
+                row['SESSION'] = str(session)
+            if row.get('SECTION_NUM'):
+                if not row.get('LAW_CODE'):
+                    row['LAW_CODE'] = 'CODE'
+                if not row.get('PK') and row.get('SUBDIVISION'):
+                    row['PK'] = '%s %s %s' % (
+                        row['SUBDIVISION'], row['LAW_CODE'], row['SECTION_NUM'],
+                    )
+                if not row.get('COUNTRY') and row.get('SUBDIVISION'):
+                    row['COUNTRY'] = row['SUBDIVISION'].split('-', 1)[0]
+            rows.append(row)
+        if not rows:
+            return 0
+        return indexer.index_pubinfo_laws(path, rows)

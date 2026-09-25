@@ -42,6 +42,11 @@ INDEX_HAS_1940 = _index_has_civ_1940()
 def test_a_heading_follows_the_statute_not_the_alphabet():
     ordered = sorted(['10', '2', '1.5', '1', 'IX', 'IV', 'I'], key=heading_key)
     assert ordered == ['1', '1.5', '2', '10', 'I', 'IV', 'IX']
+    constitution = sorted(
+        ['SEC. 20', 'SEC. 2', 'SEC. 10', 'Section 4', 'SECTION 1', '[SEC. 24.]'],
+        key=heading_key,
+    )
+    assert constitution == ['SECTION 1', 'SEC. 2', 'Section 4', 'SEC. 10', 'SEC. 20', '[SEC. 24.]']
     assert _code_rank('CONS') < _code_rank('BPC') < _code_rank('CIV') < _code_rank('CCP')
     assert _code_rank('CIV') < _code_rank('ZZZ')
 

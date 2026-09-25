@@ -31,7 +31,20 @@ These states publish the whole code as one download or API. Prefer plain text in
 | North Dakota | Legislative Council | `https://ndlegis.gov/api/data/century_code.json` one JSON document, no key. Also chapter PDFs |
 | Texas | Legislative Council | `https://statutes.capitol.texas.gov/download` and `StatuteCodeDownloads.json`. Per-code zips of HTML, PDF, and Word on `tcss.legis.texas.gov`. Statutory text, no annotations |
 | Utah | Legislative Research | `https://glen.le.utah.gov/code/.../<token>` XML. Developer token. Docs say check at most daily |
-| Virginia | Code Commission / LIS | Per-title CSV and PDF from `https://law.lis.virginia.gov/law-library/`, plus `/jsonapi/` and `/xmlapi/`. Annotations excluded. Updated July 1 |
+| Virginia | Code Commission / LIS | Per-title CSV and PDF from `https://law.lis.virginia.gov/law-library/`. The library page lists those two formats. `/jsonapi/` and `/xmlapi/` did not return a file. Annotations excluded. Updated July 1 |
+
+## Format comparison
+
+Checked 2026-09-25 by downloading each bulk format the publisher posts, one title or one code where the set is per-volume. The file to ingest is the one that already has a section element and the heading path. PDF stays a print copy.
+
+| Publication | Formats on disk | Ingest |
+| --- | --- | --- |
+| United States Code, title 1 | USLM XML (already). HTML zip is `PRELIMusc01.htm` only (no `<section>`). PCC is a locator prelude. PDF is one print file | USLM XML |
+| CFR title 1 | eCFR XML (`DIV8`). Annual `CFR-2025-title1-vol1.xml` is `CFRDOC / TITLE / CHAPTER / PART / SECTION` with `SECTNO` and `P` | Annual CFR XML. eCFR still parses |
+| Texas Agriculture Code | `AG.htm.zip` (already), `AG.pdf.zip` (95 chapter PDFs), `AG.doc.zip` (95 docx, no heading styles) | HTML zip |
+| Colorado | `crs2026-htm.zip` (already), `crs2026-docx.zip` (48 title docx, no heading styles), `crs2026-pdf.zip` | HTML zip. SGML is still by request |
+| Virginia title 1 | `CoVTitle_1.csv` (already; title, part, chapter, article columns), `Title1.pdf` | CSV |
+| New Jersey | `STATUTES-TEXT.zip` contains `STATUTES.TXT` and `STATUTES.RTF` | Plain text |
 
 ## Official PDF sets
 

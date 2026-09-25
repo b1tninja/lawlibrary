@@ -65,6 +65,12 @@ def test_a_code_lists_its_headings():
     assert divisions[0] == '1'
     assert 'class="crumbs"' in page
     assert 'California' in page
+    assert 'href="/view/tree/us"' in page
+    assert 'United States' in page
+    country, country_raw = _get_raw('/view/tree/us')
+    above = country_raw[0].decode('utf-8')
+    assert country == '200 OK'
+    assert 'href="/view/tree/us-ca"' in above
 
 
 def test_a_suffix_selects_the_representation():
@@ -141,6 +147,36 @@ def test_a_section_lists_each_cut():
     assert subdivision['children'][0]['unit'] == 'paragraph'
     assert subdivision['children'][0]['children'][0]['unit'] == 'subparagraph'
     assert subdivision['children'][0]['children'][0]['children'][0]['unit'] == 'clause'
+
+
+def test_a_section_can_be_read_in_one_publication_year():
+    status, body = _get('/section/CIV/55.51', query='session=1990')
+    assert status in ('200 OK', '404 Not Found')
+    assert 'found' in body
+
+
+def test_the_client_can_list_codes_and_open_an_expression():
+    """A book list, a span outline, and a citation expression are JSON."""
+    status, body = _get('/codes')
+    assert status == '200 OK'
+    tokens = [row['code'] for row in body['codes']]
+    assert tokens.index('CONS') < tokens.index('CIV') < tokens.index('CCP')
+    status, body = _get('/sessions')
+    assert body['sessions']
+    status, body = _get('/outline')
+    assert status == '404 Not Found'
+    status, body = _get('/outline', query='code=CIV&start=55.51&end=55.53')
+    assert body['found'] is True
+    assert body['nodes']
+    status, body = _get('/cite')
+    assert body['found'] is False
+    status, body = _get('/cite', query='q=CIV+55.51')
+    assert body['found'] is True
+    assert body['code'] == 'CIV'
+    status, body = _get('/diagram/codes')
+    assert body['chart'].startswith('flowchart')
+    status, body = _get('/diagram/nope')
+    assert status == '404 Not Found'
 
 
 def test_a_search_and_a_term_lookup_stay_misses_without_a_query():
@@ -235,6 +271,25 @@ def test_a_section_links_the_statutes_it_cites():
     assert 'href="/view/section/RTC/7280"' in page
     assert 'class="ref-statute"' in page
     assert '<noscript>' in page
+
+
+def test_a_public_law_does_not_open_a_code_section():
+    """P.L. 101-336 is Public Law 101-336, not code PL section 101."""
+    status, raw = _get_raw('/view/section/GOV/12926')
+    page = raw[0].decode('utf-8')
+    assert status == '200 OK'
+    assert '/view/section/PL/' not in page
+    assert 'href="https://www.congress.gov/101/plaws/publ336/PLAW-101publ336.pdf"' in page
+
+
+def test_a_history_credit_is_marked_like_a_heading():
+    """The foot names the session chapter and the effective date."""
+    status, raw = _get_raw('/view/section/GOV/12926')
+    page = raw[0].decode('utf-8')
+    assert status == '200 OK'
+    assert 'class="history"' in page
+    assert 'note-session' in page
+    assert 'note-date' in page
 
 
 def test_a_section_shows_its_heading_and_the_next_section():

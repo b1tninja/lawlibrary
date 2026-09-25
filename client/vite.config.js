@@ -5,12 +5,14 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: '../static',
-    emptyOutDir: true,
+    emptyOutDir: false,
+    cssCodeSplit: false,
     rollupOptions: {
       input: 'src/main.jsx',
       output: {
         format: 'es',
         entryFileNames: 'reader.js',
+        assetFileNames: 'reader[extname]',
         inlineDynamicImports: true,
       },
     },

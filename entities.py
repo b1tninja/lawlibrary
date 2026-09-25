@@ -43,7 +43,7 @@ def _region_row(code, kind):
 def list_entities(kind=None):
     """Countries, states, localities, and departments."""
     from us import UnitedStates, load_states
-    from us.ca import California
+    from us.states.ca import California
 
     rows = [{
         'kind': 'country',
@@ -102,7 +102,7 @@ def list_corpora(root=None):
     for book in ('OLRC', 'HOLC', 'GPO'):
         specs.append(('manual_%s' % book.lower(), manual_corpus_path(book, root=root), 'manual'))
     try:
-        from us.ca.counties.sacramento.cities.sacramento import Sacramento
+        from us.counties.ca.sacramento.cities.sacramento import Sacramento
         specs.append(('sacramento', corpus_path_for(Sacramento, root=root), 'ordinance'))
     except ImportError:
         pass

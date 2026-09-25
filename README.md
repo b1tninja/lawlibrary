@@ -47,6 +47,21 @@ CAML parsing is the slow part, so index workers each open the zip and run html2t
 
 The publication archive is `LAWLIBRARY_DATA` in the environment, then the same name in `.env`, then the platform data directory (`%LOCALAPPDATA%\lawlibrary` on Windows). `.env.example` shows the file. The checkout's zips are not committed.
 
+## Reader
+
+`/view` is the library without a script: Jinja2 renders the page, and `wget --mirror`
+follows `/mirror`. `/reader` is the same library with the React client on `#root`,
+and it keeps that document inside `noscript`, so a deep link is a page before the
+script runs. The client reads the JSON routes only.
+
+```bash
+cd client && npm install && npm run build   # writes static/reader.js and static/reader.css
+python -c "from application import serve; serve(8765)"
+```
+
+Then open <http://127.0.0.1:8765/reader>. A section is `/reader/section/CIV/1940`.
+`/` opens the code index for a browser with no script at all.
+
 ## Official distribution points
 
 File shapes and the commercial hosts we do not crawl are in [docs/state-publications.md](docs/state-publications.md). Which regions actually legislate is in [docs/jurisdictions.md](docs/jurisdictions.md). County ordinances are in [docs/counties.md](docs/counties.md). The class and folder map is [docs/layout.md](docs/layout.md).

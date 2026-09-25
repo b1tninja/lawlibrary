@@ -1,10 +1,12 @@
 """WSGI entry. ``application`` is the callable a server invokes.
 
-``/`` is the plain HTML home page, inside ``noscript``, so a legacy browser
-can open it. ``/tree``, ``/section``, ``/annotations``, and ``/view`` stay
-available to link. React mounts on ``#root``. A GET reads
-the local index. A miss is found false. The process environment and the data
-directory are not served.
+``/`` is the plain HTML home page and ``/view`` is the script-free reader.
+``/reader`` is the same library with the React client on ``#root``; the
+document stays inside ``noscript`` there, so a deep link is a page before the
+script runs. ``/tree``, ``/section``, ``/surfaces``, ``/annotations``, and
+``/closure`` are the JSON the client reads. A GET reads the local index. A
+miss is found false. The process environment and the data directory are not
+served.
 """
 
 import enum
@@ -97,12 +99,14 @@ def application(environ, start_response):
         return _static(start_response, path[1])
     if path[0] == 'mirror':
         return _mirror(start_response, '/'.join(path[1:]), hint)
+    if path[0] == 'reader':
+        return _reader(start_response, path[1:], query)
     if path[0] == 'view':
         return _view(start_response, path[1:], query, environ, hint)
     if path[0] == 'tree':
         return _tree(start_response, '/'.join(path[1:]))
     if path[0] == 'section' and len(path) >= 3:
-        return _section(start_response, path[1], path[2], hint)
+        return _section(start_response, path[1], path[2], hint, _one(query, 'session') or None)
     if path == ['annotations']:
         return _annotations(start_response, query)
     if path == ['closure']:
@@ -111,6 +115,22 @@ def application(environ, start_response):
         return _search(start_response, query)
     if path == ['term']:
         return _term(start_response, query)
+    if path[0] == 'marks' and len(path) >= 3:
+        return _marks(start_response, path[1], path[2], query)
+    if path == ['citing']:
+        return _citing(start_response, query)
+    if path == ['surfaces']:
+        return _surfaces(start_response)
+    if path == ['codes']:
+        return _code_list(start_response)
+    if path == ['sessions']:
+        return _sessions(start_response)
+    if path == ['outline']:
+        return _outline(start_response, query)
+    if path == ['cite']:
+        return _cite(start_response, query)
+    if path[0] == 'diagram' and len(path) == 2 and path[1] in ('codes', 'vesting', 'enactments'):
+        return _diagram(start_response, path[1], query)
     return _send(start_response, '404 Not Found', {'found': False, 'reason': 'not_found'})
 
 
@@ -132,15 +152,52 @@ def _static(start_response, name):
 
 
 def _tree(start_response, url):
+    """One node of the library. ``contents`` is that node's children as links."""
     import query
     node = query.law_tree(url)
+    if node.get('found'):
+        node['crumbs'] = _library_crumbs(
+            node.get('url') or 'us-ca', _code_label(node.get('code')),
+        )
+        node['contents'] = [_child(node, child) for child in node.get('children') or []]
     status = '200 OK' if node.get('found') else '404 Not Found'
     return _send(start_response, status, node)
 
 
-def _section(start_response, code, number, hint=None):
+def _surfaces(start_response):
+    """Every closed set the marks, the graph, and the filters are drawn from.
+
+    A member is the word a file may store. The client renders a legend and a
+    filter from this reply instead of keeping its own copy of the words.
+    """
+    from canons import Canon
+    from citations import Cite, Join, Note, Quantity
+    from lexical import Clause
+    from marks import Layer
+    from mentions import Kind, Relation
+    from needles import Cut
+    from places import Use
+    from publication import Instrument
+    from structure import Gap
+    sets = {
+        'layer': Layer, 'note': Note, 'canon': Canon, 'clause': Clause,
+        'cite': Cite, 'join': Join, 'cut': Cut, 'kind': Kind,
+        'relation': Relation, 'quantity': Quantity, 'gap': Gap, 'use': Use,
+        'instrument': Instrument, 'hint': Hint,
+    }
+    return _send(start_response, '200 OK', {
+        'found': True,
+        'surfaces': {
+            name: [member.value for member in members]
+            for name, members in sets.items()
+        },
+        'units': list(_CUT_INDENT),
+    })
+
+
+def _section(start_response, code, number, hint=None, session=None):
     import query
-    body = query.section(code, number)
+    body = query.section(code, number, session=session or None)
     if hint is Hint.HTML:
         page = _section_html(code, number) if body.get('found', True) else None
         if page is None:
@@ -151,13 +208,170 @@ def _section(start_response, code, number, hint=None):
             return _bytes(start_response, '404 Not Found', b'', _hint_type(hint))
         return _bytes(start_response, '200 OK', _represent(body, hint), _hint_type(hint))
     if body.get('found', True) and body.get('text') is not None:
-        sides = query.beside(code, number)
+        steps = [step for step in body.get('path') or [] if step.get('heading')]
+        crumbs = _section_crumbs(
+            body.get('code') or code, number, steps, body.get('units'),
+        )
+        contents = _parent_contents(
+            crumbs, '/view/section/%s/%s' % (body.get('code') or code, number),
+        )
+        sides = _sides(contents) or query.beside(code, number)
+        body['contents'] = contents
         body['previous'] = sides.get('previous')
         body['next'] = sides.get('next')
         body['pieces'] = _pieces(body.get('text') or '')
-        body['links'] = _cited(body.get('text') or '', code)
+        body['links'] = _cited(body.get('text') or '', body.get('code') or code)
+        body['nodes'] = _nodes(body.get('text') or '', body.get('code') or code)
+        body['credit'] = _pieces((body.get('history') or '').strip())
+        body['crumbs'] = crumbs
+        body['formats'] = _formats(body.get('code') or code, number)
     status = '200 OK' if body.get('found', True) else '404 Not Found'
     return _send(start_response, status, body)
+
+
+def _sides(contents):
+    """The sections on either side, read from the heading already opened.
+
+    ``query.beside`` searches that same heading. When the rung above this
+    section lists sections, the ordered list is already in hand, so the walk
+    is not repeated. A rung that lists articles instead is None.
+    """
+    rows = [row for row in contents or [] if row.get('unit') == 'section']
+    if len(rows) != len(contents or []) or not rows:
+        return None
+    place = next((index for index, row in enumerate(rows) if row.get('current')), None)
+    if place is None:
+        return None
+    return {
+        'previous': rows[place - 1]['short'] if place else None,
+        'next': rows[place + 1]['short'] if place + 1 < len(rows) else None,
+    }
+
+
+def _marks(start_response, code, number, query):
+    """Every reading a parser records on this section, cut by cut.
+
+    A span is a layer, a kind, and two offsets into that cut's words. Spans
+    overlap and nest, so the client draws them as layers and not as one flat
+    slice. ``layer`` narrows the reply to one surface.
+    """
+    import marks as surface
+    import query as law
+    body = law.section(code, number, session=_one(query, 'session') or None)
+    if not body.get('found', True):
+        return _send(start_response, '404 Not Found', body)
+    only = [word for word in (_one(query, 'layer') or '').split(',') if word]
+    try:
+        wanted = [surface.Layer(word) for word in only] or None
+    except ValueError:
+        return _send(start_response, '404 Not Found', {
+            'found': False, 'reason': 'unknown_layer', 'expression': _one(query, 'layer'),
+        })
+    token = body.get('code') or code
+    steps = [step for step in body.get('path') or [] if step.get('heading')]
+    inside = _inside(_section_crumbs(token, number, steps, body.get('units')), token)
+    drawn = {}
+    tally = {}
+    for path, _unit, node in _walk_cuts(body.get('text') or '', token):
+        spans = surface.layers(_shown(node), code=token, only=wanted)
+        drawn[path] = [_span(span, inside) for span in spans]
+        for layer, kinds in surface.counts(spans).items():
+            held = tally.setdefault(layer, {})
+            for kind, many in kinds.items():
+                held[kind] = held.get(kind, 0) + many
+    return _send(start_response, '200 OK', {
+        'found': True,
+        'code': token,
+        'section': body.get('section') or number,
+        'citation': body.get('citation') or '',
+        'spans': drawn,
+        'counts': tally,
+    })
+
+
+def _inside(crumbs, code):
+    """Where ``this chapter`` points, read from the ladder this section sits in."""
+    found = {}
+    for crumb in crumbs or []:
+        unit = crumb.get('unit') or ''
+        if unit in ('division', 'title', 'part', 'chapter', 'article', 'code'):
+            found[unit] = {'href': crumb.get('href') or '', 'label': crumb.get('label') or ''}
+    if 'code' in found:
+        found['code']['label'] = _code_label(code)
+    return found
+
+
+_THIS = re.compile(r'(?i)^this\s+(?P<unit>division|title|part|chapter|article|code|section)\b')
+
+
+def _span(span, inside):
+    """One span the client can draw and open."""
+    row = {
+        'layer': span.layer.value,
+        'kind': span.kind,
+        'start': span.start,
+        'end': span.end,
+        'text': span.text,
+        'target': span.target,
+        'reading': span.reading,
+        'detail': dict(span.detail or {}),
+        'href': '',
+    }
+    if span.layer.value == 'note':
+        row['href'] = _piece_href(span.kind, span.target)
+        named = _THIS.match(span.text.strip())
+        if not row['href'] and named is not None:
+            step = inside.get(named.group('unit').lower())
+            if step:
+                row['href'] = step['href']
+                row['detail']['resolved'] = step['label']
+    return row
+
+
+def _citing(start_response, query):
+    """The sections that name this one. A stored citation edge points here."""
+    from indexer import Indexer
+    citation = (_one(query, 'citation') or '').strip()
+    if not citation:
+        return _send(start_response, '404 Not Found', {
+            'found': False, 'reason': 'not_in_index', 'expression': '',
+        })
+    try:
+        limit = max(1, min(int(_one(query, 'limit') or '40'), 200))
+    except ValueError:
+        limit = 40
+    rows = []
+    seen = set()
+    edges = Indexer().reference_edges(citation, limit=min(400, limit * 8))
+    for prior, receiver, kind in edges:
+        if receiver == citation:
+            other, names = prior, True
+        elif prior == citation:
+            other, names = receiver, False
+        else:
+            continue
+        if other == citation or other in seen or len(rows) >= limit:
+            continue
+        seen.add(other)
+        rows.append({
+            'citation': other,
+            'kind': kind,
+            'href': _piece_href('citation', other),
+            'names': names,
+        })
+    return _send(start_response, '200 OK', {
+        'found': True,
+        'citation': citation,
+        'rows': rows,
+    })
+
+
+def _formats(code, number):
+    """The same section in each representation a ``Hint`` names."""
+    return [
+        {'hint': hint.value, 'href': '/section/%s/%s.%s' % (code, number, hint.value)}
+        for hint in Hint
+    ]
 
 
 def _occurrence(hit):
@@ -269,6 +483,84 @@ def _term(start_response, query):
     return _send(start_response, '200 OK', body)
 
 
+def _code_list(start_response):
+    """The books in the Legislature's order."""
+    from indexer import Indexer
+    rows = Indexer().list_codes()
+    return _send(start_response, '200 OK', {'found': True, 'codes': rows})
+
+
+def _sessions(start_response):
+    """Publication years stored on the index."""
+    from indexer import Indexer
+    years = Indexer().sessions()
+    return _send(start_response, '200 OK', {'found': True, 'sessions': years})
+
+
+def _outline(start_response, query):
+    """Headings between two section numbers. The text of each section stays out."""
+    import query as law
+    code = _one(query, 'code')
+    start = _one(query, 'start')
+    end = _one(query, 'end')
+    session = _one(query, 'session') or None
+    body = law.outline(code, start, end, session=session)
+    status = '200 OK' if body.get('found') else '404 Not Found'
+    return _send(start_response, status, body)
+
+
+def _cite(start_response, query):
+    """One expression: a section, a span, a named act, or a session credit."""
+    import query as law
+    expression = _one(query, 'q')
+    session = _one(query, 'session') or None
+    body = law.cite(expression, session=session)
+    status = '200 OK' if body.get('found') else '404 Not Found'
+    return _send(start_response, status, body)
+
+
+def _diagram(start_response, kind, query):
+    """A stored graph. ``chart`` is the flowchart. The client draws ``edges``."""
+    from indexer import Indexer
+    from structure import _chart
+    code = _one(query, 'code') or None
+    idxer = Indexer()
+    if kind == 'codes':
+        edges, label = idxer.code_edges(), 'cites'
+    elif kind == 'enactments':
+        edges, label = idxer.enactment_edges(code=code), 'enacted'
+    else:
+        edges, label = idxer.vesting_edges(code=code, kind='vesting'), 'vested'
+    return _send(start_response, '200 OK', {
+        'found': True,
+        'kind': kind,
+        'code': code or '',
+        'chart': _chart(edges, label),
+        'edges': [_edge(kind, row, label) for row in edges],
+    })
+
+
+def _edge(kind, row, label):
+    """One stored edge. A fourth field is how many citations that pair holds."""
+    source, target, edge_label = row[0], row[1], row[2]
+    return {
+        'source': source,
+        'target': target,
+        'label': edge_label or label,
+        'weight': row[3] if len(row) > 3 else 1,
+        'source_href': _node_href(kind, source),
+        'target_href': _node_href(kind, target),
+    }
+
+
+def _node_href(kind, name):
+    """A graph node that names a book or a section becomes a library link."""
+    text = (name or '').strip()
+    if kind == 'codes':
+        return '/view/tree/us-ca/%s' % text.lower() if re.fullmatch(r'[A-Z]{2,}', text) else ''
+    return _piece_href('citation', text)
+
+
 def _closure(start_response, query):
     """The citation the React client closed over. Each filter is one query field."""
     from places import ask
@@ -278,8 +570,28 @@ def _closure(start_response, query):
         'q', 'limit',
     )}
     body = ask(sent)
+    _address(body)
     status = '200 OK' if body.get('found') else '404 Not Found'
     return _send(start_response, status, body)
+
+
+def _address(body):
+    """An href on each row a closure returned, so a node opens the next section."""
+    for row in body.get('nodes') or []:
+        row['href'] = _piece_href('citation', row.get('id') or '')
+    for edge in body.get('edges') or []:
+        edge['source_href'] = _piece_href('citation', edge.get('source') or '')
+        edge['target_href'] = _piece_href('citation', edge.get('target') or '')
+    for link in body.get('links') or []:
+        token, number = link.get('code') or '', link.get('section') or ''
+        link['href'] = '/view/section/%s/%s' % (token, number) if token and number else ''
+    for gap in body.get('gaps') or []:
+        token, number = gap.get('code') or '', gap.get('section') or ''
+        gap['href'] = '/view/section/%s/%s' % (token, number) if token and number else ''
+    for hit in body.get('hits') or []:
+        token, number = hit.get('code') or '', hit.get('section') or ''
+        hit['href'] = '/view/section/%s/%s' % (token, number) if token and number else ''
+    return body
 
 
 def _annotations(start_response, query):
@@ -325,6 +637,73 @@ def _view(start_response, path, query, environ=None, hint=None):
     if body is None:
         return _html(start_response, '404 Not Found', _page('Not found', _missing('That node is not in the index.')))
     return _html(start_response, '200 OK', _page('Law library', body))
+
+
+_READER_VIEWS = (
+    'tree', 'section', 'search', 'cite', 'outline', 'diagram', 'closure',
+    'annotations', 'graph',
+)
+
+
+def _reader(start_response, path, query):
+    """The React reader. ``#root`` is the mount and ``noscript`` keeps the document.
+
+    Every place the client can open is a path here, so a deep link is a page
+    before the script runs. The script-free twin of that page is ``/view``.
+    """
+    if path and path[0] not in _READER_VIEWS:
+        return _html(start_response, '404 Not Found', _render(
+            'reader.html',
+            title='Not found',
+            main=Markup(_missing('That view is not in the reader.')),
+        ))
+    document = _render(
+        'reader.html',
+        title=_reader_title(path, query),
+        main=Markup(_unscripted(_reader_document(path, query))),
+    )
+    return _html(start_response, '200 OK', document)
+
+
+_NOSCRIPT = re.compile(r'(?is)<noscript>.*?</noscript>')
+_MERMAID = re.compile(r'(?is)<pre class="mermaid">.*?</pre>')
+
+
+def _unscripted(body):
+    """The same words with nothing a script would have drawn.
+
+    The flat page hides its flowchart inside a ``noscript`` block. Nested, that
+    block would close the one this page opens, and the rest of the document
+    would escape it, so both the block and the flowchart are dropped here.
+    """
+    return _MERMAID.sub('', _NOSCRIPT.sub('', body or ''))
+
+
+def _reader_title(path, query):
+    """The place, so a tab and a bookmark name the section and not the app."""
+    if not path:
+        return 'Law library'
+    if path[0] == 'section' and len(path) >= 3:
+        return '%s %s' % (path[1].upper(), path[2])
+    if path[0] == 'tree':
+        return ' '.join(part.upper() for part in path[1:3]) or 'Library'
+    if path[0] == 'diagram' and len(path) >= 2:
+        return path[1].title()
+    asked = _one(query, 'q')
+    return ('%s %s' % (path[0].title(), asked)).strip()
+
+
+def _reader_document(path, query):
+    """The words of that place without a script, for ``noscript`` and a crawler."""
+    if not path:
+        return _tree_html('') or _missing('That node is not in the index.')
+    if path[0] == 'tree':
+        return _tree_html('/'.join(path[1:])) or _missing('That node is not in the index.')
+    if path[0] == 'section' and len(path) >= 3:
+        return _section_html(path[1], path[2]) or _missing('That section is not in the index.')
+    if path[0] == 'diagram' and len(path) >= 2 and path[1] in ('codes', 'vesting', 'enactments'):
+        return _diagram_html(path[1], _one(query, 'code')) or _missing('That diagram is not stored.')
+    return _tree_html('') or _missing('That node is not in the index.')
 
 
 def _mirror(start_response, url, hint=None):
@@ -419,6 +798,10 @@ def _library_crumbs(url, code_label=''):
     walked = []
     if not parts:
         return trail
+    if parts[0].lower() in ('us', 'us-ca'):
+        trail.append({'href': '/view/tree/us', 'label': 'United States', 'unit': 'country'})
+    if parts[0].lower() == 'us' and len(parts) == 1:
+        return trail
     walked.append(parts[0])
     region = 'California' if parts[0].lower() == 'us-ca' else parts[0].upper()
     trail.append({'href': '/view/tree/' + '/'.join(walked), 'label': region, 'unit': 'region'})
@@ -442,27 +825,63 @@ def _library_crumbs(url, code_label=''):
     return trail
 
 
-def _section_crumbs(code, number, steps):
+_HEADING_UNIT = re.compile(
+    r'(?i)^(?P<unit>division|title|part|chapter|article)\s+(?P<number>[0-9]+(?:\.[0-9]+)*)'
+)
+
+
+def _section_crumbs(code, number, steps, units=None):
+    """The ladder above this section, and the heading that names each rung.
+
+    The href is the unit and the number the index stored, so every rung of the
+    trail is a node the tree can open. A caption says which unit it belongs to
+    (``TITLE 5. HIRING`` is title 5), which is not always the field it was
+    stored on; a rung with no caption keeps its unit and number.
+    """
+    rungs = list(units or [])
+    if not rungs:
+        for step in steps or []:
+            matched = _HEADING_UNIT.match((step.get('heading') or '').strip())
+            if matched is not None:
+                rungs.append({
+                    'level': matched.group('unit').lower(),
+                    'value': matched.group('number'),
+                    'heading': step.get('heading') or '',
+                })
     parts = ['us-ca', (code or '').lower()]
-    for step in steps or []:
-        heading = step.get('heading') or ''
-        matched = re.match(
-            r'(?i)^(?:division|title|part|chapter|article)\s+([0-9]+(?:\.[0-9]+)*)',
-            heading,
-        )
-        if step.get('level') and matched:
-            parts.extend((step['level'], matched.group(1)))
+    for rung in rungs:
+        parts.extend((rung['level'], rung['value']))
     parts.extend(('section', str(number)))
     trail = _library_crumbs('/'.join(parts), _code_label(code))
-    place = 3
-    for step in steps or []:
-        if place < len(trail) - 1 and step.get('heading'):
-            trail[place]['label'] = step['heading']
-            place += 1
+    captions = _captions(steps)
     for crumb in trail:
-        if crumb.get('unit') in ('division', 'title', 'part', 'chapter', 'article'):
-            crumb['pieces'] = _pieces(crumb.get('label') or '', heading=True)
+        unit = crumb.get('unit')
+        if unit in ('division', 'title', 'part', 'chapter', 'article'):
+            crumb['label'] = captions.get((unit, crumb['label']), crumb['label'])
+            crumb['pieces'] = _pieces(crumb['label'], heading=True)
     return trail
+
+
+def _captions(steps):
+    """Each heading filed under the unit its own words name.
+
+    The key is the unit and the plain label ``Chapter 2``, which is what
+    ``_library_crumbs`` writes before a caption replaces it. A heading that
+    names no unit captions nothing.
+    """
+    names = {
+        'division': 'Division', 'title': 'Title', 'part': 'Part',
+        'chapter': 'Chapter', 'article': 'Article',
+    }
+    found = {}
+    for step in steps or []:
+        heading = (step.get('heading') or '').strip()
+        matched = _HEADING_UNIT.match(heading)
+        if matched is None:
+            continue
+        unit = matched.group('unit').lower()
+        found[(unit, '%s %s' % (names[unit], matched.group('number')))] = heading
+    return found
 
 
 def _parent_contents(crumbs, current):
@@ -510,11 +929,13 @@ def _child(node, child):
         href = '/view/section/%s/%s' % (code, child.get('value') or '')
     else:
         href = '/view/tree/' + child['url']
+    heading = child.get('heading') or ''
     return {
         'href': href,
-        'label': child.get('heading') or child.get('value') or child.get('url'),
+        'label': heading or child.get('value') or child.get('url'),
+        'short': child.get('value') or heading,
         'unit': child.get('unit') or '',
-        'pieces': _pieces(child.get('heading') or '', heading=True) if child.get('heading') else None,
+        'pieces': _pieces(heading, heading=True) if heading else None,
     }
 
 
@@ -562,7 +983,7 @@ def _section_html(code, number, again=None):
     previous = sides.get('previous')
     following = sides.get('next')
     steps = [step for step in body.get('path') or [] if step.get('heading')]
-    crumbs = _section_crumbs(code, number, steps)
+    crumbs = _section_crumbs(code, number, steps, body.get('units'))
     current = '/view/section/%s/%s' % (code, number)
     return _render(
         'section.html',
@@ -576,6 +997,7 @@ def _section_html(code, number, again=None):
         following={'href': '/view/section/%s/%s' % (code, following), 'label': following} if following else None,
         tree=_nodes(text, code),
         history=(body.get('history') or '').strip(),
+        credit=_pieces((body.get('history') or '').strip()) if (body.get('history') or '').strip() else None,
         chart=chart,
         edges=edges,
         again=again,
@@ -602,14 +1024,14 @@ def _diagram_html(kind, code):
     return _render('diagram.html', kind=kind, needs_code=False, example_href='', chart=diagram.chart() or 'flowchart TD')
 
 
-def _nodes(text, code):
-    """The section as a tree. Each label takes the cut that book uses at that depth."""
+def _cut_units(code):
+    """The word this book uses at each depth under a section."""
     from needles import Cut, breakdown
-    from structure import Rank, split_nodes
+    from structure import Rank
     cuts = breakdown(code).members()
     letter = 'subsection' if Cut.SUBSECTION in cuts and Cut.SUBDIVISION not in cuts else 'subdivision'
     ladder = (letter, 'paragraph', 'subparagraph', 'clause')
-    units = {
+    return {
         Rank.LETTER: ladder[0],
         Rank.NUMBER: ladder[1],
         Rank.CAPITAL: ladder[2],
@@ -617,16 +1039,47 @@ def _nodes(text, code):
         Rank.HEADING: 'section',
     }
 
-    def pack(node):
+
+def _shown(node):
+    """The words of one cut: its label, then its text."""
+    return ('%s %s' % (node.label, node.text)).strip() if node.label else (node.text or '')
+
+
+def _walk_cuts(text, code):
+    """Each cut of the section, with the path that names it in the tree."""
+    from structure import split_nodes
+    units = _cut_units(code)
+    rows = []
+
+    def walk(node, trail):
         unit = 'section' if node.rank is None else units.get(node.rank, 'section')
-        shown = ('%s %s' % (node.label, node.text)).strip() if node.label else (node.text or '')
+        rows.append(('.'.join(trail), unit, node))
+        for index, child in enumerate(node.children):
+            walk(child, trail + [str(index)])
+
+    walk(split_nodes(text), ['0'])
+    return rows
+
+
+def _nodes(text, code):
+    """The section as a tree. Each label takes the cut that book uses at that depth."""
+    from structure import split_nodes
+    units = _cut_units(code)
+
+    def pack(node, trail):
+        unit = 'section' if node.rank is None else units.get(node.rank, 'section')
         return {
+            'path': '.'.join(trail),
             'unit': unit,
-            'pieces': _pieces(shown),
-            'children': [pack(child) for child in node.children],
+            'label': node.label or '',
+            'pieces': _pieces(_shown(node)),
+            'children': [
+                pack(child, trail + [str(index)])
+                for index, child in enumerate(node.children)
+            ],
         }
 
-    return pack(split_nodes(text))
+    return pack(split_nodes(text), ['0'])
 
 
 def _pieces(text, heading=False):
@@ -634,6 +1087,15 @@ def _pieces(text, heading=False):
     from citations import Cite, annotate, heading_notes
     reader = heading_notes if heading else annotate
     notes = sorted(reader(text or ''), key=lambda note: (note.start, note.end))
+    kept = []
+    for note in notes:
+        if kept and note.start == kept[-1].start and note.end > kept[-1].end:
+            kept[-1] = note
+            continue
+        if kept and note.start < kept[-1].end:
+            continue
+        kept.append(note)
+    notes = kept
     pieces = []
     cursor = 0
     source = text or ''
@@ -661,14 +1123,37 @@ def _pieces(text, heading=False):
     return pieces
 
 
+def _ancestors(region='US-CA'):
+    """Jurisdictions above the open one. Look within before looking here."""
+    if (region or '').upper() == 'US-CA':
+        return ('US',)
+    return ()
+
+
 def _piece_href(kind, target):
-    """A citation that names a code and a section becomes a library link."""
+    """A citation link. The open jurisdiction's codes come first.
+
+    A token that is not one of those codes is tried in each ancestor.
+    ``PL 101 336`` is not a California code. The United States reads it as
+    a public law on Congress.gov.
+    """
     if kind not in ('citation', 'cross_reference'):
         return ''
     matched = re.match(r'^([A-Z]{2,})\s+(\d[\d.]*)', target or '')
-    if matched is None:
-        return ''
-    return '/view/section/%s/%s' % (matched.group(1), matched.group(2))
+    if matched is not None:
+        token = matched.group(1)
+        if any((row.get('token') or '').upper() == token for row in _codes()):
+            return '/view/section/%s/%s' % (token, matched.group(2))
+    if 'US' in _ancestors():
+        public = re.match(r'^PL\s+(\d+)\s+(\d+)$', target or '')
+        if public is not None:
+            from us.plaw import locate
+            return locate(public.group(1), public.group(2))
+        code = re.match(r'^USC\s+(\d+[a-z]?)\s+(\d[\d.a-z]*)$', target or '', re.I)
+        if code is not None:
+            from us.usc import locate_section
+            return locate_section(code.group(1), code.group(2))
+    return ''
 
 
 def _refs(code, number, chapters):
@@ -727,15 +1212,21 @@ def _refs(code, number, chapters):
 
 
 def _cited(text, code):
+    """The statutes these words name, once each, in the order they appear."""
     from structure import find_links
     links = []
+    seen = set()
     for link in find_links(text, here=code):
         if link.kind != 'statute' or not link.section or link.code is None:
             continue
         token = getattr(link.code, 'value', link.code)
+        label = '%s %s' % (token, link.section)
+        if label in seen:
+            continue
+        seen.add(label)
         links.append({
             'href': '/view/section/%s/%s' % (token, link.section),
-            'label': '%s %s' % (token, link.section),
+            'label': label,
         })
     return links
 

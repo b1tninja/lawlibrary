@@ -163,7 +163,7 @@ def _court_model(mention):
 
 def _locality_model(mention):
     base = City if mention.kind is Kind.CITY else County
-    from us.ca import California
+    from us.states.ca import California
     for county in California.counties().values():
         if mention.kind is Kind.COUNTY and county.name.casefold() == mention.name.casefold():
             return county

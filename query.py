@@ -15,7 +15,7 @@ from whoosh.query import And, Term
 import corpus
 from core import index_dir
 from indexer import DEFAULT_COUNTRY, DEFAULT_SUBDIVISION, Indexer
-from us.ca.counties.sacramento.cities.sacramento import Sacramento
+from us.counties.ca.sacramento.cities.sacramento import Sacramento
 
 HEADING_LEVELS = (
     ('division', 'DIVISION_HEADING'),
@@ -34,6 +34,9 @@ ACTS = {
 TEXT_SPAN_LIMIT = 30
 
 _SECTION_NUM = re.compile(r'^\[?(?P<body>\d+(?:\.\d+)*)(?P<letter>[a-zA-Z]?)\]?\.?$')
+_SECTION_LABEL = re.compile(
+    r'(?i)^\[?\s*(?:section|sec)\.?\s+(?P<num>\d+(?:\.\d+)*[a-z]?)\.?\s*\]?$'
+)
 
 _FEDERAL = re.compile(
     r'(?is)'
@@ -129,8 +132,16 @@ def _roman(text):
 
 
 def heading_key(value):
-    """A division, title, part, chapter, article, or section, in statutory order."""
-    text = str(value or '').strip().rstrip('.')
+    """A division, title, part, chapter, article, or section, in statutory order.
+
+    ``SEC. 2`` and ``Section 20`` are section numbers. The label is not part
+    of the number, so 2 sorts before 10 and 20.
+    """
+    text = str(value or '').strip()
+    labeled = _SECTION_LABEL.match(text)
+    if labeled:
+        return (0, section_key(labeled.group('num')))
+    text = text.rstrip('.')
     if _SECTION_NUM.match(text):
         return (0, section_key(text))
     roman = _roman(text)
@@ -224,6 +235,34 @@ def _path_from_doc(doc):
     return path
 
 
+_UNIT_FIELDS = (
+    ('division', 'DIVISION', 'DIVISION_HEADING'),
+    ('title', 'TITLE', 'TITLE_HEADING'),
+    ('part', 'PART', 'PART_HEADING'),
+    ('chapter', 'CHAPTER', 'CHAPTER_HEADING'),
+    ('article', 'ARTICLE', 'ARTICLE_HEADING'),
+)
+
+
+def _units_from_doc(doc):
+    """Each unit this section sits in, with the number the index stored.
+
+    ``path`` is the captions. This is the ladder itself, so a caller can name
+    the node without reading a number out of a heading.
+    """
+    rungs = []
+    for level, field, caption in _UNIT_FIELDS:
+        value = (doc.get(field) or '').strip()
+        if not value:
+            continue
+        rungs.append({
+            'level': level,
+            'value': value,
+            'heading': (doc.get(caption) or '').strip(),
+        })
+    return rungs
+
+
 def _section_payload(doc, subdivision=None):
     code = doc.get('LAW_CODE')
     number = doc.get('SECTION_NUM')
@@ -236,6 +275,7 @@ def _section_payload(doc, subdivision=None):
         'subdivision': subdivision,
         'title': doc.get('SECTION_TITLE') or '',
         'path': _path_from_doc(doc),
+        'units': _units_from_doc(doc),
         'text': doc.get('LEGAL_TEXT') or doc.get('text') or '',
         'session': doc.get('SESSION'),
         'country': doc.get('COUNTRY') or doc.get('country'),
@@ -915,9 +955,21 @@ def _constraints(path):
 def law_tree(url=''):
     """The node at ``url`` and the children one level down.
 
-    A region lists codes. A code lists the next heading that is present.
-    A section lists its subdivision labels. A missing index is found false.
+    A country lists its regions. A region lists codes. A code lists the next
+    heading that is present. A section lists its subdivision labels. A missing
+    index is found false.
     """
+    head = [part for part in str(url or '').strip().strip('/').split('/') if part]
+    if head == ['us']:
+        return {
+            'url': 'us',
+            'region': 'US',
+            'code': None,
+            'found': True,
+            'children': [
+                {'url': 'us-ca', 'unit': 'region', 'value': 'US-CA', 'heading': 'California'},
+            ],
+        }
     path = parse_law_url(url)
     node = {'url': path.url, 'region': path.region, 'code': path.code, 'found': True, 'children': []}
     if path.section:

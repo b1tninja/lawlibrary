@@ -40,6 +40,15 @@ def test_a_part_heading_is_a_cut_under_the_division():
     assert span.text == '[38. - 86.]'
     credit = heading_notes('55.51. (Added by Stats. 2008, Ch. 549, Sec. 3.)')
     assert any(note.note is Note.SESSION and note.target == 'added 2008 549' for note in credit)
+    constitution = heading_notes('SEC. 2. (Sec. 2 added Nov. 5, 1974, by Prop. 7.)')
+    assert any(note.note is Note.CUT and note.target == 'section' and note.text == 'SEC.' for note in constitution)
+    assert any(note.note is Note.CITATION and note.cite is Cite.SECTION and note.text == '2' for note in constitution)
+    assert any(note.note is Note.DATE and note.target == '1974-11-05' for note in constitution)
+    credit = heading_notes('SEC. 20. (Sec. 20 added Nov. 5, 1974, by Prop. 7. Res.Ch. 90, 1974.)')
+    targets = [note.target for note in credit if note.note is Note.CITATION]
+    assert 'prop 7' in targets
+    assert 'res 90 1974' in targets
+    assert any(note.cite is Cite.SECTION and note.text.lower().startswith('sec') for note in credit)
 
 
 def test_a_short_title_is_a_named_act():
@@ -223,7 +232,118 @@ def test_a_grouped_year_count_is_one_period():
     assert any(Duration.parse(note.text).shape() == 'from duration court day' for note in annotate(rare) if note.note is Note.PERIOD)
 
 
-def test_case_notes_keep_uppercase_and_title_case():
+def test_a_quoted_term_that_means_is_a_definition():
+    """GOV 12925. A curly-quoted term before means is the defined word."""
+    text = Citation(Code.GOVERNMENT).section('12925').text
+    if not text or 'means' not in text:
+        return
+    defined = [note for note in annotate(text) if note.note is Note.DEFINITION]
+    targets = {note.target for note in defined}
+    assert 'commission' in targets
+    assert 'commissioner' in targets
+    assert all(note.text.startswith('\u201c') and note.text.endswith('\u201d') for note in defined)
+    defined_next = Citation(Code.GOVERNMENT).section('12926').text
+    if defined_next and 'refers' in defined_next:
+        targets = {note.target for note in annotate(defined_next) if note.note is Note.DEFINITION}
+        assert 'age' in targets
+        assert 'employee' in targets
+        assert 'affirmative relief' in targets
+        assert 'prospective relief' in targets
+        assert 'limits' in targets
+        assert 'major life activities' in targets
+        compounds = {note.target for note in annotate(defined_next) if note.note is Note.COMPOUND}
+        assert 'out-of-pocket' in compounds
+        assert 'part-time' in compounds
+        assert 'gender-related' in compounds
+
+
+def test_a_public_law_number_is_not_a_code_section():
+    """P.L. 101-336 is the 336th public law of the 101st Congress."""
+    from parsers import Parser
+    laws = Parser().public_laws('(P.L. 101-336)')
+    assert laws[0].congress == '101'
+    assert laws[0].number == '336'
+    assert laws[0].target() == 'PL 101 336'
+    assert laws[0].reference() == 'Public Law 101-336'
+    assert laws[0].book() == '101-336'
+    assert laws[0].shelf.value == 'public-law'
+    marked = annotate('(P.L. 101-336)')
+    assert marked[0].cite is Cite.BOOK
+    assert marked[0].cite is not Cite.RANGE
+    spelled = Parser().public_laws('Public Law 85-1')
+    assert spelled[0].target() == 'PL 85 1'
+    text = Citation(Code.GOVERNMENT).section('12926').text
+    if text and 'P.L.' in text:
+        notes = [note for note in annotate(text) if note.target == 'PL 101 336']
+        assert notes
+        assert notes[0].note is Note.CITATION
+        acts = [note.text for note in annotate(text) if note.note is Note.NAMED_ACT]
+        assert 'Americans with Disabilities Act of 1990' in acts
+
+
+def test_an_act_title_beside_a_public_law_is_named():
+    """The Act's name is a named act. The hyphenated number stays the book."""
+    notes = annotate('the federal Americans with Disabilities Act of 1990 (P.L. 101-336)')
+    act = next(note for note in notes if note.note is Note.NAMED_ACT)
+    assert act.text == 'Americans with Disabilities Act of 1990'
+    law = next(note for note in notes if note.cite is Cite.BOOK)
+    assert law.target == 'PL 101 336'
+    assert act.end <= law.start
+    assert act.target == 'americans-with-disabilities'
+
+
+def test_a_catalogued_act_is_marked_from_the_list():
+    """The list is walked first. A title that is not on it still matches the grammar."""
+    from parsers import Parser
+    housed = annotate('The Fair Housing Act and the Nonprofit Mutual Benefit Corporation Law.')
+    targets = {note.target for note in housed if note.note is Note.NAMED_ACT}
+    assert targets == {'fair-housing', 'mutual-benefit'}
+    unknown = annotate('the Synthetic Widgets Act of 1999')
+    act = next(note for note in unknown if note.note is Note.NAMED_ACT)
+    assert act.text == 'Synthetic Widgets Act of 1999'
+    assert act.target == act.text
+    listed = Parser().named_acts('Americans with Disabilities Act of 1990')
+    assert listed[0][3] == 'americans-with-disabilities'
+    assert 'of 1990' in listed[0][2]
+
+
+def test_a_code_cite_is_not_the_public_law():
+    """42 U.S.C. 12101 is the classified section. 104 Stat. 327 is the volume."""
+    from parsers import Parser
+    codes = Parser().federal_codes('the Act (42 U.S.C. 12101 et seq.)')
+    assert codes[0].title == '42'
+    assert codes[0].book() == '42'
+    assert codes[0].shelf.value == 'code'
+    assert codes[0].section == '12101'
+    assert codes[0].target() == 'USC 42 12101'
+    assert codes[0].text.endswith('et seq.')
+    long = Parser().federal_codes('section 5 of title 15, United States Code')
+    assert long[0].target() == 'USC 15 5'
+    volume = Parser().statutes('104 Stat. 327')
+    assert volume[0].target() == 'STAT 104 327'
+    assert volume[0].book() == '104'
+    assert volume[0].shelf.value == 'statutes'
+    assert Parser().statutes('Stats. 2011, Ch. 719') == []
+    notes = annotate('See 42 U.S.C. 12101 and section 5 of title 15, United States Code.')
+    targets = {note.target for note in notes if note.note is Note.CITATION}
+    assert 'USC 42 12101' in targets
+    assert 'USC 15 5' in targets
+    assert '5' not in targets
+    assert all(note.cite is Cite.BOOK for note in notes if note.target in targets)
+
+
+def test_a_quoted_roman_is_an_article():
+    """Single quotes mark the numeral. The letter after it stays on the article."""
+    from parsers import Parser
+    nineteen = Parser().articles("'XIX'")
+    assert nineteen[0].value == 'XIX'
+    suffixed = Parser().articles("Article XIII A and 'XIX C'")
+    assert [mark.value for mark in suffixed] == ['XIII A', 'XIX C']
+    assert Parser().articles('A lone I in a sentence.') == []
+    notes = annotate("See 'XIX' and Article I.")
+    targets = {note.target for note in notes if note.note is Note.CITATION}
+    assert 'CONS XIX' in targets
+    assert 'CONS I' in targets
     titled = annotate('The Department of Real Estate acts today.')
     assert any(note.note is Note.CASE and note.target == 'title' and 'Department of Real Estate' in note.text for note in titled)
     shouted = annotate('The board meets in CALIFORNIA today.')
@@ -242,6 +362,33 @@ def test_each_format_records_its_convention():
     named = Absolute.parse('January 1, 2013')
     assert named.convention() is Convention.MONTH_DAY_YEAR
     assert named.target() == '2013-01-01'
+    short = Absolute.parse('Nov. 5, 1974')
+    assert short.convention() is Convention.ABBREVIATED_MDY
+    assert short.target() == '1974-11-05'
+    assert Absolute.parse('Sept. 1, 1990').target() == '1990-09-01'
+    added = annotate('Sec. 20 added Nov. 5, 1974, by Prop. 7.')
+    assert any(note.note is Note.DATE and note.text == 'Nov. 5, 1974' and note.target == '1974-11-05' for note in added)
+    assert Absolute.parse('Effective January 1, 2012') is None
+    credit_notes = annotate('Effective January 1, 2012.')
+    day = next(note for note in credit_notes if note.note is Note.DATE)
+    cue = next(note for note in credit_notes if note.note is Note.OCCASION)
+    assert day.text == 'January 1, 2012'
+    assert day.target == '2012-01-01'
+    assert cue.text == 'Effective'
+    assert cue.target == day.target
+    apart = annotate('Repealed as of January 1, 2015.')
+    assert any(note.note is Note.DATE and note.text == 'January 1, 2015' for note in apart)
+    assert any(note.note is Note.OCCASION and note.text == 'Repealed' and note.target == '2015-01-01' for note in apart)
+    paired = {
+        'Operative January 1, 1994.': ('Operative', '1994-01-01'),
+        'Approved March 5, 2002.': ('Approved', '2002-03-05'),
+        'Applicable from June 1, 1998.': ('Applicable', '1998-06-01'),
+        'Superseded on July 1, 2005.': ('Superseded', '2005-07-01'),
+    }
+    for sentence, (word, day) in paired.items():
+        notes = annotate(sentence)
+        assert any(note.note is Note.OCCASION and note.text == word and note.target == day for note in notes)
+        assert any(note.note is Note.DATE and note.target == day for note in notes)
     assert Absolute.parse('2013-01-01').convention() is Convention.ISO_8601
     assert Absolute.parse('2013-01-01').target() == '2013-01-01'
     numeric = Absolute.parse('1/1/2013')
@@ -258,6 +405,22 @@ def test_each_format_records_its_convention():
     assert Quantity.DURATION in kinds
     assert any(Convention.ISO_8601 in item.conventions for item in found)
     assert forms('pay $1,000.')[0].kind is Quantity.MONETARY
+
+
+def test_a_control_phrase_keeps_its_pairing():
+    """The phrase and the object it controls are separate. The target is the object."""
+    cases = (
+        ('Notwithstanding any other provision of law, the rule applies.', Note.OVERRIDE, 'notwithstanding', 'any other provision'),
+        ('Except as provided in Section 10, the rule applies.', Note.EXCEPTION, 'except as provided', 'in section'),
+        ('Unless otherwise provided, the clerk files the paper.', Note.EXCEPTION, 'unless otherwise', 'provided'),
+        ('Subject to Section 10, the board may act.', Note.LIMIT, 'subject to', 'section'),
+        ('The board may act, provided that notice is given.', Note.PROVISO, 'provided that', 'proviso'),
+    )
+    for sentence, kind, words, target in cases:
+        notes = annotate(sentence)
+        found = next(note for note in notes if note.note is kind)
+        assert found.text.casefold() == words
+        assert found.target == target
 
 
 def test_a_section_sign_is_a_citation_annotation():

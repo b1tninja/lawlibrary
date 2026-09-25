@@ -25,7 +25,9 @@
 <li class="cut-{{ tree.unit }}">{{ ui.marks(tree.pieces) }}{% if tree.children %}{{ ui.nodes(tree.children) }}{% endif %}</li>
 </ol>
 {% endif %}
-{% if history %}
+{% if credit %}
+<p class="history">{{ ui.marks(credit) }}</p>
+{% elif history %}
 <p class="history">{{ history }}</p>
 {% endif %}
 {% if edges %}

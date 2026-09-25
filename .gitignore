@@ -135,3 +135,6 @@ dmypy.json
 .idea/
 data/
 client/node_modules/
+
+# Captured traffic. A HAR often holds live credentials.
+*.har

@@ -19,7 +19,15 @@ from corpus import connect, corpus_path
 from publication import Instrument, Publication
 
 SOURCE = 'https://uscode.house.gov/download/download.shtml'
+DOWNLOAD = 'https://uscode.house.gov/download/'
+_XML_HREF = re.compile(
+    r'href="(releasepoints/us/pl/(?P<congress>\d+)/(?P<law>\d+)/xml_usc[^"]+\.zip)"'
+)
 # Current release point as of docs/special/us-code.md (PL 119-111).
+TITLE_1_ZIP = (
+    'https://uscode.house.gov/download/releasepoints/us/pl/119/111/'
+    'xml_usc01@119-111.zip'
+)
 TITLE_42_ZIP = (
     'https://uscode.house.gov/download/releasepoints/us/pl/119/111/'
     'xml_usc42@119-111.zip'
@@ -138,7 +146,69 @@ def _title_from_tree(root, fallback=None):
     return fallback
 
 
+def _title_heading(root, title):
+    """Printed title name when the USLM file names it (num + heading)."""
+    for el in root.iter():
+        if _local(el.tag).lower() != 'title':
+            continue
+        num_text = heading = ''
+        for child in el:
+            name = _local(child.tag).lower()
+            if name == 'num':
+                num_text = _plain(child)
+            elif name == 'heading':
+                heading = _plain(child)
+        if num_text or heading:
+            return ('%s%s' % (num_text, heading)).strip() or None
+    if title:
+        return 'Title %s' % title
+    return None
+
+
+def _law_code(title):
+    """Whoosh token such as ``42USC`` from the title number."""
+    if not title:
+        return None
+    text = str(title).strip()
+    if text.upper().endswith('USC'):
+        return text.upper() if text[-3:].isalpha() else text
+    return '%sUSC' % text
+
+
+def _label(el):
+    """Number and heading printed on a title or chapter element."""
+    num = heading = ''
+    for child in el:
+        name = _local(child.tag).lower()
+        if name == 'num':
+            num = child.attrib.get('value') or _plain(child)
+        elif name == 'heading':
+            heading = _plain(child)
+    return (num or '').strip(), (heading or '').strip()
+
+
+def _outline(el, parents):
+    """Title and chapter that contain this section."""
+    fields = {}
+    cur = parents.get(el)
+    while cur is not None:
+        name = _local(cur.tag).lower()
+        if name in ('title', 'chapter'):
+            key = name.upper()
+            if key not in fields:
+                num, heading = _label(cur)
+                if num:
+                    fields[key] = num
+                if heading:
+                    fields['%s_HEADING' % key] = heading
+        cur = parents.get(cur)
+    return fields
+
+
 def _yield_sections(root, title):
+    from readers import parent_map
+    code_heading = _title_heading(root, title)
+    parents = parent_map(root)
     for el in root.iter():
         if _local(el.tag).lower() != 'section':
             continue
@@ -146,18 +216,129 @@ def _yield_sections(root, title):
         text = _section_text(el)
         if not num or not text:
             continue
-        law_code = (
+        title_num = (
             _title_from_ident(_attr(el, 'identifier'))
             or title
         )
+        law_code = _law_code(title_num)
         if not law_code:
             continue
-        yield {
+        row = {
             'COUNTRY': 'US',
-            'LAW_CODE': str(law_code),
+            'SUBDIVISION': 'US',
+            'LAW_CODE': law_code,
             'SECTION_NUM': num,
             'LEGAL_TEXT': text,
         }
+        if code_heading:
+            row['CODE_HEADING'] = code_heading
+        row.update(_outline(el, parents))
+        yield row
+
+
+BROWSE = 'https://uscode.house.gov/view.xhtml'
+ARCHIVES = 'https://uscode.house.gov/download/annualhistoricalarchives/XHTML'
+RELEASES = 'https://uscode.house.gov/download/releasepoints/us/pl'
+_TITLE_TOKEN = re.compile(r'^0*(\d+)([a-z]?)$', re.IGNORECASE)
+_ARCHIVE_NAME = re.compile(r'(?i)^(\d{4})usc(\d+[a-z]?)\.htm$')
+_ITEM_PATH = re.compile(r'itempath:([^>]*?/Sec\.\s*([^-\s>]+))')
+
+
+def title_token(title):
+    """``42`` and ``5a`` become the filename token ``42`` and ``05a``."""
+    match = _TITLE_TOKEN.match(str(title).strip())
+    if match is None:
+        raise ValueError('not a title number: %s' % title)
+    return '%02d%s' % (int(match.group(1)), match.group(2).lower())
+
+
+def locate_section(title, section):
+    """The current classified section on the House site.
+
+    A bare ``42 U.S.C. 12101`` names this text. A public-law number names
+    the slip law instead.
+    """
+    return (
+        '%s?req=granuleid:USC-prelim-title%s-section%s&num=0&edition=prelim'
+        % (BROWSE, title, section)
+    )
+
+
+def locate_archive(year, title=None):
+    """Annual historical archive. One title is XHTML; the year is one zip."""
+    year = int(year)
+    if title is None:
+        return '%s/%s.zip' % (ARCHIVES, year)
+    return '%s/%s/%susc%s.htm' % (ARCHIVES, year, year, title_token(title))
+
+
+def locate_release(congress, law, title=None):
+    """A prior (or current) release point. XML, one title or every title."""
+    congress = int(congress)
+    law = str(law).strip()
+    token = 'All' if title is None else title_token(title)
+    return '%s/%s/%s/xml_usc%s@%s-%s.zip' % (
+        RELEASES, congress, law, token, congress, law,
+    )
+
+
+def _fetch(url, dest, opener=None):
+    from urllib.request import Request, urlopen
+    name = url.rstrip('/').rsplit('/', 1)[-1]
+    folder = os.fspath(dest)
+    os.makedirs(folder, exist_ok=True)
+    path = os.path.join(folder, name)
+    if opener is None:
+        request = Request(url, headers={'User-Agent': 'lawlibrary'})
+        with urlopen(request, timeout=120) as response:
+            body = response.read()
+    else:
+        body = opener(url)
+    with open(path, 'wb') as fh:
+        fh.write(body)
+    return path
+
+
+def _archive_sections(path):
+    """Sections marked by an ``itempath`` comment that names ``Sec.``."""
+    named = _ARCHIVE_NAME.search(os.path.basename(str(path)))
+    if named is None:
+        return
+    year, token = named.group(1), named.group(2)
+    law_code = _law_code(token)
+    text = open(path, encoding='utf-8', errors='replace').read()
+    marks = list(_ITEM_PATH.finditer(text))
+    for index, mark in enumerate(marks):
+        end = marks[index + 1].start() if index + 1 < len(marks) else len(text)
+        body = re.sub(r'<[^>]+>', ' ', text[mark.end():end])
+        body = re.sub(r'\s+', ' ', body).strip()
+        if not body:
+            continue
+        yield {
+            'COUNTRY': 'US',
+            'SUBDIVISION': 'US',
+            'LAW_CODE': law_code,
+            'SECTION_NUM': mark.group(2),
+            'LEGAL_TEXT': body,
+            'CITATION': '%s %s' % (law_code, mark.group(2)),
+            'SESSION': year,
+        }
+
+
+def xml_downloads(page):
+    """XML release-point zips named on the House download page.
+
+    The current page is Public Law 119-111. Each href is one title, or every
+    title in ``xml_uscAll``.
+    """
+    found = []
+    for match in _XML_HREF.finditer(page or ''):
+        found.append({
+            'congress': match.group('congress'),
+            'law': match.group('law'),
+            'url': DOWNLOAD + match.group(1),
+        })
+    return found
 
 
 class UnitedStatesCode(Publication):
@@ -220,7 +401,7 @@ class UnitedStatesCode(Publication):
                         row['LAW_CODE'],
                         row['SECTION_NUM'],
                         row['LEGAL_TEXT'],
-                        '%s USC %s' % (row['LAW_CODE'], row['SECTION_NUM']),
+                        '%s %s' % (row['LAW_CODE'], row['SECTION_NUM']),
                         session,
                     )
                     for row in rows
@@ -230,3 +411,38 @@ class UnitedStatesCode(Publication):
         finally:
             db.close()
         return len(rows)
+
+    def locate(self, congress, law, title=None):
+        return locate_release(congress, law, title)
+
+    def fetch(self, congress, law, dest, title=None, opener=None):
+        """Save one release-point XML zip. ``title`` omitted is every title."""
+        return _fetch(locate_release(congress, law, title), dest, opener)
+
+
+class AnnualCode(Publication):
+    """A bound-year United States Code title, as House XHTML.
+
+    USLM begins with the 113th Congress release points. Earlier editions,
+    and the later bound years, are this file. The GPO locator zip is the
+    typesetting source and is not this text.
+    """
+
+    instrument = Instrument.STATUTE
+    source = ARCHIVES
+
+    @classmethod
+    def accepts(cls, names):
+        if isinstance(names, (set, frozenset, list, tuple)):
+            return any(cls.accepts(name) for name in names)
+        return bool(_ARCHIVE_NAME.search(os.path.basename(str(names))))
+
+    def locate(self, year, title=None):
+        return locate_archive(year, title)
+
+    def fetch(self, year, dest, title=None, opener=None):
+        """Save one title's XHTML, or the whole-year zip when ``title`` is omitted."""
+        return _fetch(locate_archive(year, title), dest, opener)
+
+    def sections(self, path):
+        yield from _archive_sections(path)

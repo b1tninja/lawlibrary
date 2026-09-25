@@ -70,6 +70,46 @@ class StyleMixin:
         return annotate(text, context=context)
 
 
+class ShelfMixin:
+    """A hyphenated book on a federal shelf. It is not a section range.
+
+    ``101-336`` is Congress 101, law 336, on the public-law shelf. A heading
+    bracket ``[38. - 86.]`` stays a range. ``42 U.S.C. 12101`` is section
+    12101 of Title 42, and ``104 Stat. 327`` is page 327 of volume 104.
+    """
+
+    def books(self, text):
+        return self.public_laws(text) + self.federal_codes(text) + self.statutes(text)
+
+    def public_laws(self, text):
+        from citations import find_public_laws
+        return find_public_laws(text)
+
+    def federal_codes(self, text):
+        from citations import find_federal_codes
+        return find_federal_codes(text)
+
+    def statutes(self, text):
+        from citations import find_statutes
+        return find_statutes(text)
+
+    def named_acts(self, text):
+        from citations import find_named_acts
+        return find_named_acts(text)
+
+
+class RomanMixin:
+    """A constitution article. Single quotes mark the numeral.
+
+    ``'XIX'`` is article 19. ``'XIII A'`` and ``Article XIX C`` keep the
+    letter that follows the numeral. An unquoted ``I`` stays a word.
+    """
+
+    def articles(self, text):
+        from citations import find_articles
+        return find_articles(text)
+
+
 class FormatMixin:
     """Date, number, and currency conventions on a measured span.
 
@@ -83,7 +123,7 @@ class FormatMixin:
         return forms(text)
 
 
-class Parser(NeedleMixin, CanonMixin, StyleMixin, FormatMixin):
+class Parser(NeedleMixin, CanonMixin, StyleMixin, FormatMixin, ShelfMixin, RomanMixin):
     """Canons and a style guide, applied to one text."""
 
     def read(self, text, context=None):

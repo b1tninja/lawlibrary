@@ -458,6 +458,22 @@ class _SessionYear:
         return Session(self.year, number)
 
 
+class Occasion(enum.Enum):
+    """When a session credit takes effect. The value is the history word.
+
+    It sits against a calendar day. ``Effective January 1, 2012`` is not the
+    chaptering year printed in ``Stats. 2011``.
+    """
+
+    EFFECTIVE = 'effective'
+    OPERATIVE = 'operative'
+    INOPERATIVE = 'inoperative'
+    APPROVED = 'approved'
+    APPLICABLE = 'applicable'
+    SUPERSEDED = 'superseded'
+    REPEALED = 'repealed'
+
+
 class Action(enum.Enum):
     """What a session law did to the section. The value is the history word."""
 
@@ -467,6 +483,87 @@ class Action(enum.Enum):
     REPEALED = 'repealed'
     REPEALED_AND_ADDED = 'repealed and added'
     REPEALED_CONDITIONALLY = 'repealed conditionally'
+
+
+class Shelf(enum.Enum):
+    """Where a hyphenated book sits. The value is the shelf.
+
+    ``101-336`` on the public-law shelf is one law. The same hyphen in a
+    heading is a range of sections.
+    """
+
+    PUBLIC_LAW = 'public-law'
+    CODE = 'code'
+    STATUTES = 'statutes'
+
+
+class PublicLaw:
+    """A federal public law. The first number is the Congress. The second is the law.
+
+    ``P.L. 101-336`` is Public Law 101-336, the 336th public law of the 101st
+    Congress. It is not a California session chapter and not a code section.
+    """
+
+    def __init__(self, congress, number):
+        self.congress = str(congress)
+        self.number = str(number)
+        self.shelf = Shelf.PUBLIC_LAW
+
+    def book(self):
+        """Congress and law, joined by the hyphen the slip prints."""
+        return '%s-%s' % (self.congress, self.number)
+
+    def reference(self):
+        return 'Public Law %s-%s' % (self.congress, self.number)
+
+    def target(self):
+        return 'PL %s %s' % (self.congress, self.number)
+
+
+class FederalCode:
+    """A section of the United States Code. The title, then the section.
+
+    ``42 U.S.C. 12101`` is Title 42, section 12101, as classified. It is not
+    the public law that enacted the text.
+    """
+
+    def __init__(self, title, section):
+        self.title = str(title)
+        self.section = str(section)
+        self.shelf = Shelf.CODE
+
+    def book(self):
+        """The title is the book. The section is a place in that book."""
+        return self.title
+
+    def reference(self):
+        return '%s U.S.C. %s' % (self.title, self.section)
+
+    def target(self):
+        return 'USC %s %s' % (self.title, self.section)
+
+
+class StatutesAtLarge:
+    """A page of the Statutes at Large. The volume, then the page.
+
+    ``104 Stat. 327`` is volume 104, page 327. For a title that is not
+    positive law, that volume is the legal evidence of the enacted text.
+    """
+
+    def __init__(self, volume, page):
+        self.volume = str(volume)
+        self.page = str(page)
+        self.shelf = Shelf.STATUTES
+
+    def book(self):
+        """The volume is the book. The page is a place in that volume."""
+        return self.volume
+
+    def reference(self):
+        return '%s Stat. %s' % (self.volume, self.page)
+
+    def target(self):
+        return 'STAT %s %s' % (self.volume, self.page)
 
 
 class Session:

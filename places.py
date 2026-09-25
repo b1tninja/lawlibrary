@@ -503,6 +503,7 @@ class Use(enum.Enum):
     READ = 'read'
     FIND = 'find'
     REFS = 'refs'
+    GAPS = 'gaps'
 
 
 _HEADINGS = ('division', 'title', 'part', 'chapter', 'article', 'section', 'subdivision')
@@ -510,6 +511,59 @@ _HEADINGS = ('division', 'title', 'part', 'chapter', 'article', 'section', 'subd
 
 def _flag(value):
     return str(value or '').strip().lower() in ('1', 'true', 'yes')
+
+
+def _walk_edges(tree):
+    """Every hop of the walk as ``source``, ``target``, and ``label``.
+
+    One node names the next. A repeated pair is dropped, so the list stays the
+    DAG the client draws. The mermaid string remains the static export.
+    """
+    edges = []
+    seen = set()
+
+    def walk(node):
+        here = node.get('id') or ''
+        for child in node.get('children') or []:
+            target = child.get('id') or ''
+            key = (here, target)
+            if not target or key in seen:
+                continue
+            seen.add(key)
+            edges.append({
+                'source': here,
+                'target': target,
+                'label': 'cites',
+                'found': bool(child.get('found')),
+            })
+            walk(child)
+
+    walk(tree)
+    return edges
+
+
+def _walk_nodes(tree):
+    """One row per section the walk opened, with the hop it was reached on."""
+    rows = []
+    seen = set()
+
+    def walk(node, depth):
+        key = node.get('id') or ''
+        if not key or key in seen:
+            return
+        seen.add(key)
+        rows.append({
+            'id': key,
+            'label': node.get('label') or key,
+            'citation': node.get('citation') or node.get('label') or key,
+            'found': bool(node.get('found')),
+            'hop': depth,
+        })
+        for child in node.get('children') or []:
+            walk(child, depth + 1)
+
+    walk(tree, 0)
+    return rows
 
 
 def ask(query):
@@ -520,7 +574,7 @@ def ask(query):
     year. ``hops`` is how far the citation walk goes, and ``all`` follows until
     a section repeats. ``only`` is the books the walk may enter. ``same`` stays
     in the open book. ``q`` searches inside the place. ``use`` picks read, find,
-    or refs. A missing use follows the filters that were sent.
+    refs, or gaps. A missing use follows the filters that were sent.
     """
     from apa import Code
     sent = {key: (value or '').strip() for key, value in (query or {}).items()}
@@ -597,6 +651,31 @@ def ask(query):
             limit = 10
         body['hits'] = cited.place.find(phrase, limit=limit)
         return body
+    if chosen is Use.GAPS:
+        from structure import review
+        number = cited.place._section()
+        if not number:
+            return {'found': False, 'reason': 'not_in_index', 'expression': filters['reference']}
+        looked = review(
+            cited.code, number, depth=cited.hops_depth,
+            same=cited.same_book,
+            codes=None if cited.only_codes is None else tuple(cited.only_codes),
+            session=cited.session_year,
+        )
+        if not looked.get('found'):
+            return looked
+        body['citation'] = looked.get('citation') or ''
+        body['gaps'] = [
+            {
+                'gap': getattr(gap.get('gap'), 'value', gap.get('gap')),
+                'phrase': gap.get('phrase') or '',
+                'code': getattr(gap.get('code'), 'value', gap.get('code')) or '',
+                'section': gap.get('section') or '',
+                'citation': gap.get('citation') or '',
+            }
+            for gap in looked.get('gaps') or []
+        ]
+        return body
     if chosen is Use.REFS:
         number = cited.place._section()
         if not number:
@@ -604,6 +683,7 @@ def ask(query):
         tree = cited.refs.tree
         if not tree.get('found'):
             return tree
+        body['citation'] = tree.get('citation') or ''
         body['chart'] = tree.get('mermaid') or ''
         body['links'] = [
             {
@@ -611,17 +691,15 @@ def ask(query):
                 'text': link.get('text'),
                 'code': getattr(link.get('code'), 'value', link.get('code')),
                 'section': link.get('section'),
+                'label': link.get('label'),
                 'year': link.get('year'),
                 'chapter': link.get('chapter'),
                 'action': link.get('action') or '',
             }
             for link in tree.get('links') or []
         ]
-        body['edges'] = [
-            {'source': tree.get('id'), 'target': child.get('id'), 'label': 'cites'}
-            for child in tree.get('children') or []
-            if child.get('id')
-        ]
+        body['nodes'] = _walk_nodes(tree)
+        body['edges'] = _walk_edges(tree)
         return body
     number = cited.place._section()
     if not number:

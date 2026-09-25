@@ -24,11 +24,16 @@ from needles import pattern as word_pattern
 
 
 class Cite(enum.Enum):
-    """How many sections the sign introduces. The value is the string."""
+    """How many sections the sign introduces. The value is the string.
+
+    ``book`` is a hyphenated shelf identity, such as ``101-336``. It is not
+    a range of sections.
+    """
 
     SECTION = 'section'
     RANGE = 'range'
     SERIES = 'series'
+    BOOK = 'book'
 
 
 class Join(enum.Enum):
@@ -236,9 +241,16 @@ class Note(enum.Enum):
     AMOUNT = 'amount'
     PERIOD = 'period'
     DATE = 'date'
+    OCCASION = 'occasion'
     SESSION = 'session'
     CUT = 'cut'
     CASE = 'case'
+    DEFINITION = 'definition'
+    COMPOUND = 'compound'
+    OVERRIDE = 'override'
+    EXCEPTION = 'exception'
+    LIMIT = 'limit'
+    PROVISO = 'proviso'
 
 
 class Annotation:
@@ -262,10 +274,21 @@ _CITED_AS = re.compile(
     r'(?i)\b(?:shall be known,? and may be cited,? as|may be cited as|shall be known as)\s+the\s+'
     r'(?P<title>(?:[A-Z][A-Za-z0-9-]*\s+){0,12}Act)\b'
 )
+_ACT_WORD = r"(?:[A-Z][A-Za-z0-9'-]*|of|with|and|for|the|to)"
+_NAMED_ACT = re.compile(
+    r"\b(?P<title>[A-Z][A-Za-z0-9'-]*(?:\s+%s){0,14}\s+Act(?:\s+of\s+\d{4})?)\b" % _ACT_WORD
+)
+# Printed titles already named in this library. Longer titles are tried first.
+_ACT_CATALOG = (
+    ('Americans with Disabilities Act of 1990', 'americans-with-disabilities'),
+    ('Americans with Disabilities Act', 'americans-with-disabilities'),
+    ('Fair Housing Act', 'fair-housing'),
+    ('Nonprofit Mutual Benefit Corporation Law', 'mutual-benefit'),
+    ('Administrative Procedure Act', 'administrative-procedure'),
+)
 _REFERENCES = (
     (Note.CROSS_REFERENCE, re.compile(r'(?i)\bcommencing with Section\s+\d[\d.]*')),
     (Note.CROSS_REFERENCE, word_pattern(internal=True, prefix=r'\bthis ', suffix=r'\b')),
-    (Note.NAMED_ACT, re.compile(r'\bAdministrative Procedure Act\b')),
     (Note.SHORT_FORM, re.compile(r'(?i)\bet seq\.?|\bsupra\b|\bid\.|\bas amended\b')),
     (Note.CROSS_REFERENCE, re.compile(r'(?i)\bthe following\b')),
 )
@@ -393,6 +416,7 @@ class Convention(enum.Enum):
     INTEGER = 'integer'
     SPELLED = 'spelled'
     MONTH_DAY_YEAR = 'month_day_year'
+    ABBREVIATED_MDY = 'abbreviated_mdy'
     ISO_8601 = 'iso_8601'
     NUMERIC_MDY = 'numeric_mdy'
     YEAR = 'year'
@@ -407,9 +431,21 @@ _MONTHS = (
 _DATE = re.compile(
     r'(?i)\b(?P<month>%s)\s+(?P<day>\d{1,2}),\s+(?P<year>\d{4})\b' % '|'.join(_MONTHS)
 )
+_ABBREV = {
+    'jan.': 1, 'feb.': 2, 'mar.': 3, 'apr.': 4, 'aug.': 8,
+    'sept.': 9, 'sep.': 9, 'oct.': 10, 'nov.': 11, 'dec.': 12,
+}
+_ABBREV_DATE = re.compile(
+    r'(?i)\b(?P<month>jan|feb|mar|apr|aug|sept|sep|oct|nov|dec)\.\s+'
+    r'(?P<day>\d{1,2}),\s+(?P<year>\d{4})\b'
+)
 _ISO_DATE = re.compile(r'\b(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})\b')
 _MDY_DATE = re.compile(r'\b(?P<month>\d{1,2})/(?P<day>\d{1,2})/(?P<year>\d{4})\b')
 _DESIGNATOR = {'year': Convention.YEAR, 'month': Convention.MONTH, 'day': Convention.DAY}
+_ROLE = re.compile(
+    r'(?i)\b(?P<role>inoperative|operative|effective|superseded|applicable|approved|repealed)\b'
+)
+_GAP = re.compile(r'(?i)^(?:\s+(?:on|as of|from|until|after|before|only|or|and))*\s*$')
 
 
 def _dollars(raw):
@@ -775,11 +811,12 @@ class Absolute:
 
     kind = Quantity.ABSOLUTE
 
-    def __init__(self, year, month, day, convention=None):
+    def __init__(self, year, month, day, convention=None, role=None):
         self.year = int(year)
         self.month = int(month)
         self.day = int(day)
         self._convention = convention or Convention.MONTH_DAY_YEAR
+        self.role = role
 
     def convention(self):
         """The printed date form. ``target`` stays ``YYYY-MM-DD``."""
@@ -789,6 +826,7 @@ class Absolute:
         return '%s %s, %s' % (_MONTHS[self.month - 1], self.day, self.year)
 
     def target(self):
+        """The calendar day, ``YYYY-MM-DD``. An occasion is a separate token."""
         return '%04d-%02d-%02d' % (self.year, self.month, self.day)
 
     def shape(self):
@@ -798,27 +836,32 @@ class Absolute:
     @classmethod
     def parse(cls, text):
         text = (text or '').strip()
+        role = None
         named = _DATE.fullmatch(text)
         if named is not None:
             month = _MONTHS.index(named.group('month').title()) + 1
-            return cls._calendar(named.group('year'), month, named.group('day'), Convention.MONTH_DAY_YEAR)
+            return cls._calendar(named.group('year'), month, named.group('day'), Convention.MONTH_DAY_YEAR, role)
+        short = _ABBREV_DATE.fullmatch(text)
+        if short is not None:
+            month = _ABBREV[short.group('month').lower() + '.']
+            return cls._calendar(short.group('year'), month, short.group('day'), Convention.ABBREVIATED_MDY, role)
         iso = _ISO_DATE.fullmatch(text)
         if iso is not None:
-            return cls._calendar(iso.group('year'), iso.group('month'), iso.group('day'), Convention.ISO_8601)
+            return cls._calendar(iso.group('year'), iso.group('month'), iso.group('day'), Convention.ISO_8601, role)
         numeric = _MDY_DATE.fullmatch(text)
         if numeric is not None:
             return cls._calendar(
-                numeric.group('year'), numeric.group('month'), numeric.group('day'), Convention.NUMERIC_MDY,
+                numeric.group('year'), numeric.group('month'), numeric.group('day'), Convention.NUMERIC_MDY, role,
             )
         return None
 
     @classmethod
-    def _calendar(cls, year, month, day, convention):
+    def _calendar(cls, year, month, day, convention, role=None):
         month = int(month)
         day = int(day)
         if month < 1 or month > 12 or day < 1 or day > 31:
             return None
-        return cls(int(year), month, day, convention)
+        return cls(int(year), month, day, convention, role)
 
 
 _UNIT_FWD = re.compile(
@@ -893,7 +936,11 @@ def find_measures(text):
         occupied.append((start, end))
         found.append((start, end, note, words.strip(), target(parsed)))
 
-    for pattern in (_DATE, _ISO_DATE, _MDY_DATE):
+    for match in _DATE.finditer(text):
+        take(match.start(), match.end(), Note.DATE, match.group(0), Absolute, lambda item: item.target())
+    for match in _ABBREV_DATE.finditer(text):
+        take(match.start(), match.end(), Note.DATE, match.group(0), Absolute, lambda item: item.target())
+    for pattern in (_ISO_DATE, _MDY_DATE):
         for match in pattern.finditer(text):
             take(match.start(), match.end(), Note.DATE, match.group(0), Absolute, lambda item: item.target())
     for match in _NUMBER.finditer(text):
@@ -911,6 +958,79 @@ def find_measures(text):
             take(span[0], span[1], Note.PERIOD, span[2], Duration, lambda item: item.target())
     found.sort(key=lambda item: (item[0], item[1]))
     return found
+
+
+_CONTROLS = (
+    (Note.OVERRIDE, re.compile(r'(?i)\bnotwithstanding\b'), (
+        (re.compile(r'(?i)\s+any other provisions?\b'), 'any other provision'),
+        (re.compile(r'(?i)\s+any other law\b'), 'any other law'),
+        (re.compile(r'(?i)\s+(?:the provisions of\s+)?sections?\b'), 'section'),
+        (re.compile(r'(?i)\s+(?:subdivision|paragraph|chapter)\b'), 'unit'),
+    )),
+    (Note.EXCEPTION, re.compile(r'(?i)\bexcept as provided\b'), (
+        (re.compile(r'(?i)\s+in sections?\b'), 'in section'),
+        (re.compile(r'(?i)\s+in subdivisions?\b'), 'in subdivision'),
+        (re.compile(r'(?i)\s+in paragraphs?\b'), 'in paragraph'),
+        (re.compile(r'(?i)\s+in chapters?\b'), 'in chapter'),
+        (re.compile(r'(?i)\s+by sections?\b'), 'by section'),
+        (re.compile(r'(?i)\s+therein\b'), 'therein'),
+    )),
+    (Note.EXCEPTION, re.compile(r'(?i)\bunless otherwise\b'), (
+        (re.compile(r'(?i)\s+provided\b'), 'provided'),
+        (re.compile(r'(?i)\s+(?:specifically\s+)?(?:ordered|agreed|prohibited|specified|authorized|required)\b'), 'qualified'),
+    )),
+    (Note.LIMIT, re.compile(r'(?i)\bsubject to\b'), (
+        (re.compile(r'(?i)\s+(?:the provisions of\s+)?(?:this\s+)?sections?\b'), 'section'),
+        (re.compile(r'(?i)\s+the approval\b'), 'approval'),
+        (re.compile(r'(?i)\s+the jurisdiction\b'), 'jurisdiction'),
+        (re.compile(r'(?i)\s+(?:this\s+)?(?:chapters?|articles?)\b'), 'unit'),
+        (re.compile(r'(?i)\s+all of the following\b'), 'the following'),
+    )),
+    (Note.PROVISO, re.compile(r'(?i)\bprovided,?\s+however,\s+that\b|\bprovided that\b'), ()),
+)
+
+
+def _pairing(tail, pairs):
+    for pattern, name in pairs:
+        if pattern.match(tail):
+            return name
+    return None
+
+
+def _control_notes(text, spans, guide):
+    """A phrase that decides which rule controls, and the object it pairs with."""
+    notes = []
+    source = text or ''
+    for kind, pattern, pairs in _CONTROLS:
+        for match in pattern.finditer(source):
+            if _overlaps(match.start(), match.end(), spans):
+                continue
+            spans.append((match.start(), match.end()))
+            target = _pairing(source[match.end():], pairs) or kind.value
+            notes.append(Annotation(kind, match.start(), match.end(), match.group(0), target, guide))
+    return notes
+
+
+def _occasion_notes(text, spans, guide):
+    """The cue beside a calendar day. The target is that day's ``YYYY-MM-DD``."""
+    notes = []
+    for start, end, note, _words, target in find_measures(text):
+        if note is not Note.DATE:
+            continue
+        window = text[max(0, start - 48):start]
+        role = None
+        for match in _ROLE.finditer(window):
+            if _GAP.fullmatch(window[match.end():]):
+                role = match
+        if role is None:
+            continue
+        at = start - len(window) + role.start()
+        stop = start - len(window) + role.end()
+        if _overlaps(at, stop, spans):
+            continue
+        spans.append((at, stop))
+        notes.append(Annotation(Note.OCCASION, at, stop, text[at:stop], target, guide))
+    return notes
 
 
 def _measure_notes(text, spans, guide):
@@ -947,6 +1067,181 @@ _TITLE = re.compile(
 )
 
 
+_DEFINED = re.compile(
+    r'(?i)(?P<series>(?:["“][^"”\n]{1,80}["”]\s*(?:,\s*)?(?:\s*(?:or|and)\s*)?)+)'
+    r'(?:(?:does\s+not|may|also)\s+)?(?:means|includes?|refers\s+to|shall)\b'
+)
+_ONE_QUOTE = re.compile(r'["“]([^"”\n]{1,80})["”]')
+
+
+def _definition_notes(text, guide):
+    """A quoted term that is defined. The target is that term.
+
+    Several quoted terms may share one verb, as in ``or`` between two names.
+    The verb is ``means``, ``includes``, ``does not include``, ``refers to``,
+    ``may include``, or ``shall``.
+    """
+    notes = []
+    source = text or ''
+    for match in _DEFINED.finditer(source):
+        series = match.group('series')
+        origin = match.start('series')
+        for quote in _ONE_QUOTE.finditer(series):
+            term = quote.group(1).strip().strip(',').strip()
+            if not term:
+                continue
+            start = origin + quote.start()
+            end = origin + quote.end()
+            notes.append(Annotation(
+                Note.DEFINITION, start, end, source[start:end], term.casefold(), guide,
+            ))
+    return notes
+
+
+_COMPOUND = re.compile(r'\b[A-Za-z]+(?:-[A-Za-z]+)+\b')
+
+
+_PUBLIC = re.compile(
+    r'(?i)\b(?:P\.?\s*L\.?|Pub\.?\s*L\.?(?:\s+No\.?)?|Public\s+Law)\s+'
+    r'(?P<congress>\d{2,3})\s*[-–—]\s*(?P<number>\d+)\b'
+)
+
+
+def find_public_laws(text):
+    """Each public-law cite. ``P.L. 101-336`` and ``Public Law 85-1`` are the same shape."""
+    from needles import PublicLaw
+    found = []
+    for match in _PUBLIC.finditer(text or ''):
+        law = PublicLaw(match.group('congress'), match.group('number'))
+        law.start = match.start()
+        law.end = match.end()
+        law.text = match.group(0)
+        found.append(law)
+    return found
+
+
+_USC = re.compile(
+    r'(?i)(?P<title>\d+[a-z]?)\s+U\.?\s*S\.?\s*C\.?\s+'
+    r'(?:App\.?\s+)?'
+    r'(?P<section>\d+(?:\.\d+)*(?:[a-z])?(?:\([0-9a-z]+\))*)'
+    r'(?:\s+note)?'
+    r'(?:\s+et\s+seq\.?)?'
+)
+_USC_LONG = re.compile(
+    r'(?i)\bsection\s+(?P<section>\d+(?:\.\d+)*)\s+of\s+title\s+'
+    r'(?P<title>\d+[a-z]?)\s*,\s*United\s+States\s+Code\b'
+)
+_STATUTE = re.compile(r'(?i)\b(?P<volume>\d+)\s+Stat\.\s+(?P<page>\d+)\b')
+
+
+def find_federal_codes(text):
+    """Each United States Code cite. ``42 U.S.C. 12101`` is the classified section."""
+    from needles import FederalCode
+    found = []
+    for pattern in (_USC, _USC_LONG):
+        for match in pattern.finditer(text or ''):
+            code = FederalCode(match.group('title'), match.group('section'))
+            code.start = match.start()
+            code.end = match.end()
+            code.text = match.group(0)
+            found.append(code)
+    return found
+
+
+def find_named_acts(text):
+    """Each catalogued act named in ``text``. A longer title wins over its short form."""
+    found = []
+    spans = []
+    titles = sorted(_ACT_CATALOG, key=lambda row: len(row[0]), reverse=True)
+    for title, name in titles:
+        for match in re.finditer(re.escape(title), text or ''):
+            if _overlaps(match.start(), match.end(), spans):
+                continue
+            spans.append((match.start(), match.end()))
+            found.append((match.start(), match.end(), match.group(0), name))
+    return found
+
+
+def find_articles(text):
+    """Each constitution article. Quotes mark a bare numeral; ``Article`` does too.
+
+    ``'XIX'`` and ``'XIII A'`` are articles. ``Article XIX C`` is the same
+    numeral plus its letter. A lone ``I`` without quotes is not an article.
+    """
+    from government import ArticleMark
+    from outline import Roman
+    found = []
+    spans = []
+    patterns = (
+        re.compile(r"'(?P<roman>[IVXLCDM]+)(?:\s+(?P<suffix>[A-Z]))?'"),
+        re.compile(r'(?i)\bArticle\s+(?P<roman>[IVXLCDM]+)(?:\s+(?P<suffix>[A-Z]))?\b'),
+    )
+    for pattern in patterns:
+        for match in pattern.finditer(text or ''):
+            if _overlaps(match.start(), match.end(), spans):
+                continue
+            roman = Roman.read(match.group('roman'))
+            if roman is None:
+                continue
+            label = roman.text.upper()
+            suffix = match.group('suffix')
+            if suffix:
+                label = '%s %s' % (label, suffix.upper())
+            mark = ArticleMark(label)
+            mark.start = match.start()
+            mark.end = match.end()
+            mark.text = match.group(0)
+            spans.append((mark.start, mark.end))
+            found.append(mark)
+    found.sort(key=lambda mark: mark.start)
+    return found
+
+
+def find_statutes(text):
+    """Each Statutes at Large cite. ``104 Stat. 327`` is volume 104, page 327."""
+    from needles import StatutesAtLarge
+    found = []
+    for match in _STATUTE.finditer(text or ''):
+        law = StatutesAtLarge(match.group('volume'), match.group('page'))
+        law.start = match.start()
+        law.end = match.end()
+        law.text = match.group(0)
+        found.append(law)
+    return found
+
+
+def _federal_notes(text, guide, spans):
+    notes = []
+    for item in find_public_laws(text) + find_federal_codes(text) + find_statutes(text):
+        if _overlaps(item.start, item.end, spans):
+            continue
+        notes.append(Annotation(
+            Note.CITATION, item.start, item.end, item.text, item.target(), guide, Cite.BOOK,
+        ))
+        spans.append((item.start, item.end))
+    return notes
+
+
+def _public_notes(text, guide, spans):
+    notes = []
+    for law in find_public_laws(text):
+        if _overlaps(law.start, law.end, spans):
+            continue
+        notes.append(Annotation(Note.CITATION, law.start, law.end, law.text, law.target(), guide))
+    return notes
+
+
+def _compound_notes(text, guide, spans):
+    """A hyphenated word, such as out-of-pocket. The target is that word."""
+    notes = []
+    for match in _COMPOUND.finditer(text or ''):
+        if _overlaps(match.start(), match.end(), spans):
+            continue
+        word = match.group(0)
+        notes.append(Annotation(Note.COMPOUND, match.start(), match.end(), word, word.casefold(), guide))
+    return notes
+
+
 def _case_notes(text, guide):
     """Uppercase words in a mixed sentence, and title-case names."""
     from analysis import capitals
@@ -955,21 +1250,78 @@ def _case_notes(text, guide):
         if phrase.reading != 'name':
             continue
         notes.append(Annotation(Note.CASE, phrase.start, phrase.end, phrase.text, 'uppercase', guide))
+    dates = [
+        (start, end) for start, end, note, _words, _target in find_measures(text or '')
+        if note is Note.DATE
+    ]
     for match in _TITLE.finditer(text or ''):
+        if _overlaps(match.start(), match.end(), dates):
+            continue
         notes.append(Annotation(Note.CASE, match.start(), match.end(), match.group(0), 'title', guide))
     return notes
 
 
-_HEADING_CUT = re.compile(r'(?i)^(?P<cut>division|title|part|chapter|article)\b')
+_HEADING_CUT = re.compile(
+    r'(?i)^(?P<cut>division|title|part|chapter|article|section|sec\.?)'
+)
+_HEADING_SECTION = re.compile(
+    r'(?i)^(?:section|sec)\.?\s+(?P<num>\d+(?:\.\d+)*[a-z]?)\.?'
+)
+_PROP = re.compile(
+    r'(?i)\b(?:Proposition|Prop)\.?\s+(?P<num>\d+(?:-[a-z]|[a-z])?)'
+)
+_RESOLUTION = re.compile(
+    r'(?i)\b(?:Resolution\s+Chapter|Res\.?\s*Ch)\.?\s+'
+    r'(?P<num>\d+(?:-\d+)?)(?:[,.]\s*(?P<year>\d{4}))?'
+)
+_AMENDMENT = re.compile(r'(?i)\bA\.C\.A\.?\s+(?P<num>\d+)')
+_CREDIT_SEC = re.compile(
+    r'(?i)\bSec\.?\s+(?P<num>\d+(?:\.\d+)*[a-z]?)\.?'
+    r'(?=\s+(?:repealed and added|renumbered|repealed|added|amended|adopted)\b)'
+)
+
+
+def _ballot_notes(text, guide, spans):
+    """A constitution credit is a section, then ``by``, then the measure.
+
+    ``Sec. 20 added Nov. 5, 1974, by Prop. 7. Res.Ch. 90, 1974.`` The
+    section is one citation. The proposition and the resolution chapter
+    are the citations after ``by``.
+    """
+    notes = []
+
+    def take(start, end, words, target, cite=None):
+        if _overlaps(start, end, spans):
+            return
+        spans.append((start, end))
+        notes.append(Annotation(Note.CITATION, start, end, words, target, guide, cite))
+
+    for match in _CREDIT_SEC.finditer(text or ''):
+        take(match.start(), match.end(), match.group(0), match.group('num'), Cite.SECTION)
+    for match in _PROP.finditer(text or ''):
+        take(match.start(), match.end(), match.group(0), 'prop %s' % match.group('num'))
+    for match in _RESOLUTION.finditer(text or ''):
+        year = match.group('year')
+        target = 'res %s' % match.group('num')
+        if year:
+            target = '%s %s' % (target, year)
+        take(match.start(), match.end(), match.group(0), target)
+    for match in _AMENDMENT.finditer(text or ''):
+        take(match.start(), match.end(), match.group(0), 'aca %s' % match.group('num'))
+    return notes
 _HEADING_SPAN = re.compile(r'\[(?P<start>\d+(?:\.\d+)*)\.?\s*-\s*(?P<end>\d+(?:\.\d+)*)\.?\]')
 
 
 def heading_notes(text, context=None):
     """The same notes as the section text, plus the cut the heading names.
 
-    ``PART`` under a division heading is that cut. A bracketed span is the
-    section range the heading covers, ``[38. - 86.]``. A history credit such as
-    ``Added by Stats. 2008, Ch. 549, Sec. 3`` stays a session.
+    A heading and a history credit use different words. A heading names a cut
+    (``division``, ``title``, ``part``, ``chapter``, ``article``) and may
+    bracket the section range it covers. A credit names an action
+    (``added``, ``amended``, ``repealed``), then ``Stats.`` year, ``Ch.``
+    chapter, and an optional ``Sec.`` of the enrolled bill. ``Effective`` or
+    ``Operative`` before a calendar day is when that chapter takes effect.
+    The ``Stats.`` year is the chaptering year, not that day.
     """
     source = text or ''
     from apa import active as _citation_system
@@ -980,9 +1332,16 @@ def heading_notes(text, context=None):
     if match is not None:
         notes.append(Annotation(
             Note.CUT, match.start('cut'), match.end('cut'),
-            match.group('cut'), match.group('cut').casefold(), guide,
+            match.group('cut'), 'section' if match.group('cut').lower().startswith('sec') else match.group('cut').casefold(), guide,
         ))
         spans.append((match.start('cut'), match.end('cut')))
+    numbered = _HEADING_SECTION.match(source)
+    if numbered is not None:
+        notes.append(Annotation(
+            Note.CITATION, numbered.start('num'), numbered.end('num'),
+            numbered.group('num'), numbered.group('num'), guide, Cite.SECTION,
+        ))
+        spans.append((numbered.start('num'), numbered.end('num')))
     span = _HEADING_SPAN.search(source)
     if span is not None:
         target = '%s-%s' % (span.group('start'), span.group('end'))
@@ -1015,7 +1374,11 @@ def annotate(text, context=None):
     guide = _citation_system()
     notes = []
     spans = []
+    notes.extend(_federal_notes(text, guide, spans))
+    notes.extend(_ballot_notes(text, guide, spans))
     for point in find_citations(text):
+        if _overlaps(point.start, point.end, spans):
+            continue
         spans.append((point.start, point.end))
         code = point.code
         if code:
@@ -1045,6 +1408,25 @@ def annotate(text, context=None):
         if _overlaps(start, end, spans):
             continue
         spans.append((start, end))
+        notes.append(Annotation(Note.NAMED_ACT, start, end, title, title, guide))
+    for start, end, title, name in find_named_acts(text):
+        if _overlaps(start, end, spans):
+            continue
+        spans.append((start, end))
+        notes.append(Annotation(Note.NAMED_ACT, start, end, title, name, guide))
+    for mark in find_articles(text):
+        if _overlaps(mark.start, mark.end, spans):
+            continue
+        spans.append((mark.start, mark.end))
+        notes.append(Annotation(
+            Note.CITATION, mark.start, mark.end, mark.text, 'CONS %s' % mark.value, guide,
+        ))
+    for match in _NAMED_ACT.finditer(text):
+        start, end = match.start('title'), match.end('title')
+        if _overlaps(start, end, spans):
+            continue
+        spans.append((start, end))
+        title = match.group('title')
         notes.append(Annotation(Note.NAMED_ACT, start, end, title, title, guide))
     for note, pattern in _REFERENCES:
         for match in pattern.finditer(text):
@@ -1099,6 +1481,10 @@ def annotate(text, context=None):
         notes.append(Annotation(Note.CITATION, start, end, link.text, target, guide))
     notes.extend(_cut_notes(text, guide))
     notes.extend(_case_notes(text, guide))
+    notes.extend(_definition_notes(text, guide))
+    notes.extend(_compound_notes(text, guide, spans))
+    notes.extend(_control_notes(text, spans, guide))
     notes.extend(_measure_notes(text, spans, guide))
+    notes.extend(_occasion_notes(text, spans, guide))
     notes.sort(key=lambda note: (note.start, note.end))
     return notes

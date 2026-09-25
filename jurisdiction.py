@@ -133,7 +133,8 @@ class State(Region):
     @classmethod
     def counties(cls):
         """This state's counties, keyed by module name."""
-        return _open_layer(cls.__module__ + '.counties')
+        name = cls.__module__.rsplit('.', 1)[-1]
+        return _open_layer('us.counties.%s' % name)
 
 
 def load_localities(package_name, package_path, kind=None):

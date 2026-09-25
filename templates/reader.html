@@ -1,0 +1,29 @@
+{% import "macros.html" as ui %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }}</title>
+{% include "style.html" %}
+<link rel="stylesheet" href="/static/reader.css">
+</head>
+<body class="reader">
+<div id="root"></div>
+<noscript>
+<header class="mast">
+<p>Law Library</p>
+<nav class="site">
+{{ ui.link('/view', 'Library') }}
+{{ ui.link('/view/random', 'Random') }}
+{{ ui.link('/mirror', 'Reference') }}
+{{ ui.link('/view/diagram/codes', 'Codes') }}
+{{ ui.link('/view/diagram/vesting?code=GOV', 'Vesting') }}
+{{ ui.link('/view/diagram/enactments?code=WAT', 'Enactments') }}
+</nav>
+</header>
+<main id="main">{{ main }}</main>
+</noscript>
+<script type="module" src="/static/reader.js"></script>
+</body>
+</html>

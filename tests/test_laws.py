@@ -1,7 +1,7 @@
 import zipfile
 from pathlib import Path
 
-from us.ca import California, iter_laws
+from us.states.ca import California, iter_laws
 from indexer import Indexer
 
 
@@ -98,10 +98,10 @@ def test_codes_and_bills_stamp_subdivision(tmp_path):
 
 def test_sacramento_is_home():
     from us import HOME, UnitedStates, load_states
-    from us.ca import California
-    from us.idaho import Idaho
-    from us.ca.counties.sacramento import SacramentoCounty
-    from us.ca.counties.sacramento.cities.sacramento import Sacramento
+    from us.states.ca import California
+    from us.states.idaho import Idaho
+    from us.counties.ca.sacramento import SacramentoCounty
+    from us.counties.ca.sacramento.cities.sacramento import Sacramento
     assert HOME == 'US-CA'
     assert SacramentoCounty.region() == HOME
     assert Sacramento.parent is SacramentoCounty
@@ -123,7 +123,7 @@ def test_sacramento_is_home():
 
 
 def test_california_is_iso_subdivision():
-    from us.ca import California, CaliforniaBills, CaliforniaCodes
+    from us.states.ca import California, CaliforniaBills, CaliforniaCodes
     from publication import Instrument, State, country, subdivision
     assert issubclass(California, State)
     assert California.legislates is True
@@ -205,7 +205,7 @@ def test_parallel_matches_serial(tmp_path):
     pub = tmp_path / 'pubinfo_2025.zip'
     _pubinfo(pub)
     serial = list(iter_laws(pub))
-    from us.ca import iter_laws_parallel
+    from us.states.ca import iter_laws_parallel
     parallel = list(iter_laws_parallel(pub, workers=2, chunk_size=1))
     fields = ('SECTION_NUM', 'LEGAL_TEXT', 'SESSION', 'ARTICLE_HEADING', 'CODE_HEADING')
     assert [{key: law[key] for key in fields} for law in serial] == [{key: law[key] for key in fields} for law in parallel]
