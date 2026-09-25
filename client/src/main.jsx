@@ -14,13 +14,14 @@ import { Closure, GraphView } from './closure.jsx'
 import { Annotations, Cite, OutlineView } from './find.jsx'
 import { Search } from './search.jsx'
 import { Graph } from './graph.jsx'
+import { Explore } from './cloud.jsx'
 import { Library } from './library.jsx'
 import { useShown } from './layers.jsx'
 import { Link, TermCard } from './marks.jsx'
 import { Reading } from './reading.js'
 import { StatuteReader } from './statute.jsx'
 import {
-  annotationsHref, citeHref, closureHref, diagramHref, libraryHref,
+  annotationsHref, citeHref, cloudHref, closureHref, diagramHref, libraryHref,
   readPlace, reasonWords, searchHref, sectionHref,
 } from './place.js'
 
@@ -46,17 +47,21 @@ function usePlace() {
   return [place, go]
 }
 
-/* A stored graph: the books that cite each other, where an office was vested,
- * and which chapter enacted a section. */
-function DiagramView({ diagram, code, codes, go }) {
-  const { body, loading } = useJson(route(`/diagram/${encodeURIComponent(diagram)}`, { code }))
-  const needs = diagram !== 'codes'
+/* A stored graph: books, vesting, enactments, entity kinds, annotation kinds, and terms. */
+const DIAGRAMS = ['codes', 'vesting', 'enactments', 'entities', 'annotations', 'terms']
+
+const HOPS = [['0', 'this node'], ['1', 'one hop'], ['2', 'two hops'], ['all', 'until a repeat']]
+
+function DiagramView({ diagram, code, start, hops, codes, go }) {
+  const { body, loading } = useJson(route(`/diagram/${encodeURIComponent(diagram)}`, { code, start, hops }))
+  const needs = diagram !== 'codes' && diagram !== 'entities'
+  const place = (extra) => diagramHref(diagram, diagram === 'entities' ? '' : (code || ''), extra)
   return (
     <>
       <h1>{diagram}</h1>
       <p className="beside">
-        {['codes', 'vesting', 'enactments'].map((kind) => (
-          <Link key={kind} href={diagramHref(kind, kind === 'codes' ? '' : (code || ''))} go={go}>
+        {DIAGRAMS.map((kind) => (
+          <Link key={kind} href={diagramHref(kind, kind === 'codes' || kind === 'entities' ? '' : (code || ''))} go={go}>
             {kind === diagram ? `✓ ${kind}` : kind}
           </Link>
         ))}
@@ -72,13 +77,22 @@ function DiagramView({ diagram, code, codes, go }) {
             </select>
           </label>
         ) : null}
+        {HOPS.map(([value, words]) => (
+          <Link key={value} href={place({ start, hops: value })} go={go}>
+            {(hops || '') === value ? `✓ ${words}` : words}
+          </Link>
+        ))}
+        {start ? <Link href={place({ hops })} go={go}>from the top</Link> : null}
       </p>
       {loading && !body ? <p className="thin">Reading the stored edges.</p> : null}
       {body && !body.found ? <p className="miss">{reasonWords(body)}</p> : null}
       {body && body.found ? (
         <Graph
           edges={body.edges}
+          nodes={body.nodes}
           go={go}
+          here={start}
+          onNode={(event, name) => go(event, place({ start: name, hops: hops || '1' }))}
           empty="No edge of that kind is stored. The needle pass records them when a section is indexed."
         />
       ) : null}
@@ -212,6 +226,7 @@ function title(here) {
   if (here.kind === 'graph') return `${here.code} ${here.section} — references`
   if (here.kind === 'closure') return 'A closure'
   if (here.kind === 'annotations') return 'Annotations'
+  if (here.kind === 'cloud') return 'Term cloud'
   return 'Law library'
 }
 
@@ -262,6 +277,7 @@ function Shell() {
           <Link href={closureHref({})} go={go}>Closure</Link>
           <Link href={diagramHref('codes', '')} go={go}>Graphs</Link>
           <Link href={annotationsHref({})} go={go}>Annotations</Link>
+          <Link href={cloudHref({})} go={go}>Cloud</Link>
           <a href="/view/random">Random</a>
           <a href="/mirror">Reference</a>
           <button type="button" className="plain" onClick={() => setHelp(true)}>keys</button>
@@ -283,12 +299,20 @@ function Shell() {
         {here.kind === 'cite' ? <Cite here={here} go={go} /> : null}
         {here.kind === 'outline' ? <OutlineView here={here} go={go} /> : null}
         {here.kind === 'diagram' ? (
-          <DiagramView diagram={here.diagram} code={here.code} codes={codes} go={go} />
+          <DiagramView
+            diagram={here.diagram}
+            code={here.code}
+            start={here.start}
+            hops={here.hops}
+            codes={codes}
+            go={go}
+          />
         ) : null}
         {here.kind === 'graph' ? <GraphView here={here} go={go} /> : null}
         {here.kind === 'closure' ? (
           <Closure here={here} codes={codes} sessions={sessions} go={go} />
         ) : null}
+        {here.kind === 'cloud' ? <Explore here={here} go={go} /> : null}
         {here.kind === 'annotations' ? (
           <Annotations here={here} notes={surfaces.note} codes={codes} go={go} />
         ) : null}

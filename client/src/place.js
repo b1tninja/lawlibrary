@@ -9,7 +9,7 @@ export const HOME = '/reader'
 
 const VIEWS = new Set([
   'tree', 'section', 'search', 'cite', 'outline', 'diagram', 'closure',
-  'annotations', 'graph',
+  'annotations', 'graph', 'cloud',
 ])
 
 export const CLOSURE_UNITS = [
@@ -36,8 +36,20 @@ export function libraryHref(url) {
   return path ? `${HOME}/tree/${path}` : HOME
 }
 
+export function sectionAddress(number) {
+  const text = String(number || '').trim()
+  const labeled = text.match(/^(?:\[)?\s*(?:section|sec)\.?\s+(\d+(?:\.\d+)*[a-z]?)\.?\s*\]?$/i)
+  return labeled ? labeled[1] : text
+}
+
 export function sectionHref(code, number, params) {
-  return `${HOME}/section/${encodeURIComponent(code)}/${encodeURIComponent(number)}${clean(params)}`
+  const address = sectionAddress(number)
+  const slug = String(code || '').trim().toLowerCase()
+  const marked = address.match(/^(\d+(?:\.\d+)*[a-z]?)((?:\([^)]+\))*)$/i)
+  const cuts = marked ? (marked[2].match(/[^()]+/g) || []) : []
+  const stem = marked ? marked[1] : address
+  const path = [slug, stem, ...cuts].map(encodeURIComponent).join('/')
+  return `${HOME}/section/${path}${clean(params)}`
 }
 
 export function searchHref(params) {
@@ -52,8 +64,8 @@ export function outlineHref(params) {
   return `${HOME}/outline${clean(params)}`
 }
 
-export function diagramHref(kind, code) {
-  return `${HOME}/diagram/${encodeURIComponent(kind)}${clean({ code })}`
+export function diagramHref(kind, code, extra) {
+  return `${HOME}/diagram/${encodeURIComponent(kind)}${clean({ code, ...(extra || {}) })}`
 }
 
 export function annotationsHref(params) {
@@ -62,6 +74,10 @@ export function annotationsHref(params) {
 
 export function graphHref(params) {
   return `${HOME}/graph${clean(params)}`
+}
+
+export function cloudHref(params) {
+  return `${HOME}/cloud${clean(params)}`
 }
 
 export function closureHref(params) {
@@ -102,7 +118,7 @@ export function readPlace(place) {
       code: decodeURIComponent(parts[1]).toUpperCase(),
       number: decodeURIComponent(parts[2]),
       session: one('session'),
-      cut: one('cut'),
+      cut: parts.length > 3 ? parts.slice(3).map(decodeURIComponent).join('/') : one('cut'),
     }
   }
   if (kind === 'search') {
@@ -127,7 +143,13 @@ export function readPlace(place) {
     }
   }
   if (kind === 'diagram' && parts[1]) {
-    return { kind: 'diagram', diagram: decodeURIComponent(parts[1]), code: one('code') }
+    return {
+      kind: 'diagram',
+      diagram: decodeURIComponent(parts[1]),
+      code: one('code'),
+      start: one('start'),
+      hops: one('hops'),
+    }
   }
   if (kind === 'annotations') {
     return {
@@ -148,6 +170,9 @@ export function readPlace(place) {
       same: one('same'),
       session: one('session'),
     }
+  }
+  if (kind === 'cloud') {
+    return { kind: 'cloud', url: one('url') }
   }
   if (kind === 'closure') {
     const sent = { kind: 'closure', use: one('use'), code: one('code') }

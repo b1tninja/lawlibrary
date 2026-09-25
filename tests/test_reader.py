@@ -6,6 +6,7 @@ of the words.
 """
 
 import json
+from urllib.parse import quote
 
 from application import application
 
@@ -55,7 +56,7 @@ def test_a_section_carries_the_trail_the_cuts_and_the_formats():
     trail = [crumb['unit'] for crumb in body['crumbs']]
     assert trail[0] == 'library'
     assert trail[-1] == 'section'
-    assert body['crumbs'][-1]['href'] == '/view/section/CIV/1714.1'
+    assert body['crumbs'][-1]['href'] == '/view/section/civ/1714.1'
     assert any(step['href'].startswith('/view/tree/') for step in body['crumbs'][1:-1])
     current = [row for row in body['contents'] if row.get('current')]
     assert len(current) == 1
@@ -115,7 +116,23 @@ def test_a_stored_graph_is_an_edge_list_the_client_can_open():
     assert edge['target_href'].startswith('/view/tree/us-ca/')
     status, body = _json('/diagram/enactments', 'code=WAT')
     assert body['found'] is True
-    assert all(row['label'] == 'enacted' for row in body['edges'])
+    assert body['edges']
+    assert all(row['source'] == 'WAT' and row['label'] == 'in' for row in body['edges'])
+    opened = body['edges'][0]['target']
+    status, body = _json('/diagram/enactments', 'code=WAT&start=%s&hops=1' % quote(opened))
+    assert body['edges']
+    assert all(row['source'] == opened for row in body['edges'])
+    status, body = _json('/diagram/entities')
+    assert body['found'] is True
+    assert body['edges']
+    assert all(row['label'] in ('in', 'member') for row in body['edges'])
+    status, body = _json('/diagram/entities', 'start=state&hops=1')
+    assert body['hops'] == '1'
+    assert any(row['target'] == 'county' for row in body['edges'])
+    assert any(row['label'] == 'member' for row in body['edges'])
+    status, body = _json('/diagram/terms', 'code=GOV')
+    assert body['found'] is True
+    assert body['chart'].startswith('flowchart')
 
 
 def test_a_walk_names_every_hop_and_every_edge():
@@ -209,7 +226,8 @@ def test_a_citation_span_carries_the_book_the_sentence_named():
     assert cited
     for row in cited:
         assert row['target'].split()[0].isalpha()
-        assert row['href'] == '/view/section/%s' % row['target'].replace(' ', '/')
+        from query import cite_route
+        assert row['href'] == cite_route(row['target'])
     assert any(row['target'] == 'RTC 7280' for row in cited)
 
 
@@ -254,7 +272,8 @@ def test_the_sections_that_name_this_one_are_the_stored_edges():
     }
     for row in body['rows']:
         assert row['citation'] != 'RTC 7280'
-        assert row['href'] == '/view/section/%s' % row['citation'].replace(' ', '/')
+        from query import cite_route
+        assert row['href'] == cite_route(row['citation'])
         pair = (row['citation'], 'RTC 7280') if row['names'] else ('RTC 7280', row['citation'])
         assert pair in stored, 'a row that is only a prefix of the citation'
     status, body = _json('/citing')
@@ -269,3 +288,46 @@ def test_the_layers_are_a_closed_set_too():
     ]
     assert 'mandatory' in surfaces['canon']
     assert 'short_title' in surfaces['clause']
+
+
+def test_a_heading_answers_with_the_words_its_sections_carry():
+    """One pass over the rows the index wrote, not over the words again."""
+    status, body = _json('/cloud', 'url=us-ca/civ/division/3/title/5/part/4/chapter/2')
+    assert status == '200 OK'
+    assert body['code'] == 'CIV'
+    assert body['leaves']
+    assert body['tree']['unit'] == 'code'
+    families = {'term', 'note', 'act', 'body'}
+    for leaf in body['leaves']:
+        assert set(leaf['counts']) == families
+        assert leaf['id'] == '%s %s' % (leaf['code'], leaf['num'])
+    opened = next(leaf for leaf in body['leaves'] if leaf['id'] == 'CIV 1940')
+    assert opened['counts']['term'].get('shall')
+    assert opened['counts']['note'].get('citation')
+    assert 'Revenue and Taxation Code' in opened['counts']['act']
+
+    def walk(node, depth=0):
+        yield node, depth
+        for child in node.get('children') or []:
+            yield from walk(child, depth + 1)
+
+    units = [node['unit'] for node, _depth in walk(body['tree'])]
+    assert units[0] == 'code'
+    assert 'section' in units
+    captions = {node['unit']: node['label'] for node, _depth in walk(body['tree'])}
+    assert captions['title'].startswith('TITLE 5.')
+
+
+def test_a_word_points_at_the_codes_that_use_it():
+    """Every section of one heading shares a code, so the reach is the index's."""
+    status, body = _json('/cloud', 'url=us-ca/civ/division/3/title/5/part/4/chapter/2')
+    books = body['books']
+    assert books['term|shall']
+    assert len(books['term|shall']) > 1
+    assert max(books['term|shall'], key=books['term|shall'].get) != 'CIV'
+    assert books['note|citation']
+    status, body = _json('/cloud', 'url=us-ca/nope/division/1')
+    assert status == '404 Not Found'
+    assert body['reason'] == 'unknown_code'
+    status, body = _json('/cloud')
+    assert status == '404 Not Found'

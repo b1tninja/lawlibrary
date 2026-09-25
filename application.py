@@ -119,6 +119,8 @@ def application(environ, start_response):
         return _marks(start_response, path[1], path[2], query)
     if path == ['citing']:
         return _citing(start_response, query)
+    if path == ['cloud']:
+        return _cloud(start_response, query)
     if path == ['surfaces']:
         return _surfaces(start_response)
     if path == ['codes']:
@@ -162,6 +164,23 @@ def _tree(start_response, url):
         node['contents'] = [_child(node, child) for child in node.get('children') or []]
     status = '200 OK' if node.get('found') else '404 Not Found'
     return _send(start_response, status, node)
+
+
+def _cloud(start_response, query):
+    """The words of one heading: the tree under it and each section's counts.
+
+    ``url`` is the same path ``/tree`` reads. ``limit`` caps how many sections
+    are counted; a wider scope says how many it left out.
+    """
+    import cloud as words
+    asked = _one(query, 'url') or ''
+    try:
+        limit = max(1, min(int(_one(query, 'limit') or words.LEAVES), 1000))
+    except ValueError:
+        limit = words.LEAVES
+    body = words.scope(asked, limit=limit)
+    status = '200 OK' if body.get('found') else '404 Not Found'
+    return _send(start_response, status, body)
 
 
 def _surfaces(start_response):
@@ -641,7 +660,7 @@ def _view(start_response, path, query, environ=None, hint=None):
 
 _READER_VIEWS = (
     'tree', 'section', 'search', 'cite', 'outline', 'diagram', 'closure',
-    'annotations', 'graph',
+    'annotations', 'graph', 'cloud',
 )
 
 
