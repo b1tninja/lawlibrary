@@ -8,12 +8,14 @@ from us.states.michigan import Michigan, MichiganCompiledLaws
 def _write_fixture(tmp_path: Path):
     xml = """<?xml version="1.0" encoding="UTF-8"?>
 <Chapter>
+  <Name>1</Name>
+  <Title>Compiled Laws</Title>
   <Section>
     <SectionNumber>1.1</SectionNumber>
     <BodyText>This act shall be known and may be cited as the Michigan Compiled Laws.</BodyText>
   </Section>
   <Section>
-    <MCLNumber>1.2</MCLNumber>
+    <SectionNumber>1.2</SectionNumber>
     <BodyText>Words and phrases used in this act shall be construed as provided in this section.</BodyText>
   </Section>
 </Chapter>
@@ -42,7 +44,11 @@ def test_sections_from_local_xml(tmp_path):
     rows = list(MichiganCompiledLaws().sections(path))
     assert len(rows) == 2
     assert all(r['SUBDIVISION'] == Michigan.code for r in rows)
+    assert all(r['LAW_CODE'] == 'MCL' for r in rows)
+    assert rows[0]['PK'] == 'MCL:1.1'
     assert rows[0]['SECTION_NUM'] == '1.1'
+    assert rows[0]['CHAPTER'] == '1'
+    assert rows[0]['CHAPTER_HEADING'] == 'Compiled Laws'
     assert 'Michigan Compiled Laws' in rows[0]['LEGAL_TEXT']
     assert rows[1]['SECTION_NUM'] == '1.2'
     assert 'construed' in rows[1]['LEGAL_TEXT']

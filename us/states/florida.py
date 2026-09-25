@@ -1,37 +1,32 @@
 """Florida Statutes — Division of Law Revision download zip.
 
-source points at FLLawDL2026.zip (a Windows statutes browser). This edition
-parses saved chapter HTML from the statutes site; it does not unpack the
-browser zip.
+source points at FLLawDL2026.zip (a Windows Folio/statutes browser installer:
+setup.exe, .dll, Folio templates, applets). That zip is not statute HTML/XML
+for indexing. This edition parses saved chapter or section HTML from the
+statutes site.
 """
 
-import os
-import re
-
-import html2text
-
 from publication import Publication, State
+from readers import html_sections
 
 SOURCE = 'https://www.leg.state.fl.us/Statutes/FLLawDL2026.zip'
 
 # Section numbers like "1.01" ahead of a catchline word.
-_SECTION_RE = re.compile(r'(?<![\d.])(\d+\.\d+)\s+(?=[A-Za-z])')
+_SECTION_PATTERN = r'(?<![\d.])(\d+\.\d+)\s+(?=[A-Za-z])'
 
 
-def _html_to_text(html):
-    return html2text.HTML2Text(bodywidth=0).handle(html)
-
-
-def _row(section_num, legal_text):
-    return {
-        'SECTION_NUM': section_num,
-        'LEGAL_TEXT': legal_text,
-        'SUBDIVISION': Florida.code,
-    }
+def _stamp(row):
+    row = dict(row)
+    row['SUBDIVISION'] = Florida.code
+    row['LAW_CODE'] = 'FS'
+    row['PK'] = 'FS:%s' % row['SECTION_NUM']
+    return row
 
 
 class FloridaChapter(Publication):
-    """One saved chapter HTML page from the Florida Statutes site."""
+    code_heading = 'Florida Statutes'
+    session = '2026'
+    """One saved chapter or section HTML page from the Florida Statutes site."""
 
     @classmethod
     def accepts(cls, names):
@@ -41,19 +36,8 @@ class FloridaChapter(Publication):
         return True
 
     def sections(self, path):
-        with open(path, encoding='utf-8', errors='replace') as fh:
-            html = fh.read()
-        text = _html_to_text(html)
-        matches = list(_SECTION_RE.finditer(text))
-        if not matches:
-            stem = os.path.splitext(os.path.basename(path))[0]
-            yield _row(stem, text)
-            return
-        for i, match in enumerate(matches):
-            start = match.start()
-            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-            body = text[start:end].strip()
-            yield _row(match.group(1), body)
+        for row in html_sections(path, _SECTION_PATTERN):
+            yield _stamp(row)
 
 
 class Florida(State):

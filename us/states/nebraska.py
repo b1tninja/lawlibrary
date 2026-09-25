@@ -5,40 +5,20 @@ live in sibling <annotation> elements under <law> and are skipped; only the
 amendatory section body is yielded.
 """
 
-import os
-import xml.etree.ElementTree as ET
-
 from publication import Publication, State
+from readers import xml_sections
 
 SOURCE = 'https://github.com/nelegislature/LegalDocs'
 
+# Case notes are <annotation>; revisor notes are <note> / <source>.
+_SKIP = ('annotation', 'note', 'source', 'bookinfo')
 
-def _text_excluding(el, skip_tags):
-    skip = {t.lower() for t in skip_tags}
-    parts = []
-    if el.text and el.text.strip():
-        parts.append(el.text.strip())
-    for child in list(el):
-        tag = child.tag.split('}')[-1].lower()
-        if tag in skip:
-            if child.tail and child.tail.strip():
-                parts.append(child.tail.strip())
-            continue
-        parts.append(_text_excluding(child, skip_tags))
-        if child.tail and child.tail.strip():
-            parts.append(child.tail.strip())
-    return ' '.join(p for p in parts if p).strip()
-
-
-def _row(section_num, legal_text):
-    return {
-        'SECTION_NUM': section_num,
-        'LEGAL_TEXT': legal_text,
-        'SUBDIVISION': Nebraska.code,
-    }
+# Short book token for the Revised Statutes (not the ISO subdivision).
+LAW_CODE = 'NRS'
 
 
 class NebraskaStatutes(Publication):
+    code_heading = 'Nebraska Revised Statutes'
     """One local LegalDocs statute XML file (one section)."""
 
     @classmethod
@@ -46,23 +26,26 @@ class NebraskaStatutes(Publication):
         return True
 
     def sections(self, path):
-        root = ET.parse(path).getroot()
-        num_el = root.find('.//statuteno')
-        if num_el is not None and (num_el.text or '').strip():
-            section_num = num_el.text.strip()
-        else:
-            section_num = os.path.splitext(os.path.basename(path))[0]
-        body = root.find('.//amendatorysection')
-        if body is None:
-            body = root.find('.//section')
-        if body is None:
-            body = root
-        # Case notes are <annotation>; revisor notes are <note> / <source>.
-        legal_text = _text_excluding(
-            body,
-            ('annotation', 'note', 'source', 'bookinfo'),
-        )
-        yield _row(section_num, legal_text)
+        for row in xml_sections(
+            path,
+            section_tag='amendatorysection',
+            number='statuteno',
+            skip_tags=_SKIP,
+            copies=('chaptername', 'catchline'),
+        ):
+            section_num = row['SECTION_NUM']
+            out = {
+                'PK': '%s:%s' % (LAW_CODE, section_num),
+                'LAW_CODE': LAW_CODE,
+                'SECTION_NUM': section_num,
+                'LEGAL_TEXT': row['LEGAL_TEXT'],
+                'SUBDIVISION': Nebraska.code,
+            }
+            if row.get('chaptername'):
+                out['CHAPTER_HEADING'] = row['chaptername']
+            if row.get('catchline'):
+                out['SECTION_TITLE'] = row['catchline']
+            yield out
 
 
 class Nebraska(State):

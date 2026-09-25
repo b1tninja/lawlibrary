@@ -9,6 +9,7 @@ def _write_fixture(tmp_path: Path):
     # Mirrors LSA slim chapter XML: Section elements; Text when present.
     xml = """<?xml version="1.0" encoding="UTF-8"?>
 <Document>
+  <Heading class="heading">1 Sample Chapter</Heading>
   <Section id="sec1.1">
     <identifier>1.1</identifier>
     <Text>The boundaries of the state are as defined in the preamble.</Text>
@@ -45,7 +46,11 @@ def test_sections_from_local_xml(tmp_path):
     rows = list(IowaCode().sections(path))
     assert len(rows) == 2
     assert all(r['SUBDIVISION'] == Iowa.code for r in rows)
+    assert all(r['LAW_CODE'] == 'IC' for r in rows)
+    assert rows[0]['PK'] == 'IC:1.1'
     assert rows[0]['SECTION_NUM'] == '1.1'
+    assert rows[0]['CHAPTER'] == '1'
+    assert rows[0]['CHAPTER_HEADING'] == 'Sample Chapter'
     assert 'boundaries' in rows[0]['LEGAL_TEXT']
     assert rows[1]['SECTION_NUM'] == '1.2'
     assert 'sovereignty' in rows[1]['LEGAL_TEXT']

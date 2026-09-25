@@ -45,6 +45,7 @@ def test_sections_from_local_html(tmp_path):
     rows = list(FloridaChapter().sections(path))
     assert len(rows) >= 2
     assert all(r['SUBDIVISION'] == Florida.code for r in rows)
+    assert all(r['LAW_CODE'] == 'FS' for r in rows)
     assert rows[0]['SECTION_NUM'] == '1.01'
     assert 'singular includes the plural' in rows[0]['LEGAL_TEXT']
     assert rows[1]['SECTION_NUM'] == '1.02'

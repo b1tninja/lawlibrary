@@ -64,7 +64,11 @@ def test_sections_from_synthetic_json(tmp_path):
     rows = list(NorthDakotaCode().sections(path))
     assert len(rows) == 2
     assert all(r['SUBDIVISION'] == NorthDakota.code for r in rows)
+    assert all(r['LAW_CODE'] == 'NDCC' for r in rows)
     assert rows[0]['SECTION_NUM'] == '12.1-01-01'
+    assert rows[0]['TITLE'] == '12.1'
+    assert rows[0]['TITLE_HEADING'] == 'Criminal Code'
+    assert rows[0]['CHAPTER_HEADING'] == 'General Provisions'
     assert 'Criminal Code' in rows[0]['LEGAL_TEXT']
     assert rows[1]['SECTION_NUM'] == '12.1-01-02'
     assert 'General purposes' in rows[1]['LEGAL_TEXT']

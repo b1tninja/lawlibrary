@@ -40,7 +40,13 @@ def test_sections_from_local_csv(tmp_path):
     rows = list(VirginiaCode().sections(path))
     assert len(rows) == 2
     assert all(r['SUBDIVISION'] == Virginia.code for r in rows)
+    assert all(r['LAW_CODE'] == 'VAC' for r in rows)
     assert rows[0]['SECTION_NUM'] == '1-1'
+    assert rows[0]['TITLE'] == '1'
+    assert rows[0]['TITLE_HEADING'] == 'General Provisions'
+    assert rows[0]['CHAPTER'] == '1'
+    assert rows[0]['CHAPTER_HEADING'] == 'CODE OF VIRGINIA'
+    assert rows[0]['SECTION_TITLE'] == 'Contents and designation of Code'
     assert 'Code of Virginia' in rows[0]['LEGAL_TEXT']
     assert rows[1]['SECTION_NUM'] == '1-2'
     assert 'present tense' in rows[1]['LEGAL_TEXT']

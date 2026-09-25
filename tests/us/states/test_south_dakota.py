@@ -1,42 +1,49 @@
-"""South Dakota distribution — local fixture only, no network."""
+"""South Dakota distribution — local JSON fixture only, no network."""
 
 import json
-import os
+from pathlib import Path
 
 from us.states.south_dakota import SouthDakota, SouthDakotaCode
 
-FIXTURE = os.path.join(os.path.dirname(__file__), 'south_dakota_fixture.json')
 
-
-def _write_fixture():
-    payload = {
-        'section': '22-1-1',
-        'text': 'Short title. This title shall be known as the South Dakota Criminal Code.',
-    }
-    with open(FIXTURE, 'w', encoding='utf-8') as fh:
-        json.dump(payload, fh)
-    return FIXTURE
+def _write_fixture(tmp_path: Path):
+    path = tmp_path / '17-1-1.json'
+    path.write_text(
+        json.dumps({
+            'Statute': '17-1-1',
+            'Title': 17,
+            'Chapter': 1,
+            'CatchLine': 'Kinds of notice.',
+            'Type': 'Section',
+            'Html': '<p>Notice is either actual or constructive.</p>',
+        }),
+        encoding='utf-8',
+    )
+    return path
 
 
 def test_source():
-    assert SouthDakota.source == 'https://sdlegislature.gov/Statutes'
+    assert SouthDakota.source == 'https://sdlegislature.gov/api/Statutes/'
 
 
 def test_list_editions_no_network():
-    assert SouthDakota().list_editions() == ['https://sdlegislature.gov/Statutes']
+    assert SouthDakota().list_editions() == [
+        'https://sdlegislature.gov/api/Statutes/'
+    ]
 
 
 def test_accepts():
     assert SouthDakotaCode.accepts(set())
 
 
-def test_sections_from_local_json():
-    path = _write_fixture()
-    try:
-        rows = list(SouthDakotaCode().sections(path))
-        assert len(rows) == 1
-        assert rows[0]['SECTION_NUM'] == '22-1-1'
-        assert rows[0]['SUBDIVISION'] == 'US-SD'
-        assert 'Criminal Code' in rows[0]['LEGAL_TEXT']
-    finally:
-        os.remove(path)
+def test_sections_from_local_json(tmp_path):
+    path = _write_fixture(tmp_path)
+    rows = list(SouthDakotaCode().sections(path))
+    assert len(rows) == 1
+    assert rows[0]['SECTION_NUM'] == '17-1-1'
+    assert rows[0]['TITLE'] == '17'
+    assert rows[0]['CHAPTER'] == '1'
+    assert rows[0]['SECTION_TITLE'] == 'Kinds of notice.'
+    assert rows[0]['SUBDIVISION'] == SouthDakota.code
+    assert rows[0]['LAW_CODE'] == 'SDCL'
+    assert 'actual or constructive' in rows[0]['LEGAL_TEXT']

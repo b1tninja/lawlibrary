@@ -36,6 +36,8 @@ def test_sections_from_local_xml(tmp_path):
     rows = list(UtahCode().sections(path))
     assert len(rows) == 2
     assert all(r['SUBDIVISION'] == Utah.code for r in rows)
+    assert all(r['LAW_CODE'] == 'UT' for r in rows)
+    assert rows[0]['PK'] == 'UT:13-1-1'
     assert rows[0]['SECTION_NUM'] == '13-1-1'
     assert 'Utah Code' in rows[0]['LEGAL_TEXT']
     assert rows[1]['SECTION_NUM'] == '13-1-2'

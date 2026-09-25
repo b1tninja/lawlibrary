@@ -1,11 +1,15 @@
 """North Dakota Century Code — Legislative Council JSON API."""
 
 import json
-import os
 
 from publication import Publication, State
+from readers import text_sections
 
 SOURCE = 'https://ndlegis.gov/api/data/century_code.json'
+BOOK = 'NDCC'
+
+# Section ids as line leaders after JSON is decoded to plain text.
+_SECTION_PATTERN = r'(?m)^(\d[\d.]*(?:-\d[\d.]*)+)\.\s+'
 
 
 def _iter_nested(data):
@@ -27,7 +31,15 @@ def _iter_nested(data):
                 number = section.get('id') or section.get('section')
                 text = section.get('text') or ''
                 if number and text:
-                    yield str(number), text
+                    yield {
+                        'SECTION_NUM': str(number),
+                        'LEGAL_TEXT': text,
+                        'TITLE': str(title.get('title_num') or ''),
+                        'TITLE_HEADING': title.get('title_name') or '',
+                        'CHAPTER': str(chapter.get('chapter_num') or ''),
+                        'CHAPTER_HEADING': chapter.get('chapter_title') or '',
+                        'SECTION_TITLE': section.get('title') or '',
+                    }
 
 
 def _iter_flat(data):
@@ -43,7 +55,13 @@ def _iter_flat(data):
             yield str(number), text
 
 
+def _json_to_text(data):
+    """Flat JSON fixtures become numbered plain text for text_sections."""
+    return '\n\n'.join('%s. %s' % pair for pair in _iter_flat(data))
+
+
 class NorthDakotaCode(Publication):
+    code_heading = 'North Dakota Century Code'
     """Local JSON: official nested century_code shape, or a flat list fixture."""
 
     @classmethod
@@ -53,21 +71,18 @@ class NorthDakotaCode(Publication):
     def sections(self, path):
         with open(path, encoding='utf-8') as fh:
             data = json.load(fh)
-        rows = list(_iter_nested(data)) or list(_iter_flat(data))
-        if not rows:
-            stem = os.path.splitext(os.path.basename(path))[0]
-            yield {
-                'SECTION_NUM': stem,
-                'LEGAL_TEXT': '',
-                'SUBDIVISION': NorthDakota.code,
-            }
+        nested = list(_iter_nested(data))
+        if nested:
+            for row in nested:
+                row['SUBDIVISION'] = NorthDakota.code
+                row['LAW_CODE'] = BOOK
+                yield row
             return
-        for number, text in rows:
-            yield {
-                'SECTION_NUM': number,
-                'LEGAL_TEXT': text,
-                'SUBDIVISION': NorthDakota.code,
-            }
+        text = _json_to_text(data)
+        for row in text_sections(text, _SECTION_PATTERN):
+            row['SUBDIVISION'] = NorthDakota.code
+            row['LAW_CODE'] = BOOK
+            yield row
 
 
 class NorthDakota(State):

@@ -31,6 +31,7 @@ def test_sections_from_local_html(tmp_path):
     rows = list(IndianaCode().sections(path))
     assert len(rows) >= 2
     assert all(r['SUBDIVISION'] == Indiana.code for r in rows)
+    assert all(r['LAW_CODE'] == 'IC' for r in rows)
     assert rows[0]['SECTION_NUM'] == '1-1-1-1'
     assert 'Indiana Code' in rows[0]['LEGAL_TEXT']
     assert rows[1]['SECTION_NUM'] == '1-1-1-2'

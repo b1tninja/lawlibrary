@@ -1,11 +1,12 @@
 """Indiana Code — local HTML (HTML zip when a real archive is available).
 
 The Legislative Services Agency downloads page
-(https://iga.in.gov/laws/ic/downloads) is a JavaScript app shell. Probed zip
-URL candidates return text/html, not a zip payload, so there is no confirmed
-bulk file URL to fetch. This edition parses local .html/.htm files, or a local
-zip containing such files, saved from an official distribution when one is
-available.
+(https://iga.in.gov/laws/ic/downloads) is a JavaScript app shell. A direct
+fetch of https://iga.in.gov/laws/ic/downloads/ic-html.zip returned that same
+text/html shell (691 bytes), not a zip of statute text, so there is no
+confirmed bulk file URL to fetch. This edition parses local .html/.htm files,
+or a local zip containing such files, saved from an official distribution when
+one is available.
 """
 
 import os
@@ -34,6 +35,8 @@ def _row(section_num, legal_text):
         'SECTION_NUM': section_num,
         'LEGAL_TEXT': legal_text,
         'SUBDIVISION': Indiana.code,
+        'LAW_CODE': 'IC',
+        'PK': 'IC:%s' % section_num,
     }
 
 

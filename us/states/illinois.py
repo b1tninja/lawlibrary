@@ -4,39 +4,27 @@ Directory of section HTML at https://www.ilga.gov/ftp/ILCS/ (not one zip).
 The FTP readme says the print at the Secretary of State is the official copy.
 """
 
-import os
-import re
-
-import html2text
-
 from publication import Publication, State
+from readers import html_sections
 
 SOURCE = 'https://www.ilga.gov/ftp/ILCS/'
 
-# ILCS cites like "(5 ILCS 5/1)" or "Sec. 1." in section HTML dumps.
-_ILCS_RE = re.compile(
-    r'\((\d+)\s+ILCS\s+(\d+)/([\d.]+)\)',
-    re.IGNORECASE,
-)
-_SEC_RE = re.compile(
-    r'(?:Section|Sec\.)\s*([\d.]+)',
-    re.IGNORECASE,
-)
+# ILCS cites like "(5 ILCS 5/1)" in section HTML dumps (one capture group).
+_ILCS_PATTERN = r'(?i)\((\d+\s+ILCS\s+\d+/[\d.]+)\)'
+# Fallback when a dump only has "Sec. 1." / "Section 1.".
+_SEC_PATTERN = r'(?i)(?:Section|Sec\.)\s*([\d.]+)'
 
 
-def _html_to_text(html):
-    return html2text.HTML2Text(bodywidth=0).handle(html)
-
-
-def _row(section_num, legal_text):
-    return {
-        'SECTION_NUM': section_num,
-        'LEGAL_TEXT': legal_text,
-        'SUBDIVISION': Illinois.code,
-    }
+def _stamp(row):
+    row = dict(row)
+    row['SUBDIVISION'] = Illinois.code
+    row['LAW_CODE'] = 'ILCS'
+    row['PK'] = 'ILCS:%s' % row['SECTION_NUM']
+    return row
 
 
 class IllinoisCompiledStatutes(Publication):
+    code_heading = 'Illinois Compiled Statutes'
     """One saved ILCS section HTML file from the FTP tree."""
 
     @classmethod
@@ -44,28 +32,11 @@ class IllinoisCompiledStatutes(Publication):
         return True
 
     def sections(self, path):
-        with open(path, encoding='utf-8', errors='replace') as fh:
-            html = fh.read()
-        text = _html_to_text(html)
-        ilcs = list(_ILCS_RE.finditer(text))
-        if ilcs:
-            for i, match in enumerate(ilcs):
-                start = match.start()
-                end = ilcs[i + 1].start() if i + 1 < len(ilcs) else len(text)
-                body = text[start:end].strip()
-                num = '%s ILCS %s/%s' % match.groups()
-                yield _row(num, body)
-            return
-        matches = list(_SEC_RE.finditer(text))
-        if not matches:
-            stem = os.path.splitext(os.path.basename(path))[0]
-            yield _row(stem, text)
-            return
-        for i, match in enumerate(matches):
-            start = match.start()
-            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-            body = text[start:end].strip()
-            yield _row(match.group(1), body)
+        rows = list(html_sections(path, _ILCS_PATTERN))
+        if not rows:
+            rows = list(html_sections(path, _SEC_PATTERN))
+        for row in rows:
+            yield _stamp(row)
 
 
 class Illinois(State):

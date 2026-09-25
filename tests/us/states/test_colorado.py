@@ -34,6 +34,8 @@ def test_list_editions_no_network():
 def test_accepts_empty_dat_names():
     assert ColoradoRevisedStatutes.accepts(set())
     assert not ColoradoRevisedStatutes.accepts({'LAW_SECTION_TBL'})
+    assert ColoradoRevisedStatutes.accepts('crs2026-title-01.htm')
+    assert ColoradoRevisedStatutes.accepts('crs2026-htm.zip')
 
 
 def test_sections_from_local_zip(tmp_path):
@@ -41,6 +43,7 @@ def test_sections_from_local_zip(tmp_path):
     rows = list(ColoradoRevisedStatutes().sections(path))
     assert len(rows) >= 2
     assert all(r['SUBDIVISION'] == Colorado.code for r in rows)
+    assert all(r['LAW_CODE'] == 'CRS' for r in rows)
     assert rows[0]['SECTION_NUM'] == '1-1-101'
     assert 'Colorado Revised Statutes' in rows[0]['LEGAL_TEXT']
     assert 'Source:' not in rows[0]['LEGAL_TEXT']
@@ -48,3 +51,21 @@ def test_sections_from_local_zip(tmp_path):
     assert rows[1]['SECTION_NUM'] == '1-1-102'
     assert 'liberally' in rows[1]['LEGAL_TEXT']
     assert 'Source:' not in rows[1]['LEGAL_TEXT']
+
+
+def test_sections_from_local_html(tmp_path):
+    html = """<!DOCTYPE html>
+<html><body>
+<p>Section 2-1-101. Short title. This article shall be known as the test article for Colorado.</p>
+<p>Source: L. 92: Entire article R&amp;RE.</p>
+<p>Section 2-1-102. Scope. This article applies statewide to every county and municipality.</p>
+<p>Source: L. 92: Entire article R&amp;RE.</p>
+</body></html>
+"""
+    path = tmp_path / 'title02.htm'
+    path.write_text(html, encoding='utf-8')
+    rows = list(ColoradoRevisedStatutes().sections(path))
+    assert len(rows) >= 2
+    assert rows[0]['SECTION_NUM'] == '2-1-101'
+    assert 'Source:' not in rows[0]['LEGAL_TEXT']
+    assert rows[0]['LAW_CODE'] == 'CRS'

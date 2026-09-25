@@ -1,15 +1,16 @@
 """New Jersey Statutes — official STATUTES-TEXT.zip distribution."""
 
 import os
-import re
 import zipfile
 
 from publication import Publication, State
+from readers import text_sections
 
 SOURCE = 'https://pub.njleg.gov/statutes/STATUTES-TEXT.zip'
+BOOK = 'NJSA'
 
 # Line-start cites: 1:1-1. / 2A:4-30.124 / 1:1-2a.
-_SECTION_RE = re.compile(
+_SECTION_PATTERN = (
     r'(?m)^(\d+[A-Za-z]?:\d+[A-Za-z]?-\d+(?:\.\d+)*[A-Za-z]?)\.?\s+'
 )
 
@@ -32,30 +33,18 @@ def _read_text(path):
 class NewJerseyStatutes(Publication):
     """Plain-text dump inside STATUTES-TEXT.zip (STATUTES.TXT)."""
 
+    code_heading = 'New Jersey Statutes'
+
     @classmethod
     def accepts(cls, names):
         return True
 
     def sections(self, path):
         text = _read_text(path)
-        matches = list(_SECTION_RE.finditer(text))
-        if not matches:
-            stem = os.path.splitext(os.path.basename(path))[0]
-            yield {
-                'SECTION_NUM': stem,
-                'LEGAL_TEXT': text,
-                'SUBDIVISION': NewJersey.code,
-            }
-            return
-        for i, match in enumerate(matches):
-            start = match.start()
-            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
-            body = text[start:end].strip()
-            yield {
-                'SECTION_NUM': match.group(1),
-                'LEGAL_TEXT': body,
-                'SUBDIVISION': NewJersey.code,
-            }
+        for row in text_sections(text, _SECTION_PATTERN):
+            row['SUBDIVISION'] = NewJersey.code
+            row['LAW_CODE'] = BOOK
+            yield row
 
 
 class NewJersey(State):

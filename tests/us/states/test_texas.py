@@ -34,6 +34,7 @@ def test_sections_from_local_html(tmp_path):
     rows = list(TexasStatutes().sections(path))
     assert len(rows) == 2
     assert all(r['SUBDIVISION'] == Texas.code for r in rows)
+    assert all(r['LAW_CODE'] for r in rows)
     assert rows[0]['SECTION_NUM'] == '1.001'
     assert 'property' in rows[0]['LEGAL_TEXT'].lower()
     assert rows[1]['SECTION_NUM'] == '1.002'

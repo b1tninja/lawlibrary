@@ -42,7 +42,11 @@ def test_sections_from_local_xml(tmp_path):
     rows = list(Nebraska().sections(path))
     assert len(rows) == 1
     assert rows[0]['SUBDIVISION'] == Nebraska.code
+    assert rows[0]['LAW_CODE'] == 'NRS'
+    assert rows[0]['PK'] == 'NRS:28-102'
     assert rows[0]['SECTION_NUM'] == '28-102'
+    assert rows[0]['CHAPTER_HEADING'] == 'Crimes And Punishments'
+    assert rows[0]['SECTION_TITLE'] == 'Purposes; principles of construction.'
     assert 'principles of construction' in rows[0]['LEGAL_TEXT']
     assert 'forbid and prevent conduct' in rows[0]['LEGAL_TEXT']
     assert 'Case note' not in rows[0]['LEGAL_TEXT']

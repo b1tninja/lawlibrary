@@ -41,6 +41,7 @@ def test_sections_from_synthetic_snippet(tmp_path):
     rows = list(NewJerseyStatutes().sections(path))
     assert len(rows) == 2
     assert all(r['SUBDIVISION'] == NewJersey.code for r in rows)
+    assert all(r['LAW_CODE'] == 'NJSA' for r in rows)
     assert rows[0]['SECTION_NUM'] == '1:1-1'
     assert 'construction of the laws' in rows[0]['LEGAL_TEXT']
     assert rows[1]['SECTION_NUM'] == '1:1-2'
