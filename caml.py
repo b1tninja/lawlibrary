@@ -376,6 +376,12 @@ def _plain(piece):
 
 
 def _trim(text):
+    # A non-breaking space is a width, and a width is not a word. CAML writes
+    # one both ways — as a span and as the character itself, twenty sections
+    # carry the character — and the same intent has to read the same or a
+    # search for the plain phrase misses half of them. Civil Code section 1
+    # names the Civil Code with three of them in the name.
+    text = text.replace(' ', ' ')
     lines = [line.rstrip() for line in text.split('\n')]
     while lines and not lines[0].strip():
         lines.pop(0)
