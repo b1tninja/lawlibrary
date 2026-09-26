@@ -25,9 +25,27 @@ export function Crumbs({ crumbs, go }) {
   )
 }
 
+const UNITS = {
+  division: 'Division', title: 'Title', part: 'Part',
+  chapter: 'Chapter', article: 'Article', section: 'Section',
+}
+
+/* A rung the index has no caption for is a bare number, and a list of bare
+ * numbers says nothing about what it opens. Name the rung at least. */
 function words(item, short) {
   if (short && item.short) return item.short
-  return item.pieces ? <Pieces pieces={item.pieces} /> : item.label
+  if (item.pieces) return <Pieces pieces={item.pieces} />
+  const unit = UNITS[item.unit]
+  if (unit && item.short && item.label === item.short) return `${unit} ${item.label}`
+  return item.label
+}
+
+/* How much law is under a rung. The span is only given where the caption does
+ * not already carry one. */
+function tally(item) {
+  if (!item.sections) return ''
+  const many = `${item.sections} section${item.sections === 1 ? '' : 's'}`
+  return item.first ? `§§ ${item.first}–${item.last} · ${many}` : many
 }
 
 export function Contents({ items, go, heading, sift, short }) {
@@ -60,6 +78,7 @@ export function Contents({ items, go, heading, sift, short }) {
             {item.current
               ? <span aria-current="page">{words(item, short)}</span>
               : <Link href={item.href} go={go}>{words(item, short)}</Link>}
+            {tally(item) ? <span className="tally">{tally(item)}</span> : null}
           </li>
         ))}
       </ol>

@@ -96,7 +96,7 @@ def counts(citations):
 
 
 _HEADING_UNIT = re.compile(
-    r'(?i)^(?P<unit>division|title|part|chapter|article)\s+(?P<number>[0-9]+(?:\.[0-9]+)*)'
+    r'(?i)^(?P<unit>division|title|part|chapter|article)\s+(?P<number>[0-9]+(?:\.[0-9]+)*[A-Za-z]?)'
 )
 
 

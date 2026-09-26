@@ -417,3 +417,64 @@ def test_the_markdown_is_the_section_cut_by_cut():
     assert '## Diagram' not in lone
     assert 'mermaid' not in lone
     assert '## Sections this one names' not in lone
+
+
+def test_a_rung_says_what_it_is_and_how_much_it_holds():
+    """A contents list of bare numbers is not a choice a reader can make.
+
+    California's codes do not share one ladder — the Civil Code runs division,
+    part, title and the Penal Code runs part, title, division — and a caption
+    is filed on whichever field the publisher counted as deepest. Every Penal
+    Code division has an empty DIVISION_HEADING, so its caption is read back
+    from its own words.
+    """
+    status, body = _json('/tree/us-ca/pen')
+    assert status == '200 OK'
+    rows = body['contents']
+    assert rows and {row['unit'] for row in rows} == {'division'}
+    for row in rows:
+        assert row['label'].upper().startswith('DIVISION %s.' % row['short'])
+        assert row['sections'] > 0
+        assert row['pieces'], 'a caption is marked up like any other heading'
+    # The caption carries the publisher's own span, so no second one is sent.
+    assert not any(row.get('first') for row in rows)
+
+
+def test_a_rung_with_no_caption_is_named_by_its_sections():
+    status, body = _json('/tree/us-ca/pen/division/1')
+    assert status == '200 OK'
+    rows = body['contents']
+    assert rows
+    bare = [row for row in rows if not row.get('pieces')]
+    assert bare, 'these titles have no caption in the index'
+    for row in bare:
+        assert row['label'] == row['short']
+        assert row['sections'] > 0
+        assert row['first'] and row['last']
+        assert row['first'][:1].isdigit() and row['last'][:1].isdigit()
+
+
+def test_a_lettered_rung_finds_its_own_caption():
+    """``TITLE 1A`` is a rung. Reading only the digits made it ``TITLE 1``."""
+    status, body = _json('/tree/us-ca/civ/division/3')
+    lettered = [row for row in body['contents'] if row['short'] == '1A']
+    assert lettered, 'CIV division 3 has a title 1A'
+    assert lettered[0]['label'].upper().startswith('TITLE 1A.')
+
+
+def test_a_bracketed_section_does_not_end_the_span():
+    """``CIV [50.]`` is the section written as Section Fifty.
+
+    It sorts after every plain number, so taken as the end of a span it would
+    report Division 1 as running to ``[50.]`` instead of to 86.
+    """
+    import query
+    from application import _widen
+    held = query.section('CIV', '[50.]')
+    assert held.get('found'), 'the bracketed section is in the index'
+    assert query.section_key('[50.]') > query.section_key('86')
+
+    row = {'sections': 0, 'first': '', 'last': ''}
+    for number in ('38', '[50.]', '86'):
+        _widen(row, number, query)
+    assert (row['first'], row['last']) == ('38', '86')

@@ -151,6 +151,15 @@ form.find.closure label.flag {
   padding-bottom: 0.2rem;
 }
 
+/* How much law a rung opens. It follows the caption and never competes with
+ * it, so the heading is still the thing being read. */
+.contents-block .tally {
+  margin-left: 0.6rem;
+  color: #5c4a32;
+  font-size: 0.82em;
+  white-space: nowrap;
+}
+
 .sift {
   margin: 0 0 0.4rem;
 }

@@ -157,7 +157,11 @@ def _tree(start_response, url):
         node['crumbs'] = _library_crumbs(
             node.get('url') or 'us-ca', _code_label(node.get('code')),
         )
-        node['contents'] = [_child(node, child) for child in node.get('children') or []]
+        children = node.get('children') or []
+        node['contents'] = [
+            _child(node, child, _contents_facts(node.get('url') or url, children))
+            for child in children
+        ]
     status = '200 OK' if node.get('found') else '404 Not Found'
     return _send(start_response, status, node)
 
@@ -801,7 +805,7 @@ def _library_crumbs(url, code_label=''):
     parts = [part for part in (url or 'us-ca').split('/') if part]
     names = {
         'division': 'Division', 'title': 'Title', 'part': 'Part',
-        'chapter': 'Chapter', 'article': 'Article', 'section': 'Ã‚Â§',
+        'chapter': 'Chapter', 'article': 'Article', 'section': 'Ãƒâ€šÃ‚Â§',
         'subdivision': 'Subdivision',
     }
     units = set(names)
@@ -837,7 +841,7 @@ def _library_crumbs(url, code_label=''):
 
 
 _HEADING_UNIT = re.compile(
-    r'(?i)^(?P<unit>division|title|part|chapter|article)\s+(?P<number>[0-9]+(?:\.[0-9]+)*)'
+    r'(?i)^(?P<unit>division|title|part|chapter|article)\s+(?P<number>[0-9]+(?:\.[0-9]+)*[A-Za-z]?)'
 )
 
 
@@ -934,20 +938,114 @@ def _tree_html(url):
     )
 
 
-def _child(node, child):
+_UNIT_FIELD = {
+    'division': 'DIVISION', 'title': 'TITLE', 'part': 'PART',
+    'chapter': 'CHAPTER', 'article': 'ARTICLE',
+}
+
+_HEADING_FIELDS = (
+    'DIVISION_HEADING', 'TITLE_HEADING', 'PART_HEADING',
+    'CHAPTER_HEADING', 'ARTICLE_HEADING',
+)
+
+_FACTS = {}
+
+
+def _contents_facts(url, children):
+    """What each rung under this node holds: its caption, and its sections.
+
+    A rung listed by number alone is not a thing a reader can choose between.
+    California's codes do not share one ladder — the Civil Code runs division,
+    part, title; the Penal Code runs part, title, division — and a caption is
+    filed on whichever field the publisher counted as the deepest one the row
+    filled, so every Penal Code division has an empty DIVISION_HEADING and its
+    caption sits on PART_HEADING instead. A caption names its own unit, so it
+    is read back from its own words, the way the trail is settled.
+
+    What no caption can supply, the sections do: how many sit under the rung,
+    and the first and the last of them. That is one pass over the node, kept
+    against the generation it was read from.
+    """
+    from whoosh import index
+    import query
+    kids = [child for child in children or [] if child.get('value')]
+    unit = kids[0].get('unit') if kids else ''
+    field = _UNIT_FIELD.get(unit or '')
+    if field is None:
+        return {}
+    idxer = query._indexer()
+    if not query._index_ready(idxer):
+        return {}
+    opened = index.open_dir(idxer.idx_path)
+    key = (opened.latest_generation(), url, unit)
+    if key in _FACTS:
+        return _FACTS[key]
+    seen = {}
+    captions = {}
+    with opened.searcher() as searcher:
+        for hit in searcher.search(query._constraints(query.parse_law_url(url)), limit=None):
+            value = (hit.get(field) or '').strip()
+            if value:
+                row = seen.setdefault(value, {'sections': 0, 'first': '', 'last': ''})
+                row['sections'] += 1
+                _widen(row, hit.get('SECTION_NUM') or '', query)
+            for name in _HEADING_FIELDS:
+                words = (hit.get(name) or '').strip()
+                matched = _HEADING_UNIT.match(words)
+                if matched is not None:
+                    captions[(matched.group('unit').lower(), matched.group('number'))] = words
+    found = {}
+    for child in kids:
+        value = child['value']
+        row = dict(seen.get(value) or {'sections': 0, 'first': '', 'last': ''})
+        row['caption'] = captions.get((unit, value), '')
+        found[value] = row
+    if len(_FACTS) > 24:
+        _FACTS.clear()
+    _FACTS[key] = found
+    return found
+
+
+def _widen(row, number, query):
+    """The first and the last section under a rung, in statutory order.
+
+    A number the publisher bracketed — ``[50.]`` is the section written as
+    Section Fifty — sorts after every plain one, so it is left out of the span
+    rather than reported as the end of it. It is still one of the sections
+    counted.
+    """
+    if not number or not number[:1].isdigit():
+        return
+    if not row['first'] or query.section_key(number) < query.section_key(row['first']):
+        row['first'] = number
+    if not row['last'] or query.section_key(number) > query.section_key(row['last']):
+        row['last'] = number
+
+
+def _child(node, child, facts=None):
     code = node.get('code') or ''
     if child.get('unit') == 'section' and code:
-        href = '/view/section/%s/%s' % (code, child.get('value') or '')
+        href = _section_href(code, child.get('value') or '')
     else:
         href = '/view/tree/' + child['url']
-    heading = child.get('heading') or ''
-    return {
+    held = (facts or {}).get(child.get('value') or '') or {}
+    heading = child.get('heading') or held.get('caption') or ''
+    row = {
         'href': href,
         'label': heading or child.get('value') or child.get('url'),
         'short': child.get('value') or heading,
         'unit': child.get('unit') or '',
         'pieces': _pieces(heading, heading=True) if heading else None,
     }
+    if held.get('sections'):
+        row['sections'] = held['sections']
+        # A caption carries the publisher's own span in brackets, and that is
+        # the one to believe. Where there is no caption there is no span
+        # either, so the sections say where the rung starts and ends.
+        if not heading:
+            row['first'] = held.get('first') or ''
+            row['last'] = held.get('last') or ''
+    return row
 
 
 def _pick_section():
@@ -1312,7 +1410,7 @@ _CUT_INDENT = {
 def _ladder(body):
     """The rungs above this section, each named by the unit its caption names.
 
-    The stored path is not always filed on the field its own words name —
+    The stored path is not always filed on the field its own words name â€”
     ``TITLE 5. HIRING`` can sit on the part field, which would print the
     caption at the wrong depth and drop the rung it displaced. The reader
     settles that in ``_section_crumbs``; every representation reads the same
