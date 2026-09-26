@@ -14,6 +14,7 @@ Sacramento, California, USA is the home jurisdiction. `python ca.py` is that pla
 | `us/<state>/` | Another US state. A `counties/` package appears only after a county is added. |
 | `jurisdiction.py` | Country, region, state, county, and city. |
 | `publication.py` | One file layout: statute, measure, or regulation. |
+| `caml.py` | CAML, the markup California publishes statutes in. The grammar is in [caml.md](caml.md). |
 | `indexer.py` | The local Whoosh index. |
 | `query.py` | The structured lookup Jason calls. |
 | `mcp_server.py` | The agent tools over that index. |
