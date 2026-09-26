@@ -270,13 +270,41 @@ class Annotation:
         return 'Annotation(%s, %r)' % (self.note.value, self.text)
 
 
-_CITED_AS = re.compile(
-    r'(?i)\b(?:shall be known,? and may be cited,? as|may be cited as|shall be known as)\s+the\s+'
-    r'(?P<title>(?:[A-Z][A-Za-z0-9-]*\s+){0,12}Act)\b'
-)
+_TITLE_WORD = r"[A-Z][A-Za-z0-9'\u2019-]*"
+
+# What a body of law calls itself. Civil Code section 1 names a code, not an
+# act, and the Political Reform Act of 1974 carries its year in its name.
+#
+# Only a section declaring its own name reads these. A code named in passing —
+# `is codified in the Revenue and Taxation Code` — is a book, and `find_links`
+# already keeps it as one; naming it here as well would say the sentence
+# christened it.
+_TITLE_NOUN = r'(?:Act|Code|Law|Constitution)'
+
+# A section that says what to call the law it belongs to. The name follows,
+# and it is the name, not the words `This Act` that introduce it.
+_CITED_AS = re.compile(r"""
+    (?i:\b(?:shall\ be\ known,?\ and\ may\ be\ cited,?\ as
+          |shall\ be\ known\ and\ cited\ as
+          |may\ be\ cited\ as
+          |shall\ be\ known\ as)\s+)
+    (?:[Tt]he\s+)?
+    (?P<title>
+        (?:%(word)s[\s-]+){0,14}
+        %(noun)s
+        (?:\s+of\s+(?:\d{4}|(?:the\s+)?%(word)s(?:\s+(?:of\s+|the\s+)?%(word)s){0,5}))?
+    )
+""" % {'word': _TITLE_WORD, 'noun': _TITLE_NOUN}, re.VERBOSE)
+
 _ACT_WORD = r"(?:[A-Z][A-Za-z0-9'-]*|of|with|and|for|the|to)"
 _NAMED_ACT = re.compile(
     r"\b(?P<title>[A-Z][A-Za-z0-9'-]*(?:\s+%s){0,14}\s+Act(?:\s+of\s+\d{4})?)\b" % _ACT_WORD
+)
+
+# `This Act`, `The Act`, `Said Act` point at an act. They do not name one, and
+# a name is what a named-act note carries.
+_POINTS_AT_ONE = re.compile(
+    r'(?i)^(?:this|the|that|said|such|an|a|each|any|every|no)\s+%s$' % _TITLE_NOUN
 )
 # Printed titles already named in this library. Longer titles are tried first.
 _ACT_CATALOG = (
@@ -1425,8 +1453,10 @@ def annotate(text, context=None):
         start, end = match.start('title'), match.end('title')
         if _overlaps(start, end, spans):
             continue
-        spans.append((start, end))
         title = match.group('title')
+        if _POINTS_AT_ONE.match(title):
+            continue
+        spans.append((start, end))
         notes.append(Annotation(Note.NAMED_ACT, start, end, title, title, guide))
     for note, pattern in _REFERENCES:
         for match in pattern.finditer(text):

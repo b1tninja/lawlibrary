@@ -428,3 +428,52 @@ def test_a_section_sign_is_a_citation_annotation():
     citation = next(note for note in notes if note.note is Note.CITATION)
     assert '10050' in citation.target
     assert annotate('') == []
+
+
+def test_a_law_may_name_itself_something_other_than_an_act():
+    """CIV 1 names a code. The short title was read as though it must end in Act.
+
+    What the section declares is the name of the whole body of law, and
+    California writes those names as an act, a code, a law, or a constitution.
+    """
+    text = Citation(Code.CIVIL).section('1').text
+    if not text or 'shall be known' not in text.casefold():
+        return
+    acts = [note.target for note in annotate(text) if note.note is Note.NAMED_ACT]
+    assert any(name.startswith('Civil Code') for name in acts), acts
+    # The words that introduce the name are not the name.
+    assert not any(name.casefold() == 'this act' for name in acts)
+
+
+def test_the_name_a_section_declares_keeps_its_year():
+    """A year is part of the official name, and was being cut off it."""
+    notes = annotate('This title shall be known and may be cited as the Example Reform Act of 1974.')
+    act = next(note for note in notes if note.note is Note.NAMED_ACT)
+    assert act.text == 'Example Reform Act of 1974'
+
+
+def test_a_declared_name_may_be_a_code_a_law_or_a_constitution():
+    for words, name in (
+        ('This part shall be known and may be cited as the Example Utilities Code.',
+         'Example Utilities Code'),
+        ('This division shall be known as the Example Groundwater Law.',
+         'Example Groundwater Law'),
+        ('This code shall be known as the Example Code of the State of Somewhere.',
+         'Example Code of the State of Somewhere'),
+        ('This chapter may be cited as the Example Coastal Act of 1976.',
+         'Example Coastal Act of 1976'),
+    ):
+        acts = [note.text for note in annotate(words) if note.note is Note.NAMED_ACT]
+        assert name in acts, (words, acts)
+
+
+def test_a_demonstrative_points_at_an_act_and_does_not_name_one():
+    """``This Act`` and ``The Act`` are references. A named act carries a name."""
+    for words in ('The Act applies to every county.',
+                  'Nothing in this Code shall be construed to limit that Law.'):
+        acts = [note.text for note in annotate(words) if note.note is Note.NAMED_ACT]
+        assert not acts, (words, acts)
+    # A real name beside a demonstrative is still found.
+    both = annotate('Nothing in this Act shall affect the Administrative Procedure Act.')
+    named = [note.target for note in both if note.note is Note.NAMED_ACT]
+    assert named == ['administrative-procedure']
