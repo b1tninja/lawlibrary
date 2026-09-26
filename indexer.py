@@ -122,6 +122,9 @@ _CITATION = re.compile(
 
 
 # Home corpus: newest session of California state statutes.
+# What one build of the index says about itself. See Indexer._kept.
+_KEPT = {}
+
 DEFAULT_COUNTRY = 'US'
 DEFAULT_SUBDIVISION = 'US-CA'
 
@@ -265,6 +268,12 @@ class Indexer:
         """Stored chaptering years on the SESSION field. Not a two-year legislative session."""
         if not index.exists_in(self.idx_path):
             return []
+        return self._kept(
+            ('sessions', country, subdivision),
+            lambda: self._read_sessions(country, subdivision),
+        )
+
+    def _read_sessions(self, country, subdivision):
         idx = index.open_dir(self.idx_path)
         with idx.searcher() as searcher:
             if country is None and subdivision is None:
@@ -272,9 +281,17 @@ class Indexer:
             filt = self._region_terms(country, subdivision)
             if not filt:
                 return sorted(term.decode() for term in searcher.lexicon('SESSION'))
-            query = filt[0] if len(filt) == 1 else And(filt)
-            results = searcher.search(query, limit=None)
-            found = {hit.get('SESSION') for hit in results if hit.get('SESSION')}
+            # The years are already a term list. Ask whether each one has a
+            # section in this region, rather than reading every stored
+            # document to collect the handful of years they share: the answer
+            # is a few words and the corpus is a few hundred thousand
+            # sections, and `_filter` asks for it on nearly every request.
+            found = []
+            for term in searcher.lexicon('SESSION'):
+                year = term.decode()
+                here = And(filt + [Term('SESSION', year)])
+                if searcher.search(here, limit=1).scored_length():
+                    found.append(year)
             return sorted(found)
 
     def search_law(self, q, callback=None, limit=10, active_only=True, session=None,
@@ -703,16 +720,39 @@ class Indexer:
         with open(self.codes_path, 'w', encoding='utf-8') as fh:
             json.dump(codes, fh, ensure_ascii=False, indent=2, sort_keys=True)
 
+    def _kept(self, name, make):
+        """One answer per build of the index.
+
+        ``_indexer()`` hands out a new Indexer for every call and ``_filter``
+        asks which regions and which years the index holds on nearly every
+        request. Neither changes while a build stands, and both cost a
+        searcher to answer, so the answer is kept against the generation it
+        was read from and thrown away when a new one is written.
+        """
+        if not index.exists_in(self.idx_path):
+            return make()
+        key = (os.path.abspath(self.idx_path),
+               index.open_dir(self.idx_path).latest_generation(), name)
+        if key not in _KEPT:
+            if len(_KEPT) > 64:
+                _KEPT.clear()
+            _KEPT[key] = make()
+        return _KEPT[key]
+
     def _region_indexed(self):
         """False when this index was built before region fields were stored."""
         if not index.exists_in(self.idx_path):
             return False
-        idx = index.open_dir(self.idx_path)
-        try:
-            with idx.searcher() as searcher:
-                return any(True for _ in searcher.lexicon('COUNTRY'))
-        except TermNotFound:
-            return False
+
+        def look():
+            idx = index.open_dir(self.idx_path)
+            try:
+                with idx.searcher() as searcher:
+                    return any(True for _ in searcher.lexicon('COUNTRY'))
+            except TermNotFound:
+                return False
+
+        return self._kept('region', look)
 
     @staticmethod
     def _region_terms(country, subdivision):

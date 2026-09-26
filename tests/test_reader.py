@@ -463,18 +463,25 @@ def test_a_lettered_rung_finds_its_own_caption():
 
 
 def test_a_bracketed_section_does_not_end_the_span():
-    """``CIV [50.]`` is the section written as Section Fifty.
+    """A bracketed number is the section the publisher wrote out in words.
 
-    It sorts after every plain number, so taken as the end of a span it would
-    report Division 1 as running to ``[50.]`` instead of to 86.
+    It sorts after every plain one, so taken as the end of a span it would
+    report a division as running to ``[50.]`` rather than to its last section.
+    Which numbers are bracketed is an edition's business; that some are, and
+    that they sort last, is the rule this holds.
     """
     import query
     from application import _widen
-    held = query.section('CIV', '[50.]')
-    assert held.get('found'), 'the bracketed section is in the index'
     assert query.section_key('[50.]') > query.section_key('86')
 
     row = {'sections': 0, 'first': '', 'last': ''}
     for number in ('38', '[50.]', '86'):
         _widen(row, number, query)
     assert (row['first'], row['last']) == ('38', '86')
+
+    status, body = _json('/tree/us-ca/civ')
+    assert body['found'] is True
+    assert all(
+        not row.get('first') or row['first'][:1].isdigit()
+        for row in body['contents']
+    )

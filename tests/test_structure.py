@@ -78,7 +78,9 @@ def test_a_double_letter_and_a_marked_letter_are_subdivisions():
     if text is None:
         return
     labels = [node.label for node in split_nodes(text).walk()]
-    assert '(_l_)' in labels
+    # The letter is set in italics so it is not read as a one. The words are
+    # the words: the label is (l), not the markdown a flattener made of it.
+    assert '(l)' in labels
     assert '(aa)' in labels
 
 
@@ -105,7 +107,7 @@ def test_a_colon_introduces_a_numbered_list():
     text = _text(Code.BUSINESS_AND_PROFESSIONS, '11212')
     if text is None:
         return
-    letter = _node(split_nodes(text), '(_l_)')
+    letter = _node(split_nodes(text), '(l)')
     assert [child.label for child in letter.children] == ['(1)', '(2)', '(3)']
 
 
