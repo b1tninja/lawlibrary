@@ -15,6 +15,7 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from contextlib import closing
 from types import SimpleNamespace
 
+import caml
 from publication import Instrument, Publication, State
 
 import html2text  # Aaron Swartz original author
@@ -78,7 +79,23 @@ class LawLibrary:
 
 
 def parse_caml(LOB):
-    return html2text.HTML2Text(bodywidth=0).handle(LOB)
+    """CAML into the words Whoosh stores.
+
+    Read as CAML and not as HTML. An empty span is the space it stands for, a
+    ``caml:Fraction`` is a number, and an italic is type and not markdown:
+    flattening gives ``(a)No franchisor``, ``3313 percent`` and ``(_l_)``.
+    ``docs/caml.md`` has the grammar and what each difference costs.
+
+    A document that will not parse is still a section, so it is flattened
+    rather than dropped. None of the 162,431 in ``pubinfo_2025`` needed it.
+    """
+    if not LOB:
+        return ''
+    try:
+        return caml.words(caml.parse(LOB))
+    except caml.ET.ParseError:
+        logger.warning("CAML did not parse; flattening it instead")
+        return html2text.HTML2Text(bodywidth=0).handle(LOB)
 
 
 def read_text_from_zipped_file(zip_file, target):

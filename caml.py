@@ -63,6 +63,82 @@ class Element(enum.Enum):
     COLUMNS = 'colgroup'
     COLUMN = 'col'
 
+    # A measure. Bills are CAML too, rooted at caml:MeasureDoc, and they carry
+    # a vocabulary the codes never use: who wrote it, what it does, and the
+    # flags the Constitution and the Joint Rules attach to it.
+    MEASURE = 'caml:MeasureDoc'
+    DESCRIPTION = 'caml:Description'
+    IDENTIFIER = 'caml:Id'
+    VERSION = 'caml:VersionNum'
+    HISTORY = 'caml:History'
+    ACTION = 'caml:Action'
+    ACTION_TEXT = 'caml:ActionText'
+    ACTION_DATE = 'caml:ActionDate'
+    ACTION_LINE = 'caml:ActionLine'
+    DOC_NAME = 'caml:DocName'
+    FRAGMENT = 'caml:Fragment'
+    LEGISLATIVE_INFO = 'caml:LegislativeInfo'
+    SESSION_YEAR = 'caml:SessionYear'
+    SESSION_NUM = 'caml:SessionNum'
+    MEASURE_NUM = 'caml:MeasureNum'
+    MEASURE_TYPE = 'caml:MeasureType'
+    MEASURE_STATE = 'caml:MeasureState'
+    MEASURE_CLASS = 'caml:MeasureClass'
+    CHAPTER_NUM = 'caml:ChapterNum'
+    CHAPTER_YEAR = 'caml:ChapterYear'
+    CHAPTER_TYPE = 'caml:ChapterType'
+    CHAPTER_SESSION_NUM = 'caml:ChapterSessionNum'
+    AUTHORS = 'caml:Authors'
+    AUTHOR_TEXT = 'caml:AuthorText'
+    LEGISLATOR = 'caml:Legislator'
+    HOUSE = 'caml:House'
+    NAME = 'caml:Name'
+    CONTRIBUTION = 'caml:Contribution'
+    COMMITTEE = 'caml:Committee'
+    MEMBERS = 'caml:Members'
+    SUBJECT = 'caml:Subject'
+    GENERAL_SUBJECT = 'caml:GeneralSubject'
+    TITLE = 'caml:Title'
+    LAW_TITLE = 'caml:LawTitle'
+    RELATING_CLAUSE = 'caml:RelatingClause'
+    DIGEST_KEY = 'caml:DigestKey'
+    DIGEST_TEXT = 'caml:DigestText'
+    PREAMBLE = 'caml:Preamble'
+    WHEREAS = 'caml:Whereas'
+    RESOLVED = 'caml:Resolved'
+    RESOLUTION = 'caml:Resolution'
+    BILL = 'caml:Bill'
+    BILL_SECTION = 'caml:BillSection'
+    ACT = 'caml:Act'
+    LAW_SECTION = 'caml:LawSection'
+    LAW_SECTION_VERSION = 'caml:LawSectionVersion'
+    LAW_HEADING = 'caml:LawHeading'
+    LAW_HEADING_TEXT = 'caml:LawHeadingText'
+    LAW_HEADING_VERSION = 'caml:LawHeadingVersion'
+    NUM = 'caml:Num'
+    NUM_SPAN = 'caml:NumSpan'
+    BUDGET_BILL = 'caml:BudgetBill'
+    BUDGET_ITEM = 'caml:BudgetItem'
+    BUDGET_HEADING = 'caml:BudgetHeading'
+    BUDGET_HEADING_TEXT = 'caml:BudgetHeadingText'
+    CORRECTION = 'caml:Correction'
+    POSITIONING = 'caml:Positioning'
+    ELECTION = 'caml:Election'
+    GROUP = 'caml:GRP'
+    # What the Constitution and the Joint Rules attach to a measure.
+    MEASURE_INDICATORS = 'caml:MeasureIndicators'
+    APPROPRIATION = 'caml:Appropriation'
+    FISCAL_COMMITTEE = 'caml:FiscalCommittee'
+    LOCAL_PROGRAM = 'caml:LocalProgram'
+    URGENCY = 'caml:Urgency'
+    TAX_LEVY = 'caml:TaxLevy'
+    VOTE_REQUIRED = 'caml:VoteRequired'
+    IMMEDIATE_EFFECT = 'caml:ImmediateEffect'
+    IMMEDIATE_EFFECT_FLAGS = 'caml:ImmediateEffectFlags'
+    PROP_25_TRAILER_BILL = 'caml:Prop25TrailerBill'
+    USUAL_CURRENT_EXPENSES = 'caml:UsualCurrentExpenses'
+    JOINT_RULE_11 = 'caml:JR11'
+
 
 class Glyph(enum.Enum):
     """What a span sets. The value is the class the file writes.
@@ -98,6 +174,11 @@ LEADERS = frozenset({
 BLOCKS = frozenset({
     Element.PARAGRAPH, Element.HEADING, Element.ROW,
     Element.TABLE, Element.HEAD, Element.BODY,
+    # A measure's own prose. The rest of its vocabulary is a field on the
+    # record, and reads where it sits.
+    Element.BILL_SECTION, Element.WHEREAS, Element.RESOLVED, Element.PREAMBLE,
+    Element.DIGEST_TEXT, Element.RELATING_CLAUSE, Element.ACTION_LINE,
+    Element.LAW_HEADING_TEXT, Element.BUDGET_HEADING_TEXT, Element.LAW_TITLE,
 })
 
 CELLS = frozenset({Element.CELL, Element.HEADER})

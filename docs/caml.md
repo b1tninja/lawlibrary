@@ -114,6 +114,20 @@ The last two are not cosmetic. A third read as three thousand percent is a
 different voting threshold, and a subdivision written `(_l_)` is neither the
 subdivision a reader searches for nor the one a citation parser can resolve.
 
+## One thing the markup cannot tell you
+
+`SmallCaps` is usually what it says: `U<span class="SmallCaps">nited</span>
+S<span class="SmallCaps">tates of</span> A<span
+class="SmallCaps">merica</span>` is a line set with small capitals, and it
+reads correctly by running the pieces together.
+
+A few of the 180 are not that. `A<span class="SmallCaps">:</span>o Nuevo` is
+Año Nuevo and `d<span class="SmallCaps">G</span>bris` is débris: the letter
+inside is an index into a font that is not published, not the character it
+looks like. Nothing in the markup says which of the two a span is, so these
+few words are stored as they are written. The flattened reading had the same
+words wrong; this is a limit of the source, not of the model.
+
 ## Checking the model against the corpus
 
 Every section of `pubinfo_2025` was parsed with `caml.py` and with the
@@ -133,8 +147,25 @@ Each of the 1,628 was attributed: 1,040 are italics written as Markdown, 234 a
 fraction, 240 a table as well, one small caps. In none of them does the CAML
 reading lose a word the flattened one keeps.
 
-The indexer still reads CAML with `html2text`; `caml.py` does not replace it.
-Changing what is stored means building the index again.
+`parse_caml` reads CAML with this model. A document that will not parse is
+flattened instead, because a section that is not well formed is still a
+section; none of the 162,431 in `pubinfo_2025` needed it. Reading CAML is also
+about four times quicker than flattening it.
+
+What this is worth, measured on the corpus:
+
+| | |
+| --- | --- |
+| Sections whose subdivision label gains its space | 62,927 |
+| Sections carrying a mangled `3313` | 28 |
+| Sections carrying markdown as statute (`_l_`) | 831 |
+| Sections where a thin space joins a constitutional article | 696 |
+
+The last is the one that changes what can be read. A thin space joins a roman
+numeral to a letter 704 times — `XIII B` 364, `XIII A` 182, `XIII D` 79,
+`XIII C` 47, `XIX B` 20 — and these are the articles Propositions 13 and 218
+wrote. Run together as `XIIIB`, none of them is a citation the library can
+find. Read as CAML, `Article XIII B` annotates as `CONS XIII B`.
 
 ## Reading the model
 
