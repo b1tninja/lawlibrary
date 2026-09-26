@@ -190,6 +190,20 @@ export function readPlace(place) {
   return { kind: 'leave' }
 }
 
+/* A miss says which edition it read.
+ *
+ * The index holds the publication years it was built from, and a section is
+ * only in it if that edition carried it. CIV 4600 is the Davis-Stirling Act
+ * as it was recodified for 2014; in the 2011 edition the same law sits at CIV
+ * 1350. Without this, a section that exists today reads as a section that
+ * does not exist. */
+export function editions(sessions) {
+  const years = (sessions || []).map(String).filter(Boolean).sort()
+  if (!years.length) return ''
+  if (years.length === 1) return `The index holds the ${years[0]} edition.`
+  return `The index holds the ${years[0]}–${years[years.length - 1]} editions.`
+}
+
 /* The words a miss says, keyed by the reason the server recorded. */
 const REASONS = {
   not_in_index: 'That is not in the index.',

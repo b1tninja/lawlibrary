@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { route, useJson } from './api.js'
 import './search.css'
 import { Hits } from './find.jsx'
-import { reasonWords, searchHref, sectionHref } from './place.js'
+import { editions, reasonWords, searchHref, sectionHref } from './place.js'
 
 const KEYS = [
   ['/', 'edit the search'],
@@ -193,7 +193,7 @@ export function Search({ here, codes, sessions, go }) {
       ? 'Searching the index.'
       : shown.length
         ? `${shown.length} ${shown.length === 1 ? 'section carries' : 'sections carry'} “${words}”${book ? ` in ${book}` : ''}.`
-        : `No section carries “${words}”${book ? ` in ${book}` : ''}.`
+        : `No section carries “${words}”${book ? ` in ${book}` : ''}. ${editions(sessions)}`
 
   return (
     <div className="ll" data-theme={theme}>
