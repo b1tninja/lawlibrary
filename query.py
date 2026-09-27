@@ -263,12 +263,42 @@ _UNIT_FIELDS = (
 )
 
 
+_CAPTION_UNIT = re.compile(
+    r'(?i)^(?P<unit>division|title|part|chapter|article)\s+(?P<number>[0-9]+(?:\.[0-9]+)*[A-Za-z]?)'
+)
+
+
+def _captions(doc):
+    """Every caption a stored section carries, filed under the unit it names.
+
+    A section stores the captions of all its ancestors, but on fields chosen
+    by a fixed order — article, chapter, part, title, division — that no code
+    actually nests in. The Civil Code runs division, part, title; the Penal
+    Code runs part, title, division; so ``TITLE 5. HIRING`` sits on
+    ``PART_HEADING`` and every Penal Code division's caption sits on the part
+    field. In 24,386 rows of the Legislature's own table of contents a
+    caption's first word disagrees with the rung it names zero times, so the
+    word is the key: the caption for title 5 is whichever caption says
+    ``TITLE 5``, whatever field it was stored on.
+    """
+    filed = {}
+    for _level, _field, caption in _UNIT_FIELDS:
+        words = (doc.get(caption) or '').strip()
+        named = _CAPTION_UNIT.match(words)
+        if named is not None:
+            filed[(named.group('unit').lower(), named.group('number'))] = words
+    return filed
+
+
 def _units_from_doc(doc):
     """Each unit this section sits in, with the number the index stored.
 
     ``path`` is the captions. This is the ladder itself, so a caller can name
-    the node without reading a number out of a heading.
+    the node without reading a number out of a heading. Each rung's caption is
+    the one that names it (see ``_captions``); a rung no caption names keeps
+    the field's own words, which for such a rung are empty.
     """
+    filed = _captions(doc)
     rungs = []
     for level, field, caption in _UNIT_FIELDS:
         value = (doc.get(field) or '').strip()
@@ -277,9 +307,20 @@ def _units_from_doc(doc):
         rungs.append({
             'level': level,
             'value': value,
-            'heading': (doc.get(caption) or '').strip(),
+            'heading': filed.get((level, value)) or _unnamed(doc.get(caption)),
         })
     return rungs
+
+
+def _unnamed(words):
+    """A stored caption only if it names no unit at all.
+
+    A caption that names another rung belongs to that rung, however it was
+    filed; handing it to this one is the misfiling made visible. A rung that
+    nothing names is uncaptioned, and says so with an empty string.
+    """
+    words = (words or '').strip()
+    return '' if _CAPTION_UNIT.match(words) else words
 
 
 def _section_payload(doc, subdivision=None):
@@ -1031,7 +1072,9 @@ def law_tree(url=''):
                 value = (hit.get(field) or '').strip()
                 if not value or value in found:
                     continue
-                found[value] = (hit.get(heading) or '').strip()
+                # The caption that names this rung, whatever field it sits on;
+                # the rung's own field only when nothing names it. See _captions.
+                found[value] = _captions(hit).get((unit, value)) or _unnamed(hit.get(heading))
                 if len(found) >= 400:
                     break
             if not found:
