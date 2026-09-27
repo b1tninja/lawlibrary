@@ -354,11 +354,14 @@ class Indexer:
             # document to collect the handful of years they share: the answer
             # is a few words and the corpus is a few hundred thousand
             # sections, and `_filter` asks for it on nearly every request.
+            # Whether a year has a section here is whether the intersection
+            # has a first document. A search, even for one result, scores
+            # every match of four dense terms: 1.5 s a year, 28 s a process.
             found = []
             for term in searcher.lexicon('SESSION'):
                 year = term.decode()
                 here = And(filt + [Term('SESSION', year)])
-                if searcher.search(here, limit=1).scored_length():
+                if here.matcher(searcher).is_active():
                     found.append(year)
             return sorted(found)
 
