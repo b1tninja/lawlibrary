@@ -93,9 +93,9 @@ def test_a_build_names_its_own_file_and_says_what_it_did(tmp_path):
 
 def test_the_ledger_defaults_to_where_readers_look(tmp_path, monkeypatch):
     """A shelf that readers have turned to is what the ledger counts, not the flat index."""
-    import core
+    import ledger
     root = _tree_index(tmp_path)
-    monkeypatch.setattr(core, 'index_root', lambda: pathlib.Path(root))
+    monkeypatch.setattr(ledger, 'index_root', lambda: pathlib.Path(root))
     book = open_ledger()
     assert book.root == root and book.session == '2025'
 
