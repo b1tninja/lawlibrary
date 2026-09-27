@@ -100,7 +100,7 @@ def application(environ, start_response):
     if path[0] == 'view':
         return _view(start_response, path[1:], query, environ, hint)
     if path[0] == 'tree':
-        return _tree(start_response, '/'.join(path[1:]))
+        return _tree(start_response, '/'.join(path[1:]), query)
     if path[0] == 'section' and len(path) >= 3:
         return _section(start_response, path[1], path[2], hint, _one(query, 'session') or None)
     if path == ['annotations']:
@@ -149,10 +149,15 @@ def _static(start_response, name):
     return [payload]
 
 
-def _tree(start_response, url):
-    """One node of the library. ``contents`` is that node's children as links."""
-    import query
-    node = query.law_tree(url)
+def _tree(start_response, url, query=None):
+    """One node of the library. ``contents`` is that node's children as links.
+
+    ``expand=all`` adds ``tree``: every heading under the node, nested, in the
+    publisher's order — the expanded table of contents in one reply.
+    """
+    import query as law
+    asked = (_one(query or {}, 'expand') or '').strip().lower()
+    node = law.law_tree(url, expand=asked in ('all', '1', 'true', 'yes'))
     if node.get('found'):
         node['crumbs'] = _library_crumbs(
             node.get('url') or 'us-ca', _code_label(node.get('code')),

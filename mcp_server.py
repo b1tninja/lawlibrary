@@ -77,7 +77,7 @@ def list_codes() -> list:
 
 
 @mcp.tool()
-def tree_law(url: str = '') -> dict:
+def tree_law(url: str = '', expand: bool = False) -> dict:
     """One level of the code tree.
 
     url is a path such as us-ca, us-ca/civ, or us-ca/civ/division/1/section/1940.
@@ -86,7 +86,7 @@ def tree_law(url: str = '') -> dict:
     children are the next level only. A section's children are its labels.
     An empty url is the home region, us-ca.
     """
-    return law_query.law_tree(url)
+    return law_query.law_tree(url, expand=expand)
 
 
 @mcp.tool()

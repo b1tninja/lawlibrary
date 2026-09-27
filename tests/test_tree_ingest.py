@@ -233,6 +233,72 @@ def test_the_tree_route_walks_the_publishers_tree(tmp_path, monkeypatch):
     ]
 
 
+def test_the_expanded_tree_is_the_whole_table_of_contents(tmp_path, monkeypatch):
+    """Every heading under the code, nested, in the publisher's order — headings only."""
+    query = _tree(tmp_path, monkeypatch)
+    root = query.law_tree('us-ca/civ', expand=True)
+    tree = root['tree']
+    assert [(row['unit'], row['value']) for row in tree] == [
+        ('division', '1'), ('division', '2'), ('unnumbered', ''),
+    ]
+    division = tree[1]
+    assert [(row['unit'], row['value']) for row in division['children']] == [('part', '1')]
+    title = division['children'][0]['children'][0]
+    assert title['heading'] == 'Title 3. General Definitions'
+    assert title['url'] == 'us-ca/civ/node/2.1.1'
+    assert title['holds'] is True and title['children'] == []
+    preliminary = tree[2]
+    assert preliminary['heading'] == 'PRELIMINARY PROVISIONS'
+    assert preliminary['holds'] is True and preliminary['children'] == []
+    # Sections are not rungs of the table of contents.
+    assert not any(row['unit'] == 'section' for row in tree)
+    # Without asking, the one-level tree stays what it was.
+    assert 'tree' not in query.law_tree('us-ca/civ')
+
+
+def test_a_node_expands_to_its_own_subtree(tmp_path, monkeypatch):
+    query = _tree(tmp_path, monkeypatch)
+    subtree = query.law_tree('us-ca/civ/node/2', expand=True)['tree']
+    assert [(row['unit'], row['value']) for row in subtree] == [('part', '1')]
+    assert [(row['unit'], row['value']) for row in subtree[0]['children']] == [('title', '3')]
+
+
+def test_the_route_expands_on_request(tmp_path, monkeypatch):
+    import json
+    import application
+    _tree(tmp_path, monkeypatch)
+    seen = {}
+
+    def start_response(status, headers):
+        seen['status'] = status
+
+    def ask(query_string):
+        return json.loads(b''.join(application.application(
+            {'REQUEST_METHOD': 'GET', 'PATH_INFO': '/tree/us-ca/civ', 'QUERY_STRING': query_string},
+            start_response,
+        )))
+
+    plain = ask('')
+    assert seen['status'] == '200 OK' and 'tree' not in plain
+    expanded = ask('expand=all')
+    assert [row['heading'] for row in expanded['tree']] == [
+        'Division 1. Persons', 'Division 2. Property', 'PRELIMINARY PROVISIONS',
+    ]
+    assert expanded['tree'][1]['children'][0]['children'][0]['url'] == 'us-ca/civ/node/2.1.1'
+
+
+def test_the_mcp_tree_expands_on_request(tmp_path, monkeypatch):
+    """The agent's tree tool answers with the same expanded table of contents."""
+    import mcp_server
+    _tree(tmp_path, monkeypatch)
+    assert 'tree' not in mcp_server.tree_law('us-ca/civ')
+    expanded = mcp_server.tree_law('us-ca/civ', expand=True)
+    assert [row['heading'] for row in expanded['tree']] == [
+        'Division 1. Persons', 'Division 2. Property', 'PRELIMINARY PROVISIONS',
+    ]
+    assert expanded['tree'][2]['holds'] is True
+
+
 def test_a_node_address_round_trips(tmp_path, monkeypatch):
     query = _tree(tmp_path, monkeypatch)
     place = query.parse_law_url('us-ca/civ/node/2.1')

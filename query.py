@@ -1025,12 +1025,17 @@ def _constraints(path):
     return And(terms) if len(terms) > 1 else terms[0]
 
 
-def law_tree(url=''):
+def law_tree(url='', expand=False):
     """The node at ``url`` and the children one level down.
 
     A country lists its regions. A region lists codes. A code lists the next
     heading that is present. A section lists its subdivision labels. A missing
     index is found false.
+
+    ``expand`` adds ``tree``: every heading under the node, nested, in the
+    publisher's order — the whole table of contents at once, as the
+    Legislature's expanded view draws it. It is read from the stored trails,
+    so it is given only where the index carries them.
     """
     head = [part for part in str(url or '').strip().strip('/').split('/') if part]
     if head == ['us']:
@@ -1087,6 +1092,8 @@ def law_tree(url=''):
         drawn = _tree_from_trails(path, hits)
         if drawn is not None:
             node.update(drawn)
+            if expand:
+                node['tree'] = _forest_from_trails(path, hits)
             return node
         for unit, field, heading in _LADDER:
             if unit in seen:
@@ -1171,6 +1178,42 @@ def _tree_from_trails(path, hits):
     else:
         children = sorted(sections, key=lambda child: section_key(child['value']))
     return {'children': children, 'trail': sample[:depth]}
+
+
+def _forest_from_trails(path, hits):
+    """Every heading under a node, nested, in the publisher's order.
+
+    The expanded table of contents: headings only, as the Legislature's own
+    expanded view draws it. Each rung says whether it holds sections, so a
+    reader can open the ones that do. Built from the same sections as the
+    one-level tree, in one pass: each section's trail below the node is
+    walked once and each rung is placed by its path.
+    """
+    depth = len(path.units[-1][1].split('.')) if path.units else 0
+    forest = {}
+    for hit in hits:
+        trail = hit.get('TOC_TRAIL') or ()
+        here = forest
+        for rung in trail[depth:]:
+            branch = here.setdefault(rung['path'], {
+                'url': path.child('node', rung['path']).url,
+                'unit': rung['unit'],
+                'value': rung['number'] or '',
+                'heading': rung['heading'],
+                'position': rung['position'],
+                'path': rung['path'],
+                'holds': rung['holds'],
+                'children': {},
+            })
+            here = branch['children']
+
+    def settle(level):
+        rows = sorted(level.values(), key=lambda row: (row['position'], heading_key(row['value'])))
+        for row in rows:
+            row['children'] = settle(row['children'])
+        return rows
+
+    return settle(forest)
 
 
 def index_path():
