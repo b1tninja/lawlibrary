@@ -125,6 +125,36 @@ _CITATION = re.compile(
 # What one build of the index says about itself. See Indexer._kept.
 _KEPT = {}
 
+# Needle stores whose schema this process has already seen complete, by path.
+# See Indexer._needle_db.
+_NEEDLE_READY = set()
+
+def _write_ahead(db):
+    """Put the needle store in write-ahead mode, once, if it is not already.
+
+    In SQLite's default journal a writer's commit takes a lock that shuts out
+    every reader, and one build commit — five thousand sections of needles
+    and annotations — can outlast a reader's whole patience. In write-ahead
+    mode a reader never waits on a writer and a writer never waits on a
+    reader, which is the property a library being read while it is built
+    needs. The pragma is persistent on the file and a read on a file already
+    in that mode. While a writer holds the old-style lock it cannot be set,
+    so that case is let go; the next unlocked open converts the file.
+    """
+    try:
+        db.execute('PRAGMA journal_mode=WAL')
+    except sqlite3.OperationalError:
+        pass
+
+
+# The newest column and index each table gained. A store that has these has
+# every earlier one too, so this is the whole schema check.
+_NEEDLE_SCHEMA = (
+    ('needle', 'root', 'needle_citation'),
+    ('edge', 'kind', 'edge_prior'),
+    ('annotation', 'join_kind', 'annotation_citation'),
+)
+
 DEFAULT_COUNTRY = 'US'
 DEFAULT_SUBDIVISION = 'US-CA'
 
@@ -419,12 +449,29 @@ class Indexer:
         return folded
 
     def _needle_db(self):
+        """The needle store. A reader never takes the write lock to open it.
+
+        Every ``CREATE ... IF NOT EXISTS`` and every ``ALTER`` probe below asks
+        SQLite for a write lock, even when there is nothing to do, so a route
+        or a test opening the store while an index build held the lock failed
+        on the spot with ``database is locked``. The schema is read from
+        ``sqlite_master`` first, which is a read; the DDL runs only when
+        something is missing, once per path in this process. A reader also
+        waits out a writer's commit instead of failing inside it.
+        """
         path = os.path.join(self.idx_path, 'needles.sqlite')
-        db = sqlite3.connect(path)
+        db = sqlite3.connect(path, timeout=30)
+        _write_ahead(db)
+        if path in _NEEDLE_READY or self._needle_schema_present(db):
+            _NEEDLE_READY.add(path)
+            return db
         db.execute(
             'CREATE TABLE IF NOT EXISTS needle ('
-            'citation TEXT, code TEXT, class TEXT, form TEXT, start INTEGER, end INTEGER)'
+            'citation TEXT, code TEXT, class TEXT, form TEXT, root TEXT, start INTEGER, end INTEGER)'
         )
+        columns = [row[1] for row in db.execute('PRAGMA table_info(needle)')]
+        if 'root' not in columns:
+            db.execute('ALTER TABLE needle ADD COLUMN root TEXT')
         db.execute(
             'CREATE TABLE IF NOT EXISTS edge ('
             'citation TEXT, code TEXT, kind TEXT, prior TEXT, receiver TEXT)'
@@ -450,7 +497,29 @@ class Indexer:
         db.execute('CREATE INDEX IF NOT EXISTS annotation_note_code ON annotation (note, code)')
         db.execute('CREATE INDEX IF NOT EXISTS annotation_note_target ON annotation (note, target)')
         db.execute('CREATE INDEX IF NOT EXISTS annotation_citation ON annotation (citation)')
+        _NEEDLE_READY.add(path)
         return db
+
+    @staticmethod
+    def _needle_schema_present(db):
+        """Whether the store already has every table, column, and index.
+
+        ``sqlite_master`` and ``PRAGMA table_info`` are reads, so this asks
+        nothing of a writer holding the lock. The check is the newest column
+        and index each table gained (see ``_NEEDLE_SCHEMA``): a store that has
+        those has every earlier one.
+        """
+        have = {
+            (kind, name)
+            for kind, name in db.execute("SELECT type, name FROM sqlite_master WHERE type IN ('table', 'index')")
+        }
+        for table, column, index in _NEEDLE_SCHEMA:
+            if ('table', table) not in have or ('index', index) not in have:
+                return False
+            columns = [row[1] for row in db.execute('PRAGMA table_info(%s)' % table)]
+            if column not in columns:
+                return False
+        return True
 
     def _record_needles(self, db, doc, shelf=None, replace=True):
         """Store the needles that apply to this document, and the relationships."""
