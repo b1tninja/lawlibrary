@@ -56,22 +56,25 @@ def counts(citations):
     idxer = Indexer()
     db = idxer._needle_db()
     try:
+        # Each ask is by citation, and says so: left to choose, SQLite took
+        # the note index for the third and read every case and named act in
+        # the store — two seconds — to answer for a few hundred sections.
         terms = _placed(_ask(
             db,
-            'SELECT citation, form, COUNT(*) FROM needle WHERE citation IN (%s) '
-            'GROUP BY citation, form',
+            'SELECT citation, form, COUNT(*) FROM needle INDEXED BY needle_citation '
+            'WHERE citation IN (%s) GROUP BY citation, form',
             listed,
         ))
         notes = _placed(_ask(
             db,
-            'SELECT citation, note, COUNT(*) FROM annotation WHERE citation IN (%s) '
-            "AND note NOT IN ('case', 'named_act') GROUP BY citation, note",
+            'SELECT citation, note, COUNT(*) FROM annotation INDEXED BY annotation_citation '
+            "WHERE citation IN (%s) AND note NOT IN ('case', 'named_act') GROUP BY citation, note",
             listed,
         ))
         named = _ask(
             db,
-            'SELECT citation, text, COUNT(*) FROM annotation WHERE citation IN (%s) '
-            "AND note IN ('case', 'named_act') AND text != '' GROUP BY citation, text",
+            'SELECT citation, text, COUNT(*) FROM annotation INDEXED BY annotation_citation '
+            "WHERE citation IN (%s) AND note IN ('case', 'named_act') AND text != '' GROUP BY citation, text",
             listed,
         )
     finally:
@@ -213,8 +216,8 @@ def scope(url, limit=LEAVES):
     wider than ``limit`` sections is cut to the first ones in statutory order,
     and ``more`` says how many were left out.
     """
-    from whoosh import index
     import query
+    from core import open_index
     path = query.parse_law_url(url)
     if not path.code:
         return {'found': False, 'reason': 'not_in_index', 'expression': url or ''}
@@ -224,7 +227,7 @@ def scope(url, limit=LEAVES):
     code = query._resolve_known_code(idxer, path.code)
     if code is None:
         return {'found': False, 'reason': 'unknown_code', 'expression': url or ''}
-    opened = index.open_dir(idxer.idx_path)
+    opened = open_index(idxer.idx_path)
     with opened.searcher() as searcher:
         hits = searcher.search(query._constraints(path), limit=None)
         docs = [dict(hit) for hit in hits]

@@ -13,7 +13,7 @@ from whoosh import index
 from whoosh.query import And, Or, Prefix, Term
 
 import corpus
-from core import index_dir
+from core import index_dir, open_index, within
 from indexer import DEFAULT_COUNTRY, DEFAULT_SUBDIVISION, Indexer
 from us.counties.ca.sacramento.cities.sacramento import Sacramento
 
@@ -373,12 +373,11 @@ def _chapters(history):
 def _docs_for_code(idxer, code, session=None, country=None, subdivision=None):
     if not _index_ready(idxer):
         return []
-    idx = index.open_dir(idxer.idx_path)
+    idx = open_index(idxer.idx_path)
     with idx.searcher() as searcher:
         results = searcher.search(
-            Term('LAW_CODE', code),
+            within(Term('LAW_CODE', code), idxer._filter(True, session, country=country, subdivision=subdivision)),
             limit=None,
-            filter=idxer._filter(True, session, country=country, subdivision=subdivision),
         )
         return [dict(hit) for hit in results]
 
@@ -439,13 +438,12 @@ def place(locality='Sacramento'):
 
 def _get_section_doc(idxer, code, number, session=None, country=None, subdivision=None):
     section_num = str(number).rstrip('.')
-    idx = index.open_dir(idxer.idx_path)
+    idx = open_index(idxer.idx_path)
     query = And([Term('LAW_CODE', code), Term('SECTION_NUM', section_num)])
     with idx.searcher() as searcher:
         results = searcher.search(
-            query,
+            within(query, idxer._filter(True, session, country=country, subdivision=subdivision)),
             limit=20,
-            filter=idxer._filter(True, session, country=country, subdivision=subdivision),
         )
         if not results:
             return None
@@ -461,13 +459,12 @@ def _indexed_in(idxer, code, number, *, exclude, country=None, subdivision=None)
     if exclude == 'all':
         return []
     section_num = str(number).rstrip('.')
-    idx = index.open_dir(idxer.idx_path)
+    idx = open_index(idxer.idx_path)
     query = And([Term('LAW_CODE', code), Term('SECTION_NUM', section_num)])
     with idx.searcher() as searcher:
         results = searcher.search(
-            query,
+            within(query, idxer._filter(True, 'all', country=country, subdivision=subdivision)),
             limit=50,
-            filter=idxer._filter(True, 'all', country=country, subdivision=subdivision),
         )
         rows = []
         seen = set()
@@ -546,12 +543,11 @@ def beside(code, number):
             terms.append(Term(identity[level], value))
     numbers = []
     if len(terms) > 1:
-        ix = index.open_dir(idxer.idx_path)
+        ix = open_index(idxer.idx_path)
         with ix.searcher() as searcher:
             hits = searcher.search(
-                And(terms),
+                within(And(terms), idxer._filter(True, None)),
                 limit=None,
-                filter=idxer._filter(True, None),
             )
             numbers = [hit.get('SECTION_NUM') for hit in hits if hit.get('SECTION_NUM')]
     ordered = sorted(set(numbers), key=section_key)
@@ -1079,7 +1075,7 @@ def law_tree(url='', expand=False):
     if path.subdivision:
         return node
     seen = {unit for unit, _value in path.units}
-    ix = index.open_dir(_indexer().idx_path)
+    ix = open_index(_indexer().idx_path)
     if 'node' in seen and 'TOC_PATH' not in ix.schema.names():
         # A node is a place in the publisher's tree, and this index was built
         # before that tree was stored on a section. The address is not wrong;

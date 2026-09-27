@@ -9,6 +9,8 @@ import os
 import random
 
 from whoosh import index
+
+from core import open_index
 from whoosh.qparser import QueryParser
 from whoosh.query import And, Term
 
@@ -107,7 +109,7 @@ def _draw_statute(idxer, code, n, seed, pattern):
     if resolved not in known:
         return _miss('unknown_book', kind=Instrument.STATUTE.value, book=code)
     session = law_query._session_value(idxer, None)
-    idx = index.open_dir(idxer.idx_path)
+    idx = open_index(idxer.idx_path)
     with idx.searcher() as searcher:
         if pattern:
             parsed = QueryParser('LEGAL_TEXT', idx.schema).parse(pattern)

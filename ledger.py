@@ -33,9 +33,8 @@ import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from whoosh import index
-from whoosh.filedb.filestore import FileStorage
 
-from core import index_dir
+from core import index_dir, open_index
 
 SCOPES = ('code', 'division', 'chapter', 'article', 'node', 'state', 'federal')
 
@@ -43,18 +42,6 @@ _LADDER = ('DIVISION', 'TITLE', 'PART', 'CHAPTER', 'ARTICLE')
 _FIELD = 'LEGAL_TEXT'
 _SMALL = 2000
 _BATCH = 400
-
-
-def _open(root):
-    """The index, read through the file and not through a copy of it.
-
-    Whoosh's compound segment files are opened by copying each one into the
-    process (``BytesIO`` over the mapped buffer), which is one copy of the
-    postings per reader — several gigabytes each — and thirty-two workers
-    exhausted the machine before they had counted a word. Reading through
-    the file instead costs a seek per posting block, and the drive is fast.
-    """
-    return FileStorage(str(root), supports_mmap=False, readonly=True).open_index()
 
 
 def keep(term):
@@ -93,7 +80,7 @@ def _seat(fields):
 
 def _seat_slice(path, docnums):
     """One slice of documents, each with its seat. Runs in a worker."""
-    ix = _open(path)
+    ix = open_index(path)
     found = []
     with ix.searcher() as searcher:
         for docnum in docnums:
@@ -144,7 +131,7 @@ def _walk(bounds):
     term is seen here, so the document frequency is exact.
     """
     start, stop = bounds
-    ix = _open(_PATH)
+    ix = open_index(_PATH)
     tallies = []
     frequencies = []
     with ix.searcher() as searcher:
@@ -204,7 +191,7 @@ def build(root=None, workers=None, log=None):
     in a moment is counted in this process.
     """
     root = str(root or index_dir())
-    ix = _open(root)
+    ix = open_index(root)
     generation = ix.latest_generation()
     final = ledger_path(root, generation)
     started = time.time()
@@ -402,7 +389,7 @@ def open_ledger(root=None, workers=None, log=None):
     root = str(root or index_dir())
     if not index.exists_in(root):
         return None
-    generation = index.open_dir(root).latest_generation()
+    generation = open_index(root).latest_generation()
     with _LOCK:
         held = _OPEN.get(root)
         if held is not None and held.generation == generation and os.path.exists(held.path):

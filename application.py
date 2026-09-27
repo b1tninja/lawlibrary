@@ -433,13 +433,14 @@ def _indexed_frequency(term):
     """How many stored sections contain the analyzed token. A phrase stays unset."""
     from indexer import Indexer, _ANALYZER
     from whoosh import index as whoosh_index
+    from core import open_index
     tokens = [token.text for token in _ANALYZER(term or '')]
     if len(tokens) != 1:
         return None
     idxer = Indexer()
     if not whoosh_index.exists_in(idxer.idx_path):
         return None
-    ix = whoosh_index.open_dir(idxer.idx_path)
+    ix = open_index(idxer.idx_path)
     with ix.searcher() as searcher:
         return searcher.doc_frequency('LEGAL_TEXT', tokens[0])
 
@@ -995,8 +996,8 @@ def _contents_facts(url, children):
     and the first and the last of them. That is one pass over the node, kept
     against the generation it was read from.
     """
-    from whoosh import index
     import query
+    from core import open_index
     kids = [child for child in children or [] if child.get('value')]
     unit = kids[0].get('unit') if kids else ''
     field = _UNIT_FIELD.get(unit or '')
@@ -1005,7 +1006,7 @@ def _contents_facts(url, children):
     idxer = query._indexer()
     if not query._index_ready(idxer):
         return {}
-    opened = index.open_dir(idxer.idx_path)
+    opened = open_index(idxer.idx_path)
     key = (opened.latest_generation(), url, unit)
     if key in _FACTS:
         return _FACTS[key]
@@ -1096,8 +1097,8 @@ def _branch(node, row):
 def _pick_section():
     """One current section. Each call may return a different code and number."""
     import random
-    from whoosh import index
     import query
+    from core import open_index
     if not query.index_present():
         return None
     idxer = query._indexer()
@@ -1109,7 +1110,7 @@ def _pick_section():
     session = query._session_value(idxer, None)
     chosen = None
     seen = 0
-    opened = index.open_dir(idxer.idx_path)
+    opened = open_index(idxer.idx_path)
     with opened.searcher() as searcher:
         for docnum in searcher.document_numbers(LAW_CODE=code):
             fields = searcher.stored_fields(docnum)

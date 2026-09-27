@@ -15,7 +15,7 @@ from whoosh.reading import TermNotFound
 
 import sqlite3
 
-from core import index_dir
+from core import index_dir, open_index, within
 from needles import occurrences
 from utils import mkdir
 from vesting import grants
@@ -342,7 +342,7 @@ class Indexer:
         )
 
     def _read_sessions(self, country, subdivision):
-        idx = index.open_dir(self.idx_path)
+        idx = open_index(self.idx_path)
         with idx.searcher() as searcher:
             if country is None and subdivision is None:
                 return sorted(term.decode() for term in searcher.lexicon('SESSION'))
@@ -364,13 +364,12 @@ class Indexer:
 
     def search_law(self, q, callback=None, limit=10, active_only=True, session=None,
                    country=None, subdivision=None):
-        idx = index.open_dir(self.idx_path)
+        idx = open_index(self.idx_path)
         with idx.searcher() as searcher:
             parsed = self._parse(q, idx.schema)
             results = searcher.search(
-                parsed,
+                within(parsed, self._filter(active_only, session, country=country, subdivision=subdivision)),
                 limit=limit,
-                filter=self._filter(active_only, session, country=country, subdivision=subdivision),
             )
             results.fragmenter = highlight.ContextFragmenter(surround=128)
             results.formatter = highlight.UppercaseFormatter()
@@ -389,7 +388,7 @@ class Indexer:
         tokens = [token.text for token in _ANALYZER(anchor or '')]
         if not tokens or not index.exists_in(self.idx_path):
             return None
-        ix = index.open_dir(self.idx_path)
+        ix = open_index(self.idx_path)
         rows = []
         with ix.searcher() as searcher:
             matcher = Phrase('LEGAL_TEXT', tokens).matcher(searcher)
@@ -411,13 +410,12 @@ class Indexer:
                     country=None, subdivision=None):
         code = self._resolve_code(code)
         section = str(section).rstrip('.')
-        idx = index.open_dir(self.idx_path)
+        idx = open_index(self.idx_path)
         query = And([Term('LAW_CODE', code), Term('SECTION_NUM', section)])
         with idx.searcher() as searcher:
             results = searcher.search(
-                query,
+                within(query, self._filter(active_only, session, country=country, subdivision=subdivision)),
                 limit=20,
-                filter=self._filter(active_only, session, country=country, subdivision=subdivision),
             )
             return [self._section(hit) for hit in results]
 
@@ -593,7 +591,7 @@ class Indexer:
         if not index.exists_in(self.idx_path):
             return 0
         workers = max(1, int(workers or 1))
-        ix = index.open_dir(self.idx_path)
+        ix = open_index(self.idx_path)
         db = self._needle_db()
         pool = None
         count = 0
@@ -844,7 +842,7 @@ class Indexer:
         if not index.exists_in(self.idx_path):
             return make()
         key = (os.path.abspath(self.idx_path),
-               index.open_dir(self.idx_path).latest_generation(), name)
+               open_index(self.idx_path).latest_generation(), name)
         if key not in _KEPT:
             if len(_KEPT) > 64:
                 _KEPT.clear()
@@ -857,7 +855,7 @@ class Indexer:
             return False
 
         def look():
-            idx = index.open_dir(self.idx_path)
+            idx = open_index(self.idx_path)
             try:
                 with idx.searcher() as searcher:
                     return any(True for _ in searcher.lexicon('COUNTRY'))

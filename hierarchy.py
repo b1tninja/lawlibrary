@@ -12,6 +12,8 @@ import re
 import sqlite3
 
 from whoosh import index
+
+from core import open_index
 from whoosh.qparser import QueryParser
 
 from needles import noun_pattern
@@ -150,7 +152,7 @@ def collect(idx_path):
     rows = []
     seen = set()
     if index.exists_in(idx_path):
-        ix = index.open_dir(idx_path)
+        ix = open_index(idx_path)
         parser = QueryParser('LEGAL_TEXT', ix.schema)
         with ix.searcher() as searcher:
             for phrase in _PHRASES:
