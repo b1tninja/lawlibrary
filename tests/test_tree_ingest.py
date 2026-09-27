@@ -284,7 +284,15 @@ def test_the_route_expands_on_request(tmp_path, monkeypatch):
     assert [row['heading'] for row in expanded['tree']] == [
         'Division 1. Persons', 'Division 2. Property', 'PRELIMINARY PROVISIONS',
     ]
-    assert expanded['tree'][1]['children'][0]['children'][0]['url'] == 'us-ca/civ/node/2.1.1'
+    title = expanded['tree'][1]['children'][0]['children'][0]
+    assert title['url'] == 'us-ca/civ/node/2.1.1'
+    # Each rung is drawn the way a one-level child is: a link, a caption, and
+    # whether it holds sections, so the client draws the two lists alike.
+    assert title['href'] == '/view/tree/us-ca/civ/node/2.1.1'
+    assert title['label'] == 'Title 3. General Definitions'
+    assert title['holds'] is True and title['children'] == []
+    assert expanded['tree'][2]['unit'] == 'unnumbered'
+    assert expanded['tree'][2]['label'] == 'PRELIMINARY PROVISIONS'
 
 
 def test_the_mcp_tree_expands_on_request(tmp_path, monkeypatch):

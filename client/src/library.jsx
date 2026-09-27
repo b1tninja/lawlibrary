@@ -1,11 +1,14 @@
 /* The library, one level at a time. `/tree/{url}` is the node; `contents` is
- * the next headings as links. A section is its own view.
+ * the next headings as links. Asked with `expand=all`, `tree` is every
+ * heading under the node, nested the way the publisher nests them — the
+ * Legislature's expanded table of contents. A section is its own view.
  */
 
 import { useMemo, useState } from 'react'
 
 import { useJson } from './api.js'
 import { Link, Pieces } from './marks.jsx'
+import { headings, sift } from './outline.js'
 import { reasonWords } from './place.js'
 
 export function Crumbs({ crumbs, go }) {
@@ -30,6 +33,7 @@ const UNITS = {
   chapter: 'Chapter', article: 'Article', section: 'Section',
 }
 
+
 /* A rung the index has no caption for is a bare number, and a list of bare
  * numbers says nothing about what it opens. Name the rung at least. */
 function words(item, short) {
@@ -48,21 +52,46 @@ function tally(item) {
   return item.first ? `§§ ${item.first}–${item.last} · ${many}` : many
 }
 
-export function Contents({ items, go, heading, sift, short }) {
+/* A rung that holds sections is one a reader can open to the law itself. */
+function holds(item) {
+  if (!item.holds) return null
+  return <span className="holds" title="Holds sections" aria-label="Holds sections">§</span>
+}
+
+/* One list of rungs. A rung with rungs under it draws them as its own list,
+ * so the nesting on the page is the publisher's and not a margin per unit. */
+function Rungs({ items, go, short, nested }) {
+  return (
+    <ol className={nested ? 'contents nested' : 'contents'}>
+      {items.map((item, index) => (
+        <li key={item.href + index} className={`cut-${item.unit}`} title={item.label}>
+          {item.current
+            ? <span aria-current="page">{words(item, short)}</span>
+            : <Link href={item.href} go={go}>{words(item, short)}</Link>}
+          {holds(item)}
+          {tally(item) ? <span className="tally">{tally(item)}</span> : null}
+          {item.children && item.children.length
+            ? <Rungs items={item.children} go={go} short={short} nested />
+            : null}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+export function Contents({ items, go, heading, sift: sifts, short, nested, aside }) {
   const [only, setOnly] = useState('')
-  const kept = useMemo(() => {
-    const needle = only.trim().toLowerCase()
-    if (!needle) return items || []
-    return (items || []).filter((item) => String(item.label || '').toLowerCase().includes(needle))
-  }, [items, only])
+  const kept = useMemo(() => sift(items, only), [items, only])
   if (!items || !items.length) return null
+  const count = nested ? headings(items) : items.length
   return (
     <section className="contents-block">
       <h2>
         {heading || 'Contents'}
-        <span className="thin"> {items.length}</span>
+        <span className="thin"> {count}</span>
+        {aside}
       </h2>
-      {sift && items.length > 12 ? (
+      {sifts && count > 12 ? (
         <p className="sift">
           <input
             value={only}
@@ -72,28 +101,31 @@ export function Contents({ items, go, heading, sift, short }) {
           />
         </p>
       ) : null}
-      <ol className="contents">
-        {kept.map((item, index) => (
-          <li key={item.href + index} className={`cut-${item.unit}`} title={item.label}>
-            {item.current
-              ? <span aria-current="page">{words(item, short)}</span>
-              : <Link href={item.href} go={go}>{words(item, short)}</Link>}
-            {tally(item) ? <span className="tally">{tally(item)}</span> : null}
-          </li>
-        ))}
-      </ol>
+      <Rungs items={kept} go={go} short={short} nested={nested} />
       {!kept.length ? <p className="thin">No heading matches that.</p> : null}
     </section>
   )
 }
 
 export function Library({ url, go }) {
-  const { body, loading } = useJson('/tree/' + String(url || '').split('/').filter(Boolean).map(encodeURIComponent).join('/'))
+  const [whole, setWhole] = useState(false)
+  const node = '/tree/' + String(url || '').split('/').filter(Boolean).map(encodeURIComponent).join('/')
+  const { body, loading } = useJson(whole ? node + '?expand=all' : node)
   if (loading && !body) return <p className="thin">Opening the library.</p>
   if (!body) return null
   if (!body.found) return <p className="miss">{reasonWords(body)}</p>
   const crumbs = body.crumbs || []
   const here = crumbs.length ? crumbs[crumbs.length - 1].label : 'Library'
+  // The whole table of contents is drawn from the publisher's tree, which an
+  // index built before the trail was stored does not carry. That index
+  // answers without `trail`, and then there is nothing to expand.
+  const treed = 'trail' in body && (body.contents || []).some((item) => item.unit !== 'section')
+  const expanded = whole && Array.isArray(body.tree)
+  const toggle = treed ? (
+    <button type="button" className="plain expand" onClick={() => setWhole(!whole)}>
+      {whole ? 'one level' : 'expand all'}
+    </button>
+  ) : null
   return (
     <>
       <Crumbs crumbs={crumbs} go={go} />
@@ -104,7 +136,9 @@ export function Library({ url, go }) {
           <a className="plain" href={`/mirror/${body.url}`}>reference copy</a>
         ) : null}
       </p>
-      <Contents items={body.contents} go={go} sift heading="Contents" />
+      {expanded
+        ? <Contents items={body.tree} go={go} sift nested heading="Contents" aside={toggle} />
+        : <Contents items={body.contents} go={go} sift heading="Contents" aside={toggle} />}
       {!(body.contents || []).length ? <p className="thin">No further headings.</p> : null}
     </>
   )

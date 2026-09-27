@@ -168,6 +168,8 @@ def _tree(start_response, url, query=None):
             _child(node, child, _contents_facts(node.get('url') or url, children))
             for child in children
         ]
+        if node.get('tree'):
+            node['tree'] = [_branch(node, row) for row in node['tree']]
     status = '200 OK' if node.get('found') else '404 Not Found'
     return _send(start_response, status, node)
 
@@ -1064,6 +1066,8 @@ def _child(node, child, facts=None):
         'unit': child.get('unit') or '',
         'pieces': _pieces(heading, heading=True) if heading else None,
     }
+    if child.get('holds') is not None:
+        row['holds'] = bool(child['holds'])
     if held.get('sections'):
         row['sections'] = held['sections']
         # A caption carries the publisher's own span in brackets, and that is
@@ -1073,6 +1077,20 @@ def _child(node, child, facts=None):
             row['first'] = held.get('first') or ''
             row['last'] = held.get('last') or ''
     return row
+
+
+def _branch(node, row):
+    """One rung of the expanded table of contents, with the rungs under it.
+
+    The same link and caption a one-level child gets, nested the way the
+    publisher nests them. Headings only, so no count is read for a rung; the
+    rung says whether it holds sections.
+    """
+    drawn = _child(node, row)
+    drawn['url'] = row.get('url') or ''
+    drawn['heading'] = row.get('heading') or ''
+    drawn['children'] = [_branch(node, child) for child in row.get('children') or []]
+    return drawn
 
 
 def _pick_section():

@@ -160,6 +160,26 @@ form.find.closure label.flag {
   white-space: nowrap;
 }
 
+/* The expanded table of contents. Each rung's own list sits under it, so the
+ * indent is the publisher's nesting; the margin a unit's name would give it
+ * is set aside, because the codes do not share one ladder. */
+.contents-block ol.contents.nested li { margin-left: 0; }
+.contents-block ol.contents.nested ol.contents {
+  margin: 0.28rem 0 0 0.9rem;
+  padding-left: 0;
+}
+.contents-block ol.contents.nested ol.contents li:last-child { border-bottom: 0; }
+.contents-block .holds {
+  margin-left: 0.4rem;
+  color: #8a8172;
+  font-size: 0.82em;
+}
+.contents-block h2 .expand {
+  float: right;
+  font-size: 0.72em;
+  font-weight: 400;
+}
+
 .sift {
   margin: 0 0 0.4rem;
 }
