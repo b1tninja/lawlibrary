@@ -13,7 +13,7 @@ from whoosh import index
 from whoosh.query import And, Or, Prefix, Term
 
 import corpus
-from core import index_dir, open_index, within
+from core import index_dir, index_ready, open_index, within
 from indexer import DEFAULT_COUNTRY, DEFAULT_SUBDIVISION, Indexer
 from us.counties.ca.sacramento.cities.sacramento import Sacramento
 
@@ -222,7 +222,7 @@ def _indexer():
 
 def _index_ready(idxer=None):
     idxer = idxer or _indexer()
-    return index.exists_in(idxer.idx_path)
+    return index_ready(idxer.idx_path)
 
 
 def _resolve_known_code(idxer, token):
@@ -1218,4 +1218,4 @@ def index_path():
 
 def index_present():
     path = index_path()
-    return os.path.isdir(path) and index.exists_in(path)
+    return index_ready(path)

@@ -34,7 +34,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from whoosh import index
 
-from core import index_dir, open_index
+from core import index_dir, index_ready, open_index
 
 SCOPES = ('code', 'division', 'chapter', 'article', 'node', 'state', 'federal')
 
@@ -387,7 +387,7 @@ def open_ledger(root=None, workers=None, log=None):
     once build once.
     """
     root = str(root or index_dir())
-    if not index.exists_in(root):
+    if not index_ready(root):
         return None
     generation = open_index(root).latest_generation()
     with _LOCK:

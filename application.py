@@ -432,13 +432,12 @@ def _search(start_response, query):
 def _indexed_frequency(term):
     """How many stored sections contain the analyzed token. A phrase stays unset."""
     from indexer import Indexer, _ANALYZER
-    from whoosh import index as whoosh_index
-    from core import open_index
+    from core import index_ready, open_index
     tokens = [token.text for token in _ANALYZER(term or '')]
     if len(tokens) != 1:
         return None
     idxer = Indexer()
-    if not whoosh_index.exists_in(idxer.idx_path):
+    if not index_ready(idxer.idx_path):
         return None
     ix = open_index(idxer.idx_path)
     with ix.searcher() as searcher:

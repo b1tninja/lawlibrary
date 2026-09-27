@@ -6,7 +6,7 @@ Sacramento, California, USA is the home jurisdiction. `python ca.py` is that pla
 
 | Path | What it is |
 | --- | --- |
-| `core.py` | Package root, the data archive, the Whoosh index, and the SQLite corpus directory. |
+| `core.py` | Package root, the data archive, the Whoosh index, and the SQLite corpus directory. The shelf — one index per edition under `data/shelf/<year>/`, built at once and read as one — is `core.open_index`. |
 | `ca.py` | The command. It calls `us.ca`. |
 | `us/ca/` | California statutes and bills from the Legislature's pubinfo zips. |
 | `us/ca/counties/sacramento/` | Sacramento County. |

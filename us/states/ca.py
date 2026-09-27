@@ -11,7 +11,7 @@ import pprint
 import re
 import sys
 import zipfile
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from contextlib import closing
 from types import SimpleNamespace
 
@@ -542,6 +542,7 @@ def _boot_worker(path, CODES_TBL, toc_by_path, by_version, by_section, SESSION):
 
 
 def _format_chunk(rows):
+    from indexer import needle_rows
     zf = _WORK['zf']
     framed = []
     for law_section in rows:
@@ -551,6 +552,7 @@ def _format_chunk(rows):
                                by_version=_WORK['by_version'], by_section=_WORK['by_section'],
                                SESSION=_WORK['SESSION'])
         if d is not None:
+            d['NEEDLES'] = needle_rows(d)
             framed.append(d)
     return framed
 
@@ -682,11 +684,14 @@ def _boot_bill_worker(path, SESSION):
 
 
 def _format_bill_chunk(rows):
+    from indexer import needle_rows
     zf = _WORK['zf']
     framed = []
     for row in rows:
         lob_file = BillVersionTblDict(row)['LOB_FILE']
-        framed.append(format_bill_section(row, read_lob(zf, lob_file), _WORK['SESSION']))
+        section = format_bill_section(row, read_lob(zf, lob_file), _WORK['SESSION'])
+        section['NEEDLES'] = needle_rows(section)
+        framed.append(section)
     return framed
 
 
@@ -767,6 +772,96 @@ def index_pubinfos(basedir, all_sessions=True, workers=None):
             logger.info("Indexed %s sections from %s", count, os.path.basename(path))
     else:
         logger.info("No more pubinfo_*.zip(s) to index in %s", basedir)
+
+
+def _build_edition(zip_path, edition_dir, workers, procs):
+    """One edition, in its own directory, in this process. Returns the count.
+
+    The edition builds beside its directory and moves into place only once
+    its mark is written, so a reader never sees a half-built edition and a
+    rebuild keeps serving the old one until the new one is whole.
+    """
+    import shutil
+    from indexer import Indexer
+    logging.basicConfig(level=logging.INFO)
+    california = California()
+    edition = california.edition(zip_path)
+    building = edition_dir + '.building'
+    if os.path.isdir(building):
+        shutil.rmtree(building)
+    os.makedirs(building)
+    indexer = Indexer(building, procs=procs)
+    count = edition.index(indexer, zip_path, workers=workers, subdivision=california.code)
+    indexer.mark_edition(session_year(zip_path), count, os.path.basename(zip_path))
+    old = edition_dir + '.old'
+    if os.path.isdir(old):
+        shutil.rmtree(old)
+    if os.path.isdir(edition_dir):
+        os.rename(edition_dir, old)
+    os.rename(building, edition_dir)
+    if os.path.isdir(old):
+        shutil.rmtree(old, ignore_errors=True)
+    return count
+
+
+def index_shelf(basedir, all_sessions=True, workers=None, at_once=None, procs=None, force=False, root=None):
+    """Build the shelf: one index per edition, several editions at once.
+
+    Each edition is its own Whoosh index with its own needle store, built in
+    its own process with its own parse pool and writer processes, so
+    nothing waits on a lock another edition holds. An edition already
+    marked complete is kept unless ``force``. The flat index is not touched.
+
+    ``at_once`` editions build together; each has ``workers`` parse
+    processes and ``procs`` writer processes. The defaults share the
+    machine: on 32 processors, four editions, four parsers and two writers
+    each. Largest editions start first so the last one to finish is small.
+    """
+    from core import EDITION_MARK, shelf_dir
+    root = str(root or shelf_dir())
+    os.makedirs(root, exist_ok=True)
+    zips = session_zips(basedir)
+    if zips and not all_sessions:
+        zips = zips[-1:]
+    jobs = []
+    for path in zips:
+        year = session_year(path)
+        if year is None:
+            logger.warning("Skipping %s: no session year in its name.", path)
+            continue
+        dest = os.path.join(root, str(year))
+        if not force and os.path.isfile(os.path.join(dest, EDITION_MARK)):
+            logger.info("Have edition %s at %s", year, dest)
+            continue
+        jobs.append((os.path.getsize(path), path, dest))
+    if not jobs:
+        logger.info("The shelf at %s is complete.", root)
+        return {}
+    jobs.sort(reverse=True)
+    cpu = os.cpu_count() or 1
+    at_once = max(1, min(len(jobs), at_once or max(1, cpu // 8)))
+    procs = max(1, procs or 2)
+    workers = max(1, workers or max(1, cpu // at_once - procs - 1))
+    logger.info("Building %d editions, %d at once, %d parsers and %d writers each",
+                len(jobs), at_once, workers, procs)
+    counts = {}
+    ctx = multiprocessing.get_context('spawn')
+    with ProcessPoolExecutor(max_workers=at_once, mp_context=ctx) as pool:
+        futures = {
+            pool.submit(_build_edition, path, dest, workers, procs): (path, dest)
+            for _size, path, dest in jobs
+        }
+        for future in as_completed(futures):
+            path, dest = futures[future]
+            try:
+                counts[dest] = future.result()
+            except TypeError as e:
+                logger.warning("Skipping %s... %s.", path, e)
+            except Exception:
+                logger.exception("Edition %s failed", path)
+            else:
+                logger.info("Edition %s: %d sections -> %s", os.path.basename(path), counts[dest], dest)
+    return counts
 
 
 def print_pubinfos(basedir, colorize=False, jsonp=False):
@@ -863,7 +958,15 @@ def main(argv=None):
     parser.add_argument('--current', action='store_true',
                         help="Download and index only the current session, not every pubinfo_YYYY.zip")
     parser.add_argument('--workers', type=int, default=None,
-                        help="Parser processes. Whoosh writing stays in this process.")
+                        help="Parser processes per edition.")
+    parser.add_argument('--at-once', type=int, default=None,
+                        help="Editions built at the same time (default: processors / 8)")
+    parser.add_argument('--procs', type=int, default=None,
+                        help="Whoosh writer processes per edition (default 2)")
+    parser.add_argument('--force', action='store_true',
+                        help="Rebuild editions the shelf already holds")
+    parser.add_argument('--flat', action='store_true',
+                        help="Build the old single index (resets it) instead of the shelf")
     parser.add_argument('-q', '--query', help="Search the index and print matching sections")
     parser.add_argument('-g', '--get', nargs=2, metavar=('CODE', 'SECTION'),
                         help="Print one section, e.g. --get CIV 1940")
@@ -893,8 +996,11 @@ def main(argv=None):
     if args.download:
         download_pubinfos(args.path, all_sessions=not args.current)
 
-    if args.index:
+    if args.index and args.flat:
         index_pubinfos(args.path, all_sessions=not args.current, workers=args.workers)
+    elif args.index:
+        index_shelf(args.path, all_sessions=not args.current, workers=args.workers,
+                    at_once=args.at_once, procs=args.procs, force=args.force)
 
     if args.get or args.query:
         from indexer import Indexer

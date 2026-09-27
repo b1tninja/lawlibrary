@@ -96,7 +96,9 @@ their own words (`_captions`), and a `node` address is a miss that says
 `not_in_index`. The tree draws in full only from an index built after
 `c473273`. Whoosh will not add fields to an existing index: an incremental
 add against an older index raises `UnknownFieldError`, so moving to the tree
-is a rebuild.
+is a build of the shelf — `python ca.py --index` builds every edition at
+once into `data/shelf/<year>/`, beside the old index, and readers turn to
+the shelf as soon as it holds an edition.
 
 ## Aggregates
 

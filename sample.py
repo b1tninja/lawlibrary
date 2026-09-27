@@ -10,7 +10,7 @@ import random
 
 from whoosh import index
 
-from core import open_index
+from core import index_ready, open_index
 from whoosh.qparser import QueryParser
 from whoosh.query import And, Term
 
@@ -30,7 +30,7 @@ def _indexer(indexer):
 
 
 def _books(idxer):
-    if not index.exists_in(idxer.idx_path):
+    if not index_ready(idxer.idx_path):
         return []
     return idxer.list_codes()
 
@@ -102,7 +102,7 @@ def _payload(doc):
 
 
 def _draw_statute(idxer, code, n, seed, pattern):
-    if not index.exists_in(idxer.idx_path):
+    if not index_ready(idxer.idx_path):
         return _miss('index_absent', kind=Instrument.STATUTE.value, book=code)
     known = {item['code']: item['title'] for item in idxer.list_codes()}
     resolved = idxer._resolve_code(code)

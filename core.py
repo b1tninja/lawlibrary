@@ -13,6 +13,7 @@ Resolution order for the publication archive:
 from __future__ import annotations
 
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -47,7 +48,116 @@ def data_dir(environ: os._Environ[str] | dict[str, str] | None = None, dotenv_pa
 
 
 def index_dir() -> Path:
+    """The flat index: every edition in one Whoosh directory, one writer."""
     return data_dir() / "idx"
+
+
+def shelf_dir() -> Path:
+    """The shelf: one Whoosh index per edition, ``shelf/<year>/``, each with
+    its own needle store and code list. Editions build at once, in their own
+    processes, and are read together as one index by ``open_index``."""
+    return data_dir() / "shelf"
+
+
+EDITION_MARK = "edition.json"
+_EDITION = re.compile(r"^\d{4}$")
+
+
+def _flat_exists(path) -> bool:
+    from whoosh import index
+    return index.exists_in(str(path))
+
+
+def editions(root=None) -> list:
+    """The complete editions under ``root``, oldest first.
+
+    An edition is a four-digit directory holding an index and the mark its
+    build wrote last (``EDITION_MARK``); a directory still building has no
+    mark and is not read. A flat index has no editions.
+    """
+    root = Path(root) if root is not None else shelf_dir()
+    if not root.is_dir():
+        return []
+    found = [
+        child for child in root.iterdir()
+        if child.is_dir() and _EDITION.match(child.name)
+        and (child / EDITION_MARK).is_file() and _flat_exists(child)
+    ]
+    return sorted(found)
+
+
+def index_root() -> Path:
+    """Where a reader looks: the shelf once it holds an edition, else the flat index."""
+    return shelf_dir() if editions(shelf_dir()) else index_dir()
+
+
+def index_ready(path=None) -> bool:
+    """Whether there is an index to read at ``path``: a shelf with an edition, or a flat one."""
+    path = Path(path) if path is not None else index_root()
+    return bool(editions(path)) or (path.is_dir() and _flat_exists(path))
+
+
+def newest_edition(path=None):
+    """The newest edition directory under ``path``, or None for a flat index."""
+    found = editions(path if path is not None else index_root())
+    return found[-1] if found else None
+
+
+class Shelf:
+    """Several editions read as one index.
+
+    Whoosh's own reader over a multi-segment index is a ``MultiReader`` of
+    segment readers; the shelf is the same shape one level up, with each
+    edition's segments laid end to end. A searcher over it answers every
+    question a flat index does — search, stored fields, lexicon, postings —
+    and its generation changes when any edition's does.
+    """
+
+    def __init__(self, root, parts):
+        self.root = str(root)
+        self.parts = parts  # [(edition name, whoosh Index)], oldest first
+
+    @property
+    def schema(self):
+        return self.parts[-1][1].schema
+
+    @property
+    def storage(self):
+        return self.parts[-1][1].storage
+
+    @property
+    def sessions(self):
+        return [name for name, _ix in self.parts]
+
+    def latest_generation(self):
+        import zlib
+        words = ';'.join('%s:%d' % (name, ix.latest_generation()) for name, ix in self.parts)
+        return zlib.crc32(words.encode('utf-8'))
+
+    def doc_count(self):
+        return sum(ix.doc_count() for _name, ix in self.parts)
+
+    def doc_count_all(self):
+        return sum(ix.doc_count_all() for _name, ix in self.parts)
+
+    def reader(self):
+        from whoosh.reading import MultiReader
+        leaves = []
+        for _name, ix in self.parts:
+            reader = ix.reader()
+            # Lay the segments flat: a searcher splits only one level down.
+            leaves.extend(reader.readers if isinstance(reader, MultiReader) else [reader])
+        if len(leaves) == 1:
+            return leaves[0]
+        return MultiReader(leaves, generation=self.latest_generation())
+
+    def searcher(self, **kwargs):
+        from whoosh.searching import Searcher
+        return Searcher(self.reader(), **kwargs)
+
+    def close(self):
+        for _name, ix in self.parts:
+            ix.close()
 
 
 def open_index(path=None):
@@ -61,9 +171,20 @@ def open_index(path=None):
     through the file instead and a searcher opens in milliseconds; the
     drive and the page cache serve the seeks, and stored fields come back
     faster too. A writer keeps ``open_dir``: this storage is read-only.
+
+    ``path`` may be a flat index or a shelf root (see ``shelf_dir``); with
+    none given, ``index_root`` decides. A shelf comes back as a ``Shelf``.
     """
+    root = Path(path) if path is not None else index_root()
+    parts = editions(root)
+    if parts:
+        return Shelf(root, [(part.name, _open_flat(part)) for part in parts])
+    return _open_flat(root)
+
+
+def _open_flat(path):
     from whoosh.filedb.filestore import FileStorage
-    return FileStorage(str(path or index_dir()), supports_mmap=False, readonly=True).open_index()
+    return FileStorage(str(path), supports_mmap=False, readonly=True).open_index()
 
 
 def within(query, constraint):

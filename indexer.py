@@ -15,13 +15,13 @@ from whoosh.reading import TermNotFound
 
 import sqlite3
 
-from core import index_dir, open_index, within
+from core import EDITION_MARK, index_dir, index_ready, index_root, newest_edition, open_index, within
 from needles import occurrences
 from utils import mkdir
 from vesting import grants
 
 def _index_base() -> str:
-    return str(index_dir())
+    return str(index_root())
 
 
 WHOOSH_INDEX_BASEDIR = _index_base()
@@ -219,6 +219,17 @@ class IndexState(Enum):
 _FIELDS = set(LawSchema().names())
 
 
+def needle_rows(law):
+    """The needle, edge, and annotation rows of one law row, as the writer will see it.
+
+    A parse worker calls this beside the CAML parse and hands the rows back
+    as ``NEEDLES``, so the process that feeds the single Whoosh writer does
+    not parse them again: that parse was what held a build at two hundred
+    sections a second however many writer processes it had.
+    """
+    return _needle_rows(_present(law), law.get('SHELF'))
+
+
 def _present(law):
     names = _FIELDS
     doc = {}
@@ -250,17 +261,45 @@ def _code_rank(token):
 
 
 class Indexer:
-    def __init__(self, basedir=None):
+    def __init__(self, basedir=None, procs=1):
         self.state = IndexState.Unknown
         if basedir is None:
             basedir = _index_base()
         self.idx_path = basedir
-        self.codes_path = os.path.join(basedir, 'codes.json')
+        # Writers a build may run. Above one, Whoosh's MpWriter hands the
+        # documents to that many subprocesses, each writing its own segment.
+        self.procs = max(1, int(procs or 1))
 
         if not os.path.exists(basedir):
             self.state = IndexState.Initialize
+            # An edition of the shelf sits two levels down; make the way to it.
+            os.makedirs(basedir, exist_ok=True)
 
-        mkdir(basedir)
+    def _home(self):
+        """The directory holding this index's needle store and code list.
+
+        A shelf root holds neither; each edition has its own, and the newest
+        edition is the law in force, the one ``_filter`` serves.
+        """
+        newest = newest_edition(self.idx_path)
+        return str(newest) if newest is not None else self.idx_path
+
+    @property
+    def codes_path(self):
+        return os.path.join(self._home(), 'codes.json')
+
+    def mark_edition(self, session, sections, source=''):
+        """Write the mark that makes this directory one complete edition of the shelf.
+
+        ``core.editions`` reads only marked directories, so a build that
+        stops halfway is never read.
+        """
+        import datetime as _dt
+        with open(os.path.join(self.idx_path, EDITION_MARK), 'w', encoding='utf-8') as fh:
+            json.dump({
+                'session': str(session), 'sections': int(sections), 'source': source,
+                'built': _dt.datetime.now(_dt.timezone.utc).isoformat(timespec='seconds'),
+            }, fh)
 
     def reset(self):
         if os.path.isdir(self.idx_path) and index.exists_in(self.idx_path):
@@ -288,7 +327,7 @@ class Indexer:
             return bool(searcher.search(Term('SESSION', str(session)), limit=1).scored_length())
 
     def index_pubinfo_laws(self, pubinfo, laws):
-        if not index.exists_in(self.idx_path):
+        if not index_ready(self.idx_path):
             law_idx = index.create_in(self.idx_path, LawSchema)
             self.state = IndexState.Created
         else:
@@ -297,11 +336,15 @@ class Indexer:
 
         codes = self._read_codes()
         count = 0
-        writer = law_idx.writer(limitmb=256)
+        if self.procs > 1:
+            writer = law_idx.writer(procs=self.procs, limitmb=256, multisegment=True)
+        else:
+            writer = law_idx.writer(limitmb=256)
         needles = self._needle_db()
         carried = {}
         try:
             for law in laws:
+                packed = law.pop('NEEDLES', None)
                 doc = _present(law)
                 if 'PK' not in doc:
                     continue
@@ -312,7 +355,7 @@ class Indexer:
                     writer.update_document(**doc)
                 else:
                     writer.add_document(**doc)
-                self._record_needles(needles, doc, law.get('SHELF'))
+                self._record_needles(needles, doc, law.get('SHELF'), packed=packed)
                 code = doc.get('LAW_CODE')
                 heading = law.get('CODE_HEADING')
                 if code and heading:
@@ -334,7 +377,7 @@ class Indexer:
 
     def sessions(self, country=None, subdivision=None):
         """Stored chaptering years on the SESSION field. Not a two-year legislative session."""
-        if not index.exists_in(self.idx_path):
+        if not index_ready(self.idx_path):
             return []
         return self._kept(
             ('sessions', country, subdivision),
@@ -370,11 +413,12 @@ class Indexer:
         idx = open_index(self.idx_path)
         with idx.searcher() as searcher:
             parsed = self._parse(q, idx.schema)
-            results = searcher.search(
-                parsed,
-                limit=limit,
-                filter=self._comb(searcher, self._filter(active_only, session, country=country, subdivision=subdivision)),
-            )
+            comb = self._comb(searcher, self._filter(active_only, session, country=country, subdivision=subdivision))
+            if comb is not None and not len(comb):
+                # Nothing is allowed. Whoosh drops an empty filter as if
+                # none were given, which would answer with everything.
+                return []
+            results = searcher.search(parsed, limit=limit, filter=comb)
             results.fragmenter = highlight.ContextFragmenter(surround=128)
             results.formatter = highlight.UppercaseFormatter()
             if callback is not None:
@@ -390,7 +434,7 @@ class Indexer:
         from whoosh.query import Phrase
         from weight import hunt as grow
         tokens = [token.text for token in _ANALYZER(anchor or '')]
-        if not tokens or not index.exists_in(self.idx_path):
+        if not tokens or not index_ready(self.idx_path):
             return None
         ix = open_index(self.idx_path)
         rows = []
@@ -473,7 +517,7 @@ class Indexer:
         something is missing, once per path in this process. A reader also
         waits out a writer's commit instead of failing inside it.
         """
-        path = os.path.join(self.idx_path, 'needles.sqlite')
+        path = os.path.join(self._home(), 'needles.sqlite')
         db = sqlite3.connect(path, timeout=30)
         _write_ahead(db)
         if path in _NEEDLE_READY or self._needle_schema_present(db):
@@ -540,14 +584,18 @@ class Indexer:
                 return False
         return True
 
-    def _record_needles(self, db, doc, shelf=None, replace=True):
-        """Store the needles that apply to this document, and the relationships."""
+    def _record_needles(self, db, doc, shelf=None, replace=True, packed=None):
+        """Store the needles that apply to this document, and the relationships.
+
+        ``packed`` is the rows a parse worker already made (``needle_rows``);
+        without it they are made here.
+        """
         citation = doc.get('CITATION') or ''
         if replace:
             db.execute('DELETE FROM needle WHERE citation = ?', (citation,))
             db.execute('DELETE FROM edge WHERE citation = ?', (citation,))
             db.execute('DELETE FROM annotation WHERE citation = ?', (citation,))
-        self._write_needle_rows(db, [_needle_rows(doc, shelf)])
+        self._write_needle_rows(db, [packed if packed is not None else _needle_rows(doc, shelf)])
 
     def _write_terms(self, db, packed):
         """Insert needle and edge rows. This connection does not parse."""
@@ -592,7 +640,7 @@ class Indexer:
         them. It stays on this caller, it is not shared across threads, and
         ``check_same_thread`` stays on.
         """
-        if not index.exists_in(self.idx_path):
+        if not index_ready(self.idx_path):
             return 0
         workers = max(1, int(workers or 1))
         ix = open_index(self.idx_path)
@@ -843,7 +891,7 @@ class Indexer:
         searcher to answer, so the answer is kept against the generation it
         was read from and thrown away when a new one is written.
         """
-        if not index.exists_in(self.idx_path):
+        if not index_ready(self.idx_path):
             return make()
         key = (os.path.abspath(self.idx_path),
                open_index(self.idx_path).latest_generation(), name)
@@ -855,7 +903,7 @@ class Indexer:
 
     def _region_indexed(self):
         """False when this index was built before region fields were stored."""
-        if not index.exists_in(self.idx_path):
+        if not index_ready(self.idx_path):
             return False
 
         def look():
