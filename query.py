@@ -10,7 +10,7 @@ import re
 import sqlite3
 
 from whoosh import index
-from whoosh.query import And, Term
+from whoosh.query import And, Or, Prefix, Term
 
 import corpus
 from core import index_dir
@@ -930,7 +930,10 @@ _LADDER = (
     ('article', 'ARTICLE', 'ARTICLE_HEADING'),
     ('section', 'SECTION_NUM', 'SECTION_TITLE'),
 )
-_UNITS = {unit for unit, _field, _heading in _LADDER}
+# `node` is a rung named by its place in the publisher's tree — `node/6.8` —
+# rather than by a unit and a number. It is how a heading with no number is
+# addressed, and how two Title 1s under one division stay two rungs.
+_UNITS = {unit for unit, _field, _heading in _LADDER} | {'node'}
 
 
 class LawPath:
@@ -967,6 +970,11 @@ class LawPath:
     def child(self, unit, value):
         if unit == 'subdivision':
             return LawPath(self.region, self.code, self.units, value)
+        if unit == 'node':
+            # A node's path already carries every rung above it, so a deeper
+            # node replaces the one in hand rather than hanging under it.
+            kept = tuple(pair for pair in self.units if pair[0] != 'node')
+            return LawPath(self.region, self.code, kept + ((unit, str(value)),))
         return LawPath(self.region, self.code, self.units + ((unit, str(value)),))
 
 
@@ -1006,6 +1014,11 @@ def _constraints(path):
         terms.append(Term('LAW_CODE', path.code))
     fields = {unit: field for unit, field, _heading in _LADDER}
     for unit, value in path.units:
+        if unit == 'node':
+            # The node itself, and every node whose path extends it: the
+            # subtree the publisher drew under that heading.
+            terms.append(Or([Term('TOC_PATH', value), Prefix('TOC_PATH', value + '.')]))
+            continue
         field = fields.get(unit)
         if field:
             terms.append(Term(field, value))
@@ -1062,8 +1075,19 @@ def law_tree(url=''):
         return node
     seen = {unit for unit, _value in path.units}
     ix = index.open_dir(_indexer().idx_path)
+    if 'node' in seen and 'TOC_PATH' not in ix.schema.names():
+        # A node is a place in the publisher's tree, and this index was built
+        # before that tree was stored on a section. The address is not wrong;
+        # the index cannot answer it.
+        node['found'] = False
+        node['reason'] = 'not_in_index'
+        return node
     with ix.searcher() as searcher:
         hits = searcher.search(_constraints(path), limit=None)
+        drawn = _tree_from_trails(path, hits)
+        if drawn is not None:
+            node.update(drawn)
+            return node
         for unit, field, heading in _LADDER:
             if unit in seen:
                 continue
@@ -1089,6 +1113,64 @@ def law_tree(url=''):
             node['children'].sort(key=lambda child: order(child.get('value')))
             return node
     return node
+
+
+def _tree_from_trails(path, hits):
+    """The children of a node, drawn from the publisher's tree the sections carry.
+
+    A section stores its trail — every rung above it with its own unit,
+    number, caption, position and path — so the children of a node are the
+    rungs one step below it across the sections under it, in the publisher's
+    order, each addressed by its path (``node/6.8``). That reaches the
+    headings with no number, and keeps two Title 1s under one division two
+    rungs. A node that holds sections and has no rung below lists them.
+
+    This draws only a code root or a ``node`` address. A numbered address
+    (``division/3``) is a filter on unit fields, which can name several
+    nodes at once, so it keeps the walk it always had. An index built before
+    the trail was stored has no trail, and keeps that walk too: None.
+    """
+    if path.units and path.units[-1][0] != 'node':
+        return None
+    depth = len(path.units[-1][1].split('.')) if path.units else 0
+    rungs = {}
+    sections = []
+    sample = None
+    for hit in hits:
+        trail = hit.get('TOC_TRAIL')
+        if not trail:
+            continue
+        if sample is None and len(trail) >= depth:
+            sample = trail
+        if len(trail) > depth:
+            rung = trail[depth]
+            rungs.setdefault(rung['path'], rung)
+        elif len(trail) == depth:
+            sections.append({
+                'url': path.child('section', hit.get('SECTION_NUM') or '').url,
+                'unit': 'section',
+                'value': hit.get('SECTION_NUM') or '',
+                'heading': (hit.get('SECTION_TITLE') or '').strip(),
+            })
+    if sample is None:
+        return None
+    if rungs:
+        children = [
+            {
+                'url': path.child('node', rung['path']).url,
+                'unit': rung['unit'],
+                'value': rung['number'] or '',
+                'heading': rung['heading'],
+                'position': rung['position'],
+                'path': rung['path'],
+                'holds': rung['holds'],
+            }
+            for rung in rungs.values()
+        ]
+        children.sort(key=lambda child: (child['position'], heading_key(child['value'])))
+    else:
+        children = sorted(sections, key=lambda child: section_key(child['value']))
+    return {'children': children, 'trail': sample[:depth]}
 
 
 def index_path():

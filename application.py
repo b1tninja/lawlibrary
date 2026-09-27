@@ -156,6 +156,7 @@ def _tree(start_response, url):
     if node.get('found'):
         node['crumbs'] = _library_crumbs(
             node.get('url') or 'us-ca', _code_label(node.get('code')),
+            rungs=node.get('trail') or (),
         )
         children = node.get('children') or []
         node['contents'] = [
@@ -800,8 +801,14 @@ def _code_label(token):
     return wanted
 
 
-def _library_crumbs(url, code_label=''):
-    """Library, then each heading, down to the open node. The last crumb is current."""
+def _library_crumbs(url, code_label='', rungs=()):
+    """Library, then each heading, down to the open node. The last crumb is current.
+
+    A ``node/6.8`` rung is a place in the publisher's tree, and its name is
+    not in the address: ``rungs`` is the ancestry the tree already read, one
+    entry per rung above the node, and each becomes a crumb — captioned, or
+    named by its unit and number, or by its heading when it has no number.
+    """
     parts = [part for part in (url or 'us-ca').split('/') if part]
     names = {
         'division': 'Division', 'title': 'Title', 'part': 'Part',
@@ -828,8 +835,23 @@ def _library_crumbs(url, code_label=''):
             'unit': 'code',
         })
     index = 2
-    while index + 1 < len(parts) and parts[index] in units:
+    while index + 1 < len(parts) and (parts[index] in units or parts[index] == 'node'):
         unit, value = parts[index], parts[index + 1]
+        if unit == 'node':
+            # One crumb per rung of the publisher's tree above this node.
+            for rung in rungs:
+                label = (rung.get('heading') or '').strip()
+                if not label:
+                    kind = names.get(rung.get('unit') or '', '')
+                    label = ('%s %s' % (kind, rung.get('number') or '')).strip() or rung.get('path') or ''
+                trail.append({
+                    'href': '/view/tree/%s/%s/node/%s' % (parts[0], parts[1], rung.get('path') or ''),
+                    'label': label,
+                    'unit': rung.get('unit') or 'node',
+                })
+            walked.extend((unit, value))
+            index += 2
+            continue
         walked.extend((unit, value))
         if unit == 'section':
             href = '/view/section/%s/%s' % (parts[1].upper(), value)

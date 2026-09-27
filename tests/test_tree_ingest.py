@@ -140,3 +140,102 @@ def test_the_tree_is_stored_and_read_back(tmp_path):
         under = searcher.search(Prefix('TOC_PATH', '2.'), limit=None)
         assert {hit['SECTION_NUM'] for hit in under} == {'748'}
         assert searcher.search(Term('TOC_UNIT', 'unnumbered'), limit=1)[0]['SECTION_NUM'] == '2'
+
+
+def _tree(tmp_path, monkeypatch):
+    """A tree read from the synthetic index, with query pointed at it."""
+    import query
+    pub = tmp_path / 'pubinfo_2025.zip'
+    _pubinfo(pub)
+    california = California()
+    idxer = Indexer(tmp_path / 'idx')
+    california.edition(pub).index(idxer, pub, subdivision=california.code)
+    monkeypatch.setattr(query, '_indexer', lambda: Indexer(tmp_path / 'idx'))
+    return query
+
+
+def test_the_tree_is_drawn_as_the_publisher_nests_it(tmp_path, monkeypatch):
+    """The root lists every top rung in the publisher's order, the unnumbered one included."""
+    query = _tree(tmp_path, monkeypatch)
+    root = query.law_tree('us-ca/civ')
+    assert root['found'] is True
+    assert [(child['unit'], child['value'], child['url']) for child in root['children']] == [
+        ('division', '1', 'us-ca/civ/node/1'),
+        ('division', '2', 'us-ca/civ/node/2'),
+        ('unnumbered', '', 'us-ca/civ/node/3'),
+    ]
+    assert root['children'][2]['heading'] == 'PRELIMINARY PROVISIONS'
+    assert root['children'][2]['holds'] is True
+    assert root['trail'] == []
+
+
+def test_a_node_descends_by_its_path_and_keeps_its_trail(tmp_path, monkeypatch):
+    query = _tree(tmp_path, monkeypatch)
+    division = query.law_tree('us-ca/civ/node/2')
+    assert [(c['unit'], c['value'], c['url']) for c in division['children']] == [('part', '1', 'us-ca/civ/node/2.1')]
+    assert [rung['heading'] for rung in division['trail']] == ['Division 2. Property']
+    part = query.law_tree('us-ca/civ/node/2.1')
+    assert [(c['unit'], c['value'], c['heading']) for c in part['children']] == [
+        ('title', '3', 'Title 3. General Definitions'),
+    ]
+    assert [rung['unit'] for rung in part['trail']] == ['division', 'part']
+
+
+def test_a_node_that_holds_sections_lists_them(tmp_path, monkeypatch):
+    query = _tree(tmp_path, monkeypatch)
+    title = query.law_tree('us-ca/civ/node/2.1.1')
+    assert [(c['unit'], c['value'], c['heading']) for c in title['children']] == [('section', '748', 'Definitions')]
+    assert title['children'][0]['url'] == 'us-ca/civ/node/2.1.1/section/748'
+    preliminary = query.law_tree('us-ca/civ/node/3')
+    assert [c['value'] for c in preliminary['children']] == ['2']
+    assert preliminary['trail'][0]['heading'] == 'PRELIMINARY PROVISIONS'
+
+
+def test_a_node_rung_is_a_crumb_with_its_own_name():
+    """A node's name is not in its address; the trail the tree read supplies it."""
+    from application import _library_crumbs
+    rungs = [
+        {'unit': 'division', 'number': '2', 'heading': 'Division 2. Property', 'path': '2'},
+        {'unit': 'part', 'number': '1', 'heading': '', 'path': '2.1'},
+    ]
+    crumbs = _library_crumbs('us-ca/civ/node/2.1', 'Civil Code', rungs=rungs)
+    tail = [(crumb['unit'], crumb['label'], crumb['href']) for crumb in crumbs[-2:]]
+    assert tail == [
+        ('division', 'Division 2. Property', '/view/tree/us-ca/civ/node/2'),
+        ('part', 'Part 1', '/view/tree/us-ca/civ/node/2.1'),
+    ]
+    front = _library_crumbs('us-ca/civ/node/3', 'Civil Code', rungs=[
+        {'unit': 'unnumbered', 'number': '', 'heading': 'PRELIMINARY PROVISIONS', 'path': '3'},
+    ])
+    assert front[-1] == {'unit': 'unnumbered', 'label': 'PRELIMINARY PROVISIONS', 'href': '/view/tree/us-ca/civ/node/3'}
+
+
+def test_the_tree_route_walks_the_publishers_tree(tmp_path, monkeypatch):
+    import json
+    import application
+    query = _tree(tmp_path, monkeypatch)
+    assert query is not None
+    seen = {}
+
+    def start_response(status, headers):
+        seen['status'] = status
+
+    body = json.loads(b''.join(application.application(
+        {'REQUEST_METHOD': 'GET', 'PATH_INFO': '/tree/us-ca/civ/node/2.1', 'QUERY_STRING': ''},
+        start_response,
+    )))
+    assert seen['status'] == '200 OK'
+    assert [(crumb['unit'], crumb['label']) for crumb in body['crumbs'][-2:]] == [
+        ('division', 'Division 2. Property'), ('part', 'Part 1. Property in General'),
+    ]
+    assert [(row['unit'], row['label'], row['href']) for row in body['contents']] == [
+        ('title', 'Title 3. General Definitions', '/view/tree/us-ca/civ/node/2.1.1'),
+    ]
+
+
+def test_a_node_address_round_trips(tmp_path, monkeypatch):
+    query = _tree(tmp_path, monkeypatch)
+    place = query.parse_law_url('us-ca/civ/node/2.1')
+    assert place.units == (('node', '2.1'),)
+    assert place.url == 'us-ca/civ/node/2.1'
+    assert place.child('node', '2.1.1').url == 'us-ca/civ/node/2.1.1'
