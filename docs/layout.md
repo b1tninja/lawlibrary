@@ -16,7 +16,7 @@ Sacramento, California, USA is the home jurisdiction. `python ca.py` is that pla
 | `publication.py` | One file layout: statute, measure, or regulation. |
 | `caml.py` | CAML, the markup California publishes statutes in. The grammar is in [caml.md](caml.md). |
 | `indexer.py` | The local Whoosh index. |
-| `query.py` | The structured lookup Jason calls. |
+| `query.py` | The structured lookup Jason calls. How a code's headings nest, and how a node is addressed, is [tree.md](tree.md). |
 | `mcp_server.py` | The agent tools over that index. |
 
 A future country is a sibling of `us/`, named with its ISO 3166-1 alpha-2 in lowercase (`gb/`, `ca/` for Canada). The branch for the United States is `US`. `main` and `master` point at the same commit.
