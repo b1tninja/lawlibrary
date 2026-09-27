@@ -98,3 +98,20 @@ def test_the_ledger_defaults_to_where_readers_look(tmp_path, monkeypatch):
     monkeypatch.setattr(core, 'index_root', lambda: pathlib.Path(root))
     book = open_ledger()
     assert book.root == root and book.session == '2025'
+
+
+def test_two_builds_of_one_generation_keep_the_first(tmp_path, monkeypatch):
+    """A reader holding the finished file stops the replace on Windows; the finished file stands."""
+    import ledger
+    root = _tree_index(tmp_path)
+    first = build(root, workers=1)
+    real = os.replace
+
+    def held(src, dst):
+        raise PermissionError(5, 'Access is denied', src)
+
+    monkeypatch.setattr(ledger.os, 'replace', held)
+    again = build(root, workers=1)
+    monkeypatch.setattr(ledger.os, 'replace', real)
+    assert again == first and os.path.exists(first)
+    assert not [name for name in os.listdir(root) if name.endswith('.tmp')]

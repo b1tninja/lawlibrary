@@ -278,7 +278,15 @@ def build(root=None, workers=None, log=None):
     db.executemany('INSERT INTO meta VALUES (?,?)', list(meta.items()))
     db.commit()
     db.close()
-    os.replace(tmp, final)
+    try:
+        os.replace(tmp, final)
+    except PermissionError:
+        if not os.path.exists(final):
+            raise
+        # Another process built this same generation meanwhile and a reader
+        # holds it open, which Windows will not let us replace. Theirs is
+        # this one; keep it and drop ours.
+        os.remove(tmp)
     say('ledger: %s rows at %d places in %.1fs -> %s' % (counted, len(places), time.time() - started, final))
     _sweep(root, final)
     return final
