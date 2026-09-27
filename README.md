@@ -34,14 +34,18 @@ pip install -e ".[dev]"
 
 ```bash
 python ca.py --download          # every pubinfo_YYYY.zip
-python ca.py --index             # parse CAML in a process pool, write Whoosh here
+python ca.py --index             # build the shelf: one index per edition, several at once
 python ca.py --current --index   # newest session only
+python ca.py --index --force     # rebuild editions the shelf already holds
+python ca.py --index --flat      # the old single index instead (resets it)
 python ca.py --get CIV 1940
 python ca.py -q "habitability"
 lawlibrary-mcp                   # list_codes, list_sessions, search_law, get_section
 ```
 
 Search and `get_section` use the newest session unless you pass an older year or `all`. Historical zips are frozen; the current session is the law in force.
+
+The shelf lives at `data/shelf/<year>/`, one Whoosh index and needle store per edition, built in parallel (`--at-once`, `--workers`, `--procs` share the processors; the defaults fit the machine) and read as one. Every log line carries the clock, and an edition reports its share, rate and estimate as it goes. An edition already marked complete is kept; readers turn to the shelf once a build marks it whole. All nineteen editions, 1.39 million sections, build in about forty minutes on sixteen cores.
 
 CAML parsing is the slow part, so index workers each open the zip and run html2text. The Whoosh writer stays in the parent process. `--workers` sets the pool size.
 
