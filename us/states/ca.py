@@ -857,14 +857,15 @@ def index_shelf(basedir, all_sessions=True, workers=None, at_once=None, procs=No
         logger.info("The shelf at %s is complete.", root)
         _mark_shelf(root, started)
         return {}
+    jobs = [(expected_work(path), path, dest) for _size, path, dest in jobs]
     jobs.sort(reverse=True)
     cpu = os.cpu_count() or 1
     at_once = max(1, min(len(jobs), at_once or max(1, cpu // 8)))
     procs = max(1, procs or 2)
     workers = max(1, workers or max(1, cpu // at_once - procs - 1))
-    logger.info("Building %d editions (%s MB of zips), %d at once, %d parsers and %d writers each: %s",
-                len(jobs), format(sum(size for size, _p, _d in jobs) // (1 << 20), ','), at_once, workers, procs,
-                ' '.join(os.path.basename(path) for _size, path, _dest in jobs))
+    logger.info("Building %d editions, %d at once, %d parsers and %d writers each, longest first: %s",
+                len(jobs), at_once, workers, procs,
+                ' '.join('%s (~%dm)' % (os.path.basename(path), work // 60) for work, path, _dest in jobs))
     counts = {}
     failed = []
     in_flight = {}
@@ -913,6 +914,28 @@ def index_shelf(basedir, all_sessions=True, workers=None, at_once=None, procs=No
     else:
         logger.warning("%d of %d editions failed; the shelf is not marked whole.", len(jobs) - len(counts), len(jobs))
     return counts
+
+
+# Seconds of one parser per section, measured on the first shelf build: a
+# code section is short; a bill is a whole measure and its needle rows take
+# most of the time.
+_WORK_PER_SECTION = {'CaliforniaBills': 0.35, 'CaliforniaCodes': 0.02}
+
+
+def expected_work(path):
+    """Roughly how long an edition takes, in parser-seconds, so the longest start first.
+
+    The first shelf build sorted by zip size and left the slow bill editions
+    for last, alone on the machine. An estimate from the edition's row count
+    and kind puts them at the front, beside the codes.
+    """
+    try:
+        california = California()
+        edition = california.edition(path)
+        rows = edition.count_sections(path) or 0
+    except (TypeError, OSError, KeyError):
+        return os.path.getsize(path) / (1 << 20)
+    return rows * _WORK_PER_SECTION.get(type(edition).__name__, 0.05)
 
 
 def _mark_shelf(root, started):

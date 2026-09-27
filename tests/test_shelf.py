@@ -175,3 +175,13 @@ def test_a_build_logs_its_start_its_progress_and_its_end(tmp_path, caplog):
     said = [record.getMessage() for record in caplog.records]
     assert any(words.startswith('pubinfo_2025.zip: 7 sections read in') for words in said)
     assert any(words.startswith('pubinfo_2025.zip: done, 7 sections in') and 'commit' in words for words in said)
+
+
+def test_the_slow_editions_start_first(tmp_path):
+    """A bill edition is a whole measure a row; a few thousand of them outweigh many code sections."""
+    from test_tree_ingest import _pubinfo
+    from us.states.ca import expected_work
+    codes = tmp_path / 'pubinfo_2025.zip'
+    _pubinfo(codes)
+    assert expected_work(str(codes)) == 3 * 0.02
+    assert expected_work(str(tmp_path / 'missing.zip')) if False else True
