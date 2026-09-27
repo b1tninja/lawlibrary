@@ -676,6 +676,47 @@ class CaliforniaCodes(SubdivisionIndexed, Publication):
         yield from iter_laws_parallel(path, workers=workers, chunk_size=chunk_size)
 
 
+def _boot_bill_worker(path, SESSION):
+    _WORK['zf'] = zipfile.ZipFile(path)
+    _WORK['SESSION'] = SESSION
+
+
+def _format_bill_chunk(rows):
+    zf = _WORK['zf']
+    framed = []
+    for row in rows:
+        lob_file = BillVersionTblDict(row)['LOB_FILE']
+        framed.append(format_bill_section(row, read_lob(zf, lob_file), _WORK['SESSION']))
+    return framed
+
+
+def iter_bills_parallel(path, workers=None, chunk_size=200):
+    """Parse the measures of one session in a process pool.
+
+    The code editions have had this since the pool was written; the bill
+    editions inherited Publication's default and ran on one core whatever
+    ``--workers`` said. A bill LOB is a whole measure, larger than a section,
+    so the eleven bill zips took most of a full build's wall clock. The rows
+    are read once in the parent; each worker opens the zip and reads its own
+    LOBs, and Whoosh keeps its single writer in the parent, as for the codes.
+    """
+    SESSION = '' if session_year(path) is None else str(session_year(path))
+    workers = workers or min(8, os.cpu_count() or 1)
+    with zipfile.ZipFile(path) as zf:
+        rows = list(iter_dat_rows(zf, 'BILL_VERSION_TBL'))
+    if workers <= 1:
+        with zipfile.ZipFile(path) as zf:
+            for row in rows:
+                lob_file = BillVersionTblDict(row)['LOB_FILE']
+                yield format_bill_section(row, read_lob(zf, lob_file), SESSION)
+        return
+    ctx = multiprocessing.get_context('spawn')
+    with ProcessPoolExecutor(max_workers=workers, mp_context=ctx, initializer=_boot_bill_worker,
+                             initargs=(path, SESSION)) as pool:
+        for framed in pool.map(_format_bill_chunk, _chunks(rows, chunk_size), chunksize=1):
+            yield from framed
+
+
 class CaliforniaBills(BillVersionRows, SubdivisionIndexed, Publication):
     """Sessions whose zip has measures and no code tables. 1989 through 2009."""
 
@@ -687,6 +728,9 @@ class CaliforniaBills(BillVersionRows, SubdivisionIndexed, Publication):
 
     def sections(self, path):
         yield from self.bill_sections(path)
+
+    def parallel_sections(self, path, workers=None, chunk_size=200):
+        yield from iter_bills_parallel(path, workers=workers, chunk_size=chunk_size)
 
 
 class California(State):
