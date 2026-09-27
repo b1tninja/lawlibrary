@@ -226,6 +226,25 @@ class Indexer:
         mkdir(self.idx_path)
         self.state = IndexState.Initialize
 
+    @staticmethod
+    def _carries_session(law_idx, session):
+        """Whether this session is already in the index, so a write replaces.
+
+        A PK is the session and the row id, so two sessions never collide, and
+        writing a session the index does not hold is an add. That matters more
+        than it looks: ``PK`` is unique, so ``update_document`` asks the whole
+        index to delete the key before every single write. Adding stays flat
+        as the index grows and replacing does not — at 24,000 documents it is
+        already eight times slower, and a build of every session writes one
+        and a third million. ``reset`` empties the index before a full build,
+        so every one of those deletes was hunting a key that could not be
+        there.
+        """
+        if session is None:
+            return True
+        with law_idx.searcher() as searcher:
+            return bool(searcher.search(Term('SESSION', str(session)), limit=1).scored_length())
+
     def index_pubinfo_laws(self, pubinfo, laws):
         if not index.exists_in(self.idx_path):
             law_idx = index.create_in(self.idx_path, LawSchema)
@@ -238,12 +257,19 @@ class Indexer:
         count = 0
         writer = law_idx.writer(limitmb=256)
         needles = self._needle_db()
+        carried = {}
         try:
             for law in laws:
                 doc = _present(law)
                 if 'PK' not in doc:
                     continue
-                writer.update_document(**doc)
+                session = doc.get('SESSION')
+                if session not in carried:
+                    carried[session] = self._carries_session(law_idx, session)
+                if carried[session]:
+                    writer.update_document(**doc)
+                else:
+                    writer.add_document(**doc)
                 self._record_needles(needles, doc, law.get('SHELF'))
                 code = doc.get('LAW_CODE')
                 heading = law.get('CODE_HEADING')
