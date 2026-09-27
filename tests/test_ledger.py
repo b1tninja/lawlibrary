@@ -5,6 +5,7 @@ of the publisher's tree. Nothing here opens the live index.
 """
 
 import os
+import pathlib
 
 from ledger import Ledger, build, keep, ledger_path, open_ledger
 
@@ -88,3 +89,12 @@ def test_a_build_names_its_own_file_and_says_what_it_did(tmp_path):
     assert path == ledger_path(root, 1) or path.endswith('.sqlite')
     assert any('places' in words for words in said)
     assert open_ledger(str(tmp_path / 'nowhere')) is None
+
+
+def test_the_ledger_defaults_to_where_readers_look(tmp_path, monkeypatch):
+    """A shelf that readers have turned to is what the ledger counts, not the flat index."""
+    import core
+    root = _tree_index(tmp_path)
+    monkeypatch.setattr(core, 'index_root', lambda: pathlib.Path(root))
+    book = open_ledger()
+    assert book.root == root and book.session == '2025'

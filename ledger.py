@@ -34,7 +34,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from whoosh import index
 
-from core import index_dir, index_ready, open_index
+from core import index_ready, index_root, open_index
 
 SCOPES = ('code', 'division', 'chapter', 'article', 'node', 'state', 'federal')
 
@@ -190,7 +190,7 @@ def build(root=None, workers=None, log=None):
     ``workers`` defaults to every processor. An index small enough to count
     in a moment is counted in this process.
     """
-    root = str(root or index_dir())
+    root = str(root or index_root())
     ix = open_index(root)
     generation = ix.latest_generation()
     final = ledger_path(root, generation)
@@ -386,7 +386,7 @@ def open_ledger(root=None, workers=None, log=None):
     new generation closes it and opens the new one. Two threads asking at
     once build once.
     """
-    root = str(root or index_dir())
+    root = str(root or index_root())
     if not index_ready(root):
         return None
     generation = open_index(root).latest_generation()
