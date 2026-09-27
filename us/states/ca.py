@@ -324,30 +324,87 @@ def heading_fields(DIVISION_HEADING, TITLE_HEADING, PART_HEADING, CHAPTER_HEADIN
     return dict(**locals())
 
 
-def toc_headings(LAW_CODE, NODE_TREEPATH, toc_by_path):
-    """Walk parent NODE_TREEPATH prefixes; shared by every LAW_SECTION edition."""
-    DIVISION_HEADING = TITLE_HEADING = PART_HEADING = CHAPTER_HEADING = ARTICLE_HEADING = ''
-    ARTICLE_HISTORY = ''
+_UNIT_FIELDS = ('DIVISION', 'TITLE', 'PART', 'CHAPTER', 'ARTICLE')
+
+
+def own_unit(node, parent):
+    """The unit a toc row is: the field it fills that its parent does not.
+
+    A row repeats every ancestor's number on the row, so the filled fields
+    are the path down to it, not what it is. ``deepest_heading`` guessed
+    from a fixed order — article, chapter, part, title, division — that no
+    code follows: the Civil Code runs division, part, title, so its title
+    rows have a part filled too and were called parts; the Penal Code runs
+    part, title, division, so every one of its divisions was called a part.
+    379 of the Legislature's 24,386 headings were filed that way. The field
+    the parent lacks is the one this row added, and in every one of those
+    rows it agrees with the caption's own first word. A row that adds no
+    field is an unnumbered heading — GENERAL PROVISIONS, PRELIMINARY
+    PROVISIONS, TITLE OF THE ACT — of which nearly every code has one.
+    """
+    for field in _UNIT_FIELDS:
+        mine = getattr(node, field, None)
+        theirs = getattr(parent, field, None) if parent is not None else None
+        if mine and mine != theirs:
+            return field
+    return None
+
+
+def toc_trail(LAW_CODE, NODE_TREEPATH, toc_by_path):
+    """Every ancestor of a section's node, from the top, as the publisher has it.
+
+    Each rung is the row's own unit (see ``own_unit``; ``unnumbered`` when
+    it has none), its number on that unit, its caption, its position among
+    its siblings, and its path. This is the tree the official table of
+    contents draws, and the one a reader's tree should draw.
+    """
+    trail = []
+    parent = None
     for i in range(1, len(NODE_TREEPATH) + 1):
         try:
             node = toc_by_path[LAW_CODE, NODE_TREEPATH[:i]]
         except KeyError:
             continue
-        level = deepest_heading(node.DIVISION, node.TITLE, node.PART, node.CHAPTER, node.ARTICLE)
-        HEADING = node.HEADING or ''
-        if level == 'DIVISION_HEADING':
-            DIVISION_HEADING = HEADING
-        elif level == 'TITLE_HEADING':
-            TITLE_HEADING = HEADING
-        elif level == 'PART_HEADING':
-            PART_HEADING = HEADING
-        elif level == 'CHAPTER_HEADING':
-            CHAPTER_HEADING = HEADING
-        elif level == 'ARTICLE_HEADING':
-            ARTICLE_HEADING = HEADING
-            ARTICLE_HISTORY = node.HISTORY_NOTE or ''
-    return heading_fields(DIVISION_HEADING, TITLE_HEADING, PART_HEADING, CHAPTER_HEADING,
-                          ARTICLE_HEADING, ARTICLE_HISTORY)
+        unit = own_unit(node, parent)
+        trail.append({
+            'unit': unit.lower() if unit else 'unnumbered',
+            # The toc row keeps the printed `2.`; a section's own fields are
+            # stripped to `2`, and the trail has to name the same rung.
+            'number': rstrip_dot(getattr(node, unit)) if unit else '',
+            'heading': node.HEADING or '',
+            'position': int(node.NODE_POSITION or 0),
+            'path': '.'.join(str(step) for step in NODE_TREEPATH[:i]),
+            'holds': bool(getattr(node, 'CONTAINS_LAW_SECTIONS', False)),
+        })
+        parent = node
+    return trail
+
+
+def toc_headings(LAW_CODE, NODE_TREEPATH, toc_by_path):
+    """The five unit captions, each filed under the unit its row is.
+
+    Walks parent NODE_TREEPATH prefixes; shared by every LAW_SECTION edition.
+    A caption goes on the field for the unit its own row adds (``own_unit``),
+    not the deepest field in a fixed order, so TITLE 5. HIRING lands on
+    TITLE_HEADING and a Penal Code division's caption on DIVISION_HEADING. An
+    unnumbered heading has no unit field and is carried by ``toc_trail``.
+    """
+    captions = {field: '' for field in _UNIT_FIELDS}
+    ARTICLE_HISTORY = ''
+    parent = None
+    for i in range(1, len(NODE_TREEPATH) + 1):
+        try:
+            node = toc_by_path[LAW_CODE, NODE_TREEPATH[:i]]
+        except KeyError:
+            continue
+        unit = own_unit(node, parent)
+        if unit:
+            captions[unit] = node.HEADING or ''
+            if unit == 'ARTICLE':
+                ARTICLE_HISTORY = node.HISTORY_NOTE or ''
+        parent = node
+    return heading_fields(captions['DIVISION'], captions['TITLE'], captions['PART'],
+                          captions['CHAPTER'], captions['ARTICLE'], ARTICLE_HISTORY)
 
 
 def section_overlay(CODE_HEADING, DIVISION_HEADING, TITLE_HEADING, PART_HEADING, CHAPTER_HEADING,
@@ -396,9 +453,11 @@ def format_law_section(law_section, LOB, *, CODES_TBL, toc_by_path, by_version, 
         CODE_HEADING = ''
     head = SimpleNamespace(**heading_fields('', '', '', '', '', ''))
     SECTION_TITLE = ''
+    trail = []
     if placed is not None:
         SECTION_TITLE = placed.TITLE or ''
         head = SimpleNamespace(**toc_headings(LAW_CODE, placed.NODE_TREEPATH, toc_by_path))
+        trail = toc_trail(LAW_CODE, placed.NODE_TREEPATH, toc_by_path)
     LEGAL_TEXT = parse_caml(LOB) if LOB else ''
     SECTION_HISTORY = HISTORY or ''
     SESSION = '' if SESSION is None else str(SESSION)
@@ -406,6 +465,18 @@ def format_law_section(law_section, LOB, *, CODES_TBL, toc_by_path, by_version, 
     d.update(section_overlay(CODE_HEADING, head.DIVISION_HEADING, head.TITLE_HEADING, head.PART_HEADING,
                              head.CHAPTER_HEADING, head.ARTICLE_HEADING, head.ARTICLE_HISTORY,
                              LEGAL_TEXT, SECTION_TITLE, SECTION_HISTORY, SESSION, PK))
+    if trail:
+        # The publisher's tree, so a reader can draw the shape the official
+        # table of contents draws: the node this section sits in, and every
+        # rung above it with its own unit, whichever field the number was on.
+        leaf = trail[-1]
+        d.update({
+            'TOC_PATH': leaf['path'],
+            'TOC_LEVEL': len(trail),
+            'TOC_POSITION': leaf['position'],
+            'TOC_UNIT': leaf['unit'],
+            'TOC_TRAIL': trail,
+        })
     return d
 
 

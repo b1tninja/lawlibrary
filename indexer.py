@@ -8,7 +8,7 @@ from enum import Enum, auto
 
 from whoosh import highlight, index
 from whoosh.analysis import StemmingAnalyzer
-from whoosh.fields import SchemaClass, ID, TEXT, NUMERIC, DATETIME, BOOLEAN
+from whoosh.fields import SchemaClass, ID, TEXT, NUMERIC, DATETIME, BOOLEAN, STORED
 from whoosh.qparser import MultifieldParser, OrGroup
 from whoosh.query import And, Term
 from whoosh.reading import TermNotFound
@@ -193,6 +193,18 @@ class LawSchema(SchemaClass):
     TITLE_HEADING = TEXT(stored=True, analyzer=_ANALYZER)
     TRANS_UID = ID()
     TRANS_UPDATE = DATETIME(stored=True)
+    # The publisher's own tree, from LAW_TOC_TBL. California's codes do not
+    # share one nesting — the Civil Code runs division, part, title; the Penal
+    # Code runs part, title, division — and nearly every code opens with
+    # headings that have no number at all, so the five unit fields above
+    # cannot hold the shape. TOC_PATH is the node's tree path, `6.8.1`; a
+    # child's path extends its parent's, so a prefix names a subtree.
+    # TOC_TRAIL is every ancestor, as stored: unit, number, caption, position.
+    TOC_PATH = ID(stored=True)
+    TOC_LEVEL = NUMERIC(stored=True)
+    TOC_POSITION = NUMERIC(stored=True)
+    TOC_UNIT = ID(stored=True)
+    TOC_TRAIL = STORED()
 
 
 class IndexState(Enum):
