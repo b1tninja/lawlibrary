@@ -10,6 +10,8 @@ import os.path
 import pprint
 import re
 import sys
+import threading
+import time
 import zipfile
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from contextlib import closing
@@ -646,7 +648,19 @@ class SubdivisionIndexed:
         def tagged():
             for row in self.parallel_sections(path, workers=workers):
                 yield stamp_subdivision(row, subdivision)
-        return indexer.index_pubinfo_laws(path, tagged())
+        expected = self.count_sections(path)
+        logger.info("%s: %s sections to index, %s parsers, %s writers", os.path.basename(path),
+                    format(expected, ',') if expected else 'an unknown number of',
+                    workers or 'default', getattr(indexer, 'procs', 1))
+        return indexer.index_pubinfo_laws(path, tagged(), expected=expected)
+
+    def count_sections(self, path):
+        """How many rows the edition's section table holds, for the progress line. None when unknown."""
+        stem = getattr(self, 'section_table', None)
+        if not stem:
+            return None
+        with zipfile.ZipFile(path) as zf:
+            return sum(1 for _row in iter_dat_rows(zf, stem))
 
 
 class BillVersionRows:
@@ -666,6 +680,7 @@ class CaliforniaCodes(SubdivisionIndexed, Publication):
     """Code tables. Present in the session zips from 2011 on."""
 
     instrument = Instrument.STATUTE
+    section_table = 'LAW_SECTION_TBL'
 
     @classmethod
     def accepts(cls, names):
@@ -734,6 +749,8 @@ class CaliforniaBills(BillVersionRows, SubdivisionIndexed, Publication):
     def sections(self, path):
         yield from self.bill_sections(path)
 
+    section_table = 'BILL_VERSION_TBL'
+
     def parallel_sections(self, path, workers=None, chunk_size=200):
         yield from iter_bills_parallel(path, workers=workers, chunk_size=chunk_size)
 
@@ -783,9 +800,10 @@ def _build_edition(zip_path, edition_dir, workers, procs):
     """
     import shutil
     from indexer import Indexer
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, datefmt=LOG_DATE)
     california = California()
     edition = california.edition(zip_path)
+    logger.info("%s: starting (%s)", os.path.basename(zip_path), type(edition).__name__)
     building = edition_dir + '.building'
     if os.path.isdir(building):
         shutil.rmtree(building)
@@ -844,25 +862,52 @@ def index_shelf(basedir, all_sessions=True, workers=None, at_once=None, procs=No
     at_once = max(1, min(len(jobs), at_once or max(1, cpu // 8)))
     procs = max(1, procs or 2)
     workers = max(1, workers or max(1, cpu // at_once - procs - 1))
-    logger.info("Building %d editions, %d at once, %d parsers and %d writers each",
-                len(jobs), at_once, workers, procs)
+    logger.info("Building %d editions (%s MB of zips), %d at once, %d parsers and %d writers each: %s",
+                len(jobs), format(sum(size for size, _p, _d in jobs) // (1 << 20), ','), at_once, workers, procs,
+                ' '.join(os.path.basename(path) for _size, path, _dest in jobs))
     counts = {}
+    failed = []
+    in_flight = {}
+    clock_started = time.monotonic()
+    stop = threading.Event()
+
+    def heartbeat():
+        # The editions log their own progress; this is the shelf's: how many
+        # are done, which are building, and for how long, once a minute.
+        from indexer import clock
+        while not stop.wait(60):
+            building = ', '.join('%s (%s)' % (os.path.basename(path), clock(time.monotonic() - since))
+                                 for path, since in sorted(in_flight.items(), key=lambda item: item[1]))
+            logger.info("shelf: %d of %d editions done, %d failed, %s elapsed; building %s",
+                        len(counts), len(jobs), len(failed), clock(time.monotonic() - clock_started), building or 'none')
+
     ctx = multiprocessing.get_context('spawn')
-    with ProcessPoolExecutor(max_workers=at_once, mp_context=ctx) as pool:
-        futures = {
-            pool.submit(_build_edition, path, dest, workers, procs): (path, dest)
-            for _size, path, dest in jobs
-        }
-        for future in as_completed(futures):
-            path, dest = futures[future]
-            try:
-                counts[dest] = future.result()
-            except TypeError as e:
-                logger.warning("Skipping %s... %s.", path, e)
-            except Exception:
-                logger.exception("Edition %s failed", path)
-            else:
-                logger.info("Edition %s: %d sections -> %s", os.path.basename(path), counts[dest], dest)
+    pulse = threading.Thread(target=heartbeat, daemon=True)
+    pulse.start()
+    try:
+        with ProcessPoolExecutor(max_workers=at_once, mp_context=ctx) as pool:
+            futures = {}
+            for _size, path, dest in jobs:
+                futures[pool.submit(_build_edition, path, dest, workers, procs)] = (path, dest)
+                in_flight[path] = time.monotonic()
+            for future in as_completed(futures):
+                path, dest = futures[future]
+                took = time.monotonic() - in_flight.pop(path, time.monotonic())
+                try:
+                    counts[dest] = future.result()
+                except TypeError as e:
+                    failed.append(path)
+                    logger.warning("Skipping %s... %s.", path, e)
+                except Exception:
+                    failed.append(path)
+                    logger.exception("Edition %s failed", path)
+                else:
+                    from indexer import clock
+                    logger.info("Edition %s: %s sections in %s -> %s (%d of %d editions done)",
+                                os.path.basename(path), format(counts[dest], ','), clock(took), dest,
+                                len(counts), len(jobs))
+    finally:
+        stop.set()
     if len(counts) == len(jobs):
         _mark_shelf(root, started)
     else:
@@ -963,10 +1008,14 @@ def download_pubinfos(path, *, session=None, all_sessions=True, workers=3):
         list(pool.map(lambda year: _fetch_pubinfo(year, path), years))
 
 
+LOG_FORMAT = '%(asctime)s %(levelname)s %(name)s: %(message)s'
+LOG_DATE = '%H:%M:%S'
+
+
 def main(argv=None):
     import argparse
 
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, datefmt=LOG_DATE)
 
     parser = argparse.ArgumentParser(description='downloads.leginfo.legislature.ca.gov pubinfo_*.zip Code reader.')
     parser.add_argument('--path', type=dir_path,

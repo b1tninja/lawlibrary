@@ -155,3 +155,23 @@ def test_a_reader_turns_to_the_shelf_only_once_it_is_marked_whole(tmp_path, monk
     (root / core.SHELF_MARK).write_text('{"editions": ["2011", "2025"]}', encoding='utf-8')
     assert core.index_root() == root
     assert isinstance(core.open_index(), core.Shelf)
+
+
+def test_the_progress_line_says_share_rate_and_estimate():
+    from indexer import clock, progress
+    assert clock(65) == '1:05' and clock(3725) == '1:02:05'
+    line = progress('pubinfo_2009.zip', 15000, 31254, started=0.0, now=1082.0, last=1052.0, last_count=14580)
+    assert line.startswith('pubinfo_2009.zip: 15,000/31,254 (47%)')
+    assert '14/s now, 14/s overall, 18:02 elapsed ~19:32 left' in line
+    bare = progress('pubinfo_1989.zip', 500, None, started=0.0, now=10.0, last=5.0, last_count=250)
+    assert bare == 'pubinfo_1989.zip: 500 sections 50/s now, 50/s overall, 0:10 elapsed'
+
+
+def test_a_build_logs_its_start_its_progress_and_its_end(tmp_path, caplog):
+    import logging
+    laws = [_law('2025', 'CIV', str(number), 'Section %d.' % number) for number in range(1, 8)]
+    with caplog.at_level(logging.INFO, logger='indexer'):
+        Indexer(str(tmp_path / 'idx')).index_pubinfo_laws(str(tmp_path / 'pubinfo_2025.zip'), iter(laws), expected=7)
+    said = [record.getMessage() for record in caplog.records]
+    assert any(words.startswith('pubinfo_2025.zip: 7 sections read in') for words in said)
+    assert any(words.startswith('pubinfo_2025.zip: done, 7 sections in') and 'commit' in words for words in said)

@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import time
 import os.path
 import re
 import shutil
@@ -230,6 +231,35 @@ def needle_rows(law):
     return _needle_rows(_present(law), law.get('SHELF'))
 
 
+def clock(seconds):
+    """``m:ss``, or ``h:mm:ss`` past an hour."""
+    seconds = max(0, int(round(seconds)))
+    hours, rest = divmod(seconds, 3600)
+    minutes, secs = divmod(rest, 60)
+    return '%d:%02d:%02d' % (hours, minutes, secs) if hours else '%d:%02d' % (minutes, secs)
+
+
+def progress(name, count, expected, started, now, last, last_count):
+    """One line that says where a build is.
+
+    ``15,000/31,254 (48%) 14/s now, 16/s overall, 18:02 elapsed, ~17:00 left``.
+    Without an expected total there is no share and no estimate, only the
+    count and the rates; the rates are what say whether it is moving.
+    """
+    elapsed = max(now - started, 1e-9)
+    overall = count / elapsed
+    recent = (count - last_count) / max(now - last, 1e-9)
+    words = ['%s:' % name]
+    if expected:
+        words.append('%s/%s (%d%%)' % (format(count, ','), format(expected, ','), 100 * count // max(expected, 1)))
+    else:
+        words.append('%s sections' % format(count, ','))
+    words.append('%.0f/s now, %.0f/s overall, %s elapsed' % (recent, overall, clock(elapsed)))
+    if expected and overall > 0 and count < expected:
+        words.append('~%s left' % clock((expected - count) / overall))
+    return ' '.join(words)
+
+
 def _present(law):
     names = _FIELDS
     doc = {}
@@ -326,8 +356,16 @@ class Indexer:
         with law_idx.searcher() as searcher:
             return bool(searcher.search(Term('SESSION', str(session)), limit=1).scored_length())
 
-    def index_pubinfo_laws(self, pubinfo, laws):
-        if not index_ready(self.idx_path):
+    def index_pubinfo_laws(self, pubinfo, laws, expected=None):
+        """Write ``laws`` to the index and the needle store. Returns the count.
+
+        ``expected`` is how many are coming, when the caller counted them;
+        it turns the progress line from a count into a share and an
+        estimate. A line goes out every 5,000 sections or every thirty
+        seconds, whichever comes first, so a slow edition still speaks.
+        """
+        # A writer's directory is one flat index; a shelf root is never written.
+        if not index.exists_in(self.idx_path):
             law_idx = index.create_in(self.idx_path, LawSchema)
             self.state = IndexState.Created
         else:
@@ -336,6 +374,9 @@ class Indexer:
 
         codes = self._read_codes()
         count = 0
+        name = os.path.basename(pubinfo)
+        started = last = time.monotonic()
+        last_count = 0
         if self.procs > 1:
             writer = law_idx.writer(procs=self.procs, limitmb=256, multisegment=True)
         else:
@@ -361,11 +402,18 @@ class Indexer:
                 if code and heading:
                     codes[code] = heading
                 count += 1
-                if count % 5000 == 0:
-                    logger.info("Indexed %s sections from %s", count, os.path.basename(pubinfo))
+                now = time.monotonic()
+                if count % 5000 == 0 or now - last >= 30:
+                    logger.info(progress(name, count, expected, started, now, last, last_count))
+                    last, last_count = now, count
+            closing = time.monotonic()
+            logger.info("%s: %s sections read in %s; committing", name, format(count, ','), clock(closing - started))
             writer.commit()
             needles.commit()
             self.state = IndexState.Committed
+            done = time.monotonic()
+            logger.info("%s: done, %s sections in %s (%.0f/s; commit %s)", name, format(count, ','),
+                        clock(done - started), count / max(done - started, 1e-9), clock(done - closing))
         except Exception:
             writer.cancel()
             needles.rollback()
