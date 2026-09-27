@@ -10,7 +10,7 @@ These guide an agent that adds a parser, a pin, or a lookup.
 
 2. **A fact is a record.** A citation is a `Point`. A clause is a `Mark`. A canon hit is a `Signal`. A reference is an `Annotation`. A court book is a `Rulebook`. The open book is a `Context`. Fields stay on the record. A task reads `point.cite` and `point.numbers`.
 
-3. **A repeated job is a helper.** Book identity is `resolve_book`. The open book is `document`. Marks on a sentence are `annotate`, `find_clauses`, `find_signals`, `find_mentions`. A section is `query.section`. A few sections for parser work are `sample.sample`. A pin is `analysis.pin`. A new call site uses the helper. It does not open Whoosh or a corpus file on its own.
+3. **A repeated job is a helper.** Book identity is `resolve_book`. The open book is `document`. Marks on a sentence are `annotate`, `find_clauses`, `find_signals`, `find_mentions`. A section is `query.section`. A few sections for parser work are `sample.sample`. A pin is `analysis.pin`. A word count by heading is `ledger.open_ledger` through `weight.Scope`. A new call site uses the helper. It does not open Whoosh or a corpus file on its own.
 
 4. **A new decision extends the record.** A new kind of citation, clause, canon, or office role is a new enum member and, when the words need a shape, a field on the record. A book abbreviation and a section number live in the data the helper already returns (`book`, `citation`, `numbers`).
 

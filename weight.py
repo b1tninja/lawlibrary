@@ -16,9 +16,6 @@ import enum
 import math
 from heapq import heappush, heappushpop
 
-from whoosh import index
-
-from core import index_dir
 
 
 class Surface(enum.Enum):
@@ -29,12 +26,20 @@ class Surface(enum.Enum):
 
 
 class Scope(enum.Enum):
-    """The bucket a section's counts roll up into."""
+    """The bucket a section's counts roll up into.
+
+    CHAPTER, DIVISION and ARTICLE are keyed by a code and a number, so
+    ``CIV 2`` at CHAPTER is every Chapter 2 in the Civil Code at once. NODE is
+    one place in the publisher's tree, keyed by a code and the path
+    ``tree_law`` gives (``CIV 6.8``); a section counts toward its node and
+    every node above it. See docs/tree.md.
+    """
 
     CODE = 'code'
     CHAPTER = 'chapter'
     DIVISION = 'division'
     ARTICLE = 'article'
+    NODE = 'node'
     STATE = 'state'
     FEDERAL = 'federal'
 
@@ -332,7 +337,26 @@ class Weight:
         return 'Weight(%s, %r, %r, %.3f)' % (self.scope.value, self.key, self.term, self.score)
 
 
-_places = None
+def rollup(hits):
+    """Add one term's section counts into every scope those sections belong to.
+
+    ``hits`` is ``(keys, weight)``. ``keys`` maps a scope to the member that
+    contains the section, or to the tuple of members when the section counts
+    toward several (a node and its ancestors). Term frequency at a wider
+    scope is the sum. Document frequency is how many members at that scope
+    received a count. The postings are read once.
+    """
+    totals = {scope: {} for scope in Scope}
+    for keys, weight in hits:
+        if weight <= 0:
+            continue
+        for scope, key in keys.items():
+            if not key:
+                continue
+            bucket = totals[scope]
+            for member in ((key,) if isinstance(key, str) else key):
+                bucket[member] = bucket.get(member, 0) + weight
+    return totals
 
 
 def _term_set(rows):
@@ -378,144 +402,57 @@ def idf_weight(df, n):
     return math.log((n + 1) / (df + 1)) + 1.0
 
 
-def _key(scope, fields):
-    code = fields.get('LAW_CODE') or ''
-    sub = fields.get('SUBDIVISION') or ''
-    if scope is Scope.CODE:
-        return code or None
-    if scope is Scope.CHAPTER:
-        chapter = fields.get('CHAPTER') or ''
-        if not code or not chapter:
-            return None
-        return '%s %s' % (code, chapter)
-    if scope is Scope.DIVISION:
-        division = fields.get('DIVISION') or ''
-        if not code or not division:
-            return None
-        return '%s %s' % (code, division)
-    if scope is Scope.ARTICLE:
-        article = fields.get('ARTICLE') or ''
-        if not code or not article:
-            return None
-        return '%s %s' % (code, article)
-    if scope is Scope.STATE:
-        if sub.startswith('US-'):
-            return sub
-        return None
-    if scope is Scope.FEDERAL:
-        if sub == 'US':
-            return 'US'
-        return None
-    return None
+_ranked = {}
 
 
-def _load(path):
-    global _places
-    if _places is not None and _places.get('path') == path:
-        return _places
-    ix = index.open_dir(path)
-    with ix.searcher() as searcher:
-        placed = []
-        members = {scope: set() for scope in Scope}
-        for docnum in range(searcher.doc_count()):
-            fields = searcher.stored_fields(docnum)
-            row = {}
-            for scope in Scope:
-                key = _key(scope, fields)
-                row[scope] = key
-                if key:
-                    members[scope].add(key)
-            placed.append(row)
-    _places = {'path': path, 'rows': placed, 'members': members}
-    return _places
+def _weights(scope, key, root=None):
+    """Every term's weight for one member of ``scope``, from the ledger.
 
-
-def _keep(term):
-    word = term.decode('utf-8') if isinstance(term, bytes) else term
-    if len(word) < 3 or word.isdigit():
-        return None
-    return word
-
-
-def rollup(hits):
-    """Add one term's section counts into every scope those sections belong to.
-
-    ``hits`` is ``(keys, weight)``. ``keys`` maps a scope to the member that
-    contains the section. Term frequency at a wider scope is the sum. Document
-    frequency is how many members at that scope received a count. The postings
-    are read once.
+    The ledger holds each term's count at each place, built once per index
+    generation over the newest edition; a member is a set of places and its
+    counts are the sum. What is kept here is the scored dictionary for the
+    last few members asked for, and a new generation empties it.
     """
-    totals = {scope: {} for scope in Scope}
-    for keys, weight in hits:
-        if weight <= 0:
-            continue
-        for scope, key in keys.items():
-            if not key:
-                continue
-            bucket = totals[scope]
-            bucket[key] = bucket.get(key, 0) + weight
-    return totals
-
-
-_tallies = None
-
-
-def _tally(path):
-    """One lexicon walk. Later ranks reuse it for every scope and member."""
-    global _tallies
-    if _tallies is not None and _tallies.get('path') == path:
-        return _tallies
-    loaded = _load(path)
-    rows = loaded['rows']
-    ix = index.open_dir(path)
-    stored = {scope: {} for scope in Scope}
-    with ix.searcher() as searcher:
-        reader = searcher.reader()
-        for raw in reader.lexicon('LEGAL_TEXT'):
-            term = _keep(raw)
-            if term is None:
-                continue
-            postings = reader.postings('LEGAL_TEXT', raw)
-            hits = []
-            while postings.is_active():
-                docnum = postings.id()
-                keys = rows[docnum] if docnum < len(rows) else None
-                if keys:
-                    hits.append((keys, postings.weight()))
-                postings.next()
-            if not hits:
-                continue
-            for scope, members in rollup(hits).items():
-                n = len(loaded['members'][scope])
-                scope_store = stored[scope]
-                df = len(members)
-                idf = idf_weight(df, n)
-                for key, tf in members.items():
-                    scored = tf_weight(tf) * idf if idf else tf_weight(tf)
-                    scope_store.setdefault(key, {})[term] = Weight(
-                        scope, key, term, tf, df, idf, scored,
-                    )
-    _tallies = {'path': path, 'stored': stored}
-    return _tallies
+    from ledger import open_ledger
+    book = open_ledger(root)
+    if book is None:
+        return None, 'not_indexed'
+    places = book.places(scope.value, key)
+    if not places:
+        return None, 'unknown_scope'
+    mark = (book.path, scope, str(key))
+    held = _ranked.get(mark)
+    if held is not None:
+        return held, None
+    counted = book.tally(places)
+    n = book.n(scope.value)
+    reached = book.df(scope.value, counted)
+    weights = {}
+    for term, tf in counted.items():
+        df = reached.get(term) or 1
+        idf = idf_weight(df, n)
+        weights[term] = Weight(scope, key, term, tf, df, idf, tf_weight(tf) * idf if idf else tf_weight(tf))
+    if len(_ranked) >= 64:
+        _ranked.clear()
+    _ranked[mark] = weights
+    return weights, None
 
 
 def rank(scope, key, limit=20, root=None):
     """The highest scoring terms for one member of ``scope``.
 
     ``key`` is a code token (``FGC``), a code and chapter (``FGC 1``), a
-    code and division (``FGC 1``), a code and article, a state (``US-CA``),
-    or ``US`` for federal text. A missing member is a miss. The lexicon is
-    walked once for the index; each later member reads that tally.
+    code and division (``FGC 1``), a code and article, a code and a node
+    path (``CIV 6.8``, the one place in the publisher's tree), a state
+    (``US-CA``), or ``US`` for federal text. A missing member is a miss. The
+    counts are the ledger's: built once per index generation, over the
+    newest edition only, and summed over the member's places here.
     """
     if not isinstance(scope, Scope):
         scope = Scope(scope)
-    path = str(root or index_dir())
-    if not index.exists_in(path):
-        return {'found': False, 'reason': 'not_indexed', 'scope': scope, 'key': key, 'terms': []}
-    loaded = _load(path)
-    if key not in loaded['members'][scope]:
-        return {'found': False, 'reason': 'unknown_scope', 'scope': scope, 'key': key, 'terms': []}
-    weights = _tally(path)['stored'][scope].get(key) or {}
+    weights, reason = _weights(scope, key, root)
+    if weights is None:
+        return {'found': False, 'reason': reason, 'scope': scope, 'key': key, 'terms': []}
     best = []
     for term, weight in weights.items():
         scored = weight.score
@@ -548,13 +485,9 @@ def common(scope, key, limit=20, root=None):
     """
     if not isinstance(scope, Scope):
         scope = Scope(scope)
-    path = str(root or index_dir())
-    if not index.exists_in(path):
-        return {'found': False, 'reason': 'not_indexed', 'scope': scope, 'key': key, 'terms': []}
-    loaded = _load(path)
-    if key not in loaded['members'][scope]:
-        return {'found': False, 'reason': 'unknown_scope', 'scope': scope, 'key': key, 'terms': []}
-    weights = _tally(path)['stored'][scope].get(key) or {}
+    weights, reason = _weights(scope, key, root)
+    if weights is None:
+        return {'found': False, 'reason': reason, 'scope': scope, 'key': key, 'terms': []}
     return {
         'found': True, 'reason': None, 'scope': scope, 'key': key,
         'terms': _by_common(weights.values(), limit),

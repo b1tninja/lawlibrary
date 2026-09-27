@@ -360,3 +360,73 @@ def test_one_state_has_no_contrast():
     assert idf_weight(1, 1) == 0.0
     assert Scope.STATE.value == 'state'
     assert Scope.FEDERAL.value == 'federal'
+
+
+def _tree_index(tmp_path, year='2025'):
+    """The publisher's tree from the ingest tests, indexed as one edition."""
+    from test_tree_ingest import _pubinfo
+    from indexer import Indexer
+    from us.states.ca import California
+    pub = tmp_path / ('pubinfo_%s.zip' % year)
+    _pubinfo(pub)
+    california = California()
+    california.edition(pub).index(Indexer(tmp_path / 'idx'), pub, subdivision=california.code)
+    return str(tmp_path / 'idx')
+
+
+def test_a_node_is_one_place_and_counts_up_the_tree(tmp_path):
+    """Scope.NODE is keyed by the stored path, and a section counts toward every ancestor."""
+    from weight import rank
+    root = _tree_index(tmp_path)
+    title = rank(Scope.NODE, 'CIV 2.1.1', root=root)
+    assert title['found'] is True
+    words = {weight.term for weight in title['terms']}
+    assert 'mean' in words and 'habit' not in words
+    part = {weight.term for weight in rank(Scope.NODE, 'CIV 2.1', root=root)['terms']}
+    division = {weight.term for weight in rank(Scope.NODE, 'CIV 2', root=root)['terms']}
+    assert 'mean' in part and 'mean' in division
+    other = {weight.term for weight in rank(Scope.NODE, 'CIV 1', root=root)['terms']}
+    assert 'habit' in other and 'mean' not in other
+    missing = rank('node', 'CIV 9', root=root)
+    assert missing['found'] is False and missing['reason'] == 'unknown_scope'
+
+
+def test_the_tally_reads_the_newest_edition_once_per_generation(tmp_path):
+    """Two editions of one section are one section, and a grown index is reread."""
+    from ledger import open_ledger
+    from weight import rank
+    root = _tree_index(tmp_path, '2011')
+    first = rank(Scope.CODE, 'CIV', root=root)
+    assert first['found'] is True
+    book = open_ledger(root)
+    generation, session = book.generation, book.session
+    assert session == '2011'
+    _tree_index(tmp_path, '2025')
+    again = rank(Scope.CODE, 'CIV', root=root)
+    book = open_ledger(root)
+    assert book.generation != generation
+    assert book.session == '2025'
+    counted = {weight.term: weight.tf for weight in again['terms']}
+    assert counted['mean'] == 1
+    assert {weight.term: weight.tf for weight in first['terms']}['mean'] == 1
+
+
+def test_a_chapter_key_is_every_chapter_of_that_number_and_a_node_is_one(tmp_path):
+    """FGC 1 at CHAPTER is every Chapter 1 in the code; a node is one place. See docs/tree.md."""
+    from weight import common, rank
+    root = _tree_index(tmp_path)
+    chapter = rank(Scope.CHAPTER, 'CIV 2', root=root)
+    assert chapter['found'] is True
+    assert 'habit' in {weight.term for weight in chapter['terms']}
+    shared = common('code', 'CIV', root=root)
+    assert shared['found'] is True and shared['terms']
+    assert common('node', 'CIV 2', root=root)['found'] is True
+    assert rank('node', 'CIV 2', root=str(tmp_path / 'nowhere'))['reason'] == 'not_indexed'
+
+
+def test_the_lexicon_rank_and_the_pair_tally_do_not_share_a_name():
+    """rank() raised TypeError while a later _tally(bucket, tokens) shadowed the walk."""
+    import inspect
+    import weight
+    assert inspect.signature(weight._tally).parameters.keys() >= {'bucket', 'tokens'}
+    assert not hasattr(weight, '_load')

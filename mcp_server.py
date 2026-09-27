@@ -476,8 +476,10 @@ def _weight_row(weight, needle):
 def common_terms(scope: str, key: str, limit: int = 20) -> dict:
     """The most common terms in a scope, the inverse of the distinctive rank.
 
-    scope is code, chapter, division, article, state, or federal.
-    key is a member such as CIV, or FGC 1 for a chapter.
+    scope is code, chapter, division, article, node, state, or federal.
+    key is a member such as CIV, FGC 1 for a chapter, or CIV 6.8 for a
+    node (the path tree_law gives; one place, where FGC 1 is every
+    Chapter 1 in the code). Counts read the newest edition only.
     A term already registered as a needle form has needle true.
     The rest are candidates. A missing member is found false.
     """

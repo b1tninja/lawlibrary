@@ -16,6 +16,7 @@ Sacramento, California, USA is the home jurisdiction. `python ca.py` is that pla
 | `publication.py` | One file layout: statute, measure, or regulation. |
 | `caml.py` | CAML, the markup California publishes statutes in. The grammar is in [caml.md](caml.md). |
 | `indexer.py` | The local Whoosh index. |
+| `ledger.py` | Word counts per place, built in parallel once per index generation. A scope is a sum over places; see [tree.md](tree.md). |
 | `query.py` | The structured lookup Jason calls. How a code's headings nest, and how a node is addressed, is [tree.md](tree.md). |
 | `mcp_server.py` | The agent tools over that index. |
 

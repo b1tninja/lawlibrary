@@ -64,7 +64,7 @@ def _pubinfo(path):
         zf.writestr('LAW_SECTION_TBL.dat', '\n'.join(law) + '\n')
         zf.writestr('LAW_SECTION_TBL_pk1.lob', '<p>The landlord shall keep the dwelling habitable.</p>')
         zf.writestr('LAW_SECTION_TBL_pk2.lob', '<p>Words used in this title have these meanings.</p>')
-        zf.writestr('LAW_SECTION_TBL_pk3.lob', '<p>This code takes effect at noon.</p>')
+        zf.writestr('LAW_SECTION_TBL_pk3.lob', '<p>This code takes effect at noon for the landlord.</p>')
 
 
 def _laws(tmp_path):

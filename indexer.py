@@ -150,9 +150,9 @@ def _write_ahead(db):
 # The newest column and index each table gained. A store that has these has
 # every earlier one too, so this is the whole schema check.
 _NEEDLE_SCHEMA = (
-    ('needle', 'root', 'needle_citation'),
+    ('needle', 'root', 'needle_form_code'),
     ('edge', 'kind', 'edge_prior'),
-    ('annotation', 'join_kind', 'annotation_citation'),
+    ('annotation', 'join_kind', 'annotation_text'),
 )
 
 DEFAULT_COUNTRY = 'US'
@@ -509,6 +509,11 @@ class Indexer:
         db.execute('CREATE INDEX IF NOT EXISTS annotation_note_code ON annotation (note, code)')
         db.execute('CREATE INDEX IF NOT EXISTS annotation_note_target ON annotation (note, target)')
         db.execute('CREATE INDEX IF NOT EXISTS annotation_citation ON annotation (citation)')
+        # The cloud asks which codes use a word: `form IN (...) GROUP BY form, code`
+        # and `text IN (...) AND note IN (...)`. Without these two, each ask
+        # read every row of a seven-million-row table.
+        db.execute('CREATE INDEX IF NOT EXISTS needle_form_code ON needle (form, code)')
+        db.execute('CREATE INDEX IF NOT EXISTS annotation_text ON annotation (text, note, code)')
         _NEEDLE_READY.add(path)
         return db
 

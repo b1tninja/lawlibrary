@@ -100,10 +100,24 @@ is a rebuild.
 
 ## Aggregates
 
-Counts by heading — the cloud, the ledger, `weight` — should key on
-`TOC_PATH` and session. A scope is then a prefix, not a Whoosh scan and an
-`IN` list, and "chapter 2" of one part is not "chapter 2" of another. That
-work follows the rebuild.
+A count by heading is the ledger (`ledger.py`). A **place** is one leaf of
+the publisher's tree — the node a section hangs from, or in an index built
+before the trail, one cell of the ladder — and a section sits at exactly
+one place. The ledger stores each word's count at each place, built once
+per index generation over the newest edition only, in parallel: the seats
+are read in document slices and the lexicon is walked in term ranges, one
+worker per processor. On the full index that is 162,431 sections, 20,381
+places, 4.3 million rows, about two minutes on 32 workers; the single-thread
+walk it replaces took five minutes and kept nothing.
+
+A scope is a set of places and its count is a sum: `Scope.CODE('CIV')`,
+`Scope.CHAPTER('CIV 2')` (every Chapter 2 in the code, by number),
+`Scope.NODE('CIV 6.8')` (one place and everything under it, by path prefix),
+`Scope.STATE('US-CA')`. `weight.rank` and `weight.common` read it; the MCP
+tool `common_terms` takes `node` as a scope. The node scope is empty until
+the index carries `TOC_PATH`. A new call site that counts words by heading
+opens the ledger; it does not walk the lexicon or join the needle store by
+`IN` lists.
 
 ## Sources
 
