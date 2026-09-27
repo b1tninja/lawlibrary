@@ -820,6 +820,7 @@ def index_shelf(basedir, all_sessions=True, workers=None, at_once=None, procs=No
     from core import EDITION_MARK, shelf_dir
     root = str(root or shelf_dir())
     os.makedirs(root, exist_ok=True)
+    started = datetime.datetime.now(datetime.timezone.utc)
     zips = session_zips(basedir)
     if zips and not all_sessions:
         zips = zips[-1:]
@@ -836,6 +837,7 @@ def index_shelf(basedir, all_sessions=True, workers=None, at_once=None, procs=No
         jobs.append((os.path.getsize(path), path, dest))
     if not jobs:
         logger.info("The shelf at %s is complete.", root)
+        _mark_shelf(root, started)
         return {}
     jobs.sort(reverse=True)
     cpu = os.cpu_count() or 1
@@ -861,7 +863,22 @@ def index_shelf(basedir, all_sessions=True, workers=None, at_once=None, procs=No
                 logger.exception("Edition %s failed", path)
             else:
                 logger.info("Edition %s: %d sections -> %s", os.path.basename(path), counts[dest], dest)
+    if len(counts) == len(jobs):
+        _mark_shelf(root, started)
+    else:
+        logger.warning("%d of %d editions failed; the shelf is not marked whole.", len(jobs) - len(counts), len(jobs))
     return counts
+
+
+def _mark_shelf(root, started):
+    """Write the root mark that turns readers to the shelf. See core.index_root."""
+    from core import SHELF_MARK, editions
+    with open(os.path.join(root, SHELF_MARK), 'w', encoding='utf-8') as fh:
+        json.dump({
+            'editions': [part.name for part in editions(root)],
+            'built': datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),
+            'seconds': round((datetime.datetime.now(datetime.timezone.utc) - started).total_seconds(), 1),
+        }, fh)
 
 
 def print_pubinfos(basedir, colorize=False, jsonp=False):

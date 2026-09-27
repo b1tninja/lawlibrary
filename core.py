@@ -60,6 +60,7 @@ def shelf_dir() -> Path:
 
 
 EDITION_MARK = "edition.json"
+SHELF_MARK = "shelf.json"
 _EDITION = re.compile(r"^\d{4}$")
 
 
@@ -87,8 +88,15 @@ def editions(root=None) -> list:
 
 
 def index_root() -> Path:
-    """Where a reader looks: the shelf once it holds an edition, else the flat index."""
-    return shelf_dir() if editions(shelf_dir()) else index_dir()
+    """Where a reader looks: the shelf once a build has marked it whole, else the flat index.
+
+    The first edition lands ten minutes into a build and the rest follow
+    for a while; a reader that turned to the shelf then would answer from
+    one edition. ``index_shelf`` writes the root mark when every edition it
+    was asked for is in place.
+    """
+    shelf = shelf_dir()
+    return shelf if (shelf / SHELF_MARK).is_file() and editions(shelf) else index_dir()
 
 
 def index_ready(path=None) -> bool:

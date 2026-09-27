@@ -141,3 +141,17 @@ def test_a_packed_needle_row_is_written_and_not_parsed_again(tmp_path):
         assert db.execute("SELECT COUNT(*) FROM annotation WHERE citation = 'CIV 1946'").fetchone()[0] == len(packed[2])
     finally:
         db.close()
+
+
+def test_a_reader_turns_to_the_shelf_only_once_it_is_marked_whole(tmp_path, monkeypatch):
+    """One edition lands early in a build; until the root mark, the flat index still answers."""
+    import core
+    root = _shelf(tmp_path)
+    flat = tmp_path / 'flat'
+    Indexer(str(flat)).index_pubinfo_laws(str(tmp_path / 'pub.zip'), iter([_law('2025', 'CIV', '1', 'Flat.')]))
+    monkeypatch.setattr(core, 'shelf_dir', lambda: root)
+    monkeypatch.setattr(core, 'index_dir', lambda: flat)
+    assert core.index_root() == flat
+    (root / core.SHELF_MARK).write_text('{"editions": ["2011", "2025"]}', encoding='utf-8')
+    assert core.index_root() == root
+    assert isinstance(core.open_index(), core.Shelf)
