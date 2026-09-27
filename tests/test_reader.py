@@ -86,9 +86,12 @@ def test_a_tree_node_lists_its_children_as_links():
     assert status == '200 OK'
     assert body['crumbs'][-1]['unit'] == 'code'
     assert body['contents']
+    # The publisher's tree: the Civil Code opens with headings that have no
+    # number, then its divisions, each addressed by its node.
     first = body['contents'][0]
-    assert first['href'].startswith('/view/tree/us-ca/civ/division/')
-    assert first['unit'] == 'division'
+    assert first['href'].startswith('/view/tree/us-ca/civ/node/')
+    assert first['unit'] == 'unnumbered' and first['label']
+    assert 'division' in {row['unit'] for row in body['contents']}
 
 
 def test_the_closed_sets_are_served_so_the_client_keeps_no_copy():
@@ -431,27 +434,28 @@ def test_a_rung_says_what_it_is_and_how_much_it_holds():
     status, body = _json('/tree/us-ca/pen')
     assert status == '200 OK'
     rows = body['contents']
-    assert rows and {row['unit'] for row in rows} == {'division'}
+    # The publisher's tree: the Penal Code opens with its preliminary
+    # headings and then its parts, each with its caption and its node.
+    assert rows and {row['unit'] for row in rows} == {'unnumbered', 'part'}
     for row in rows:
-        assert row['label'].upper().startswith('DIVISION %s.' % row['short'])
-        assert row['sections'] > 0
-        assert row['pieces'], 'a caption is marked up like any other heading'
+        if row['unit'] == 'part':
+            assert row['label'].upper().startswith('PART %s.' % row['short'])
+        assert row['label'] and row['pieces'], 'a caption is marked up like any other heading'
+        assert row['href'].startswith('/view/tree/us-ca/pen/node/')
     # The caption carries the publisher's own span, so no second one is sent.
     assert not any(row.get('first') for row in rows)
 
 
-def test_a_rung_with_no_caption_is_named_by_its_sections():
+def test_a_numbered_address_still_walks_the_unit_fields():
+    """``division/1`` is a filter on the unit fields, not a node, and keeps its walk."""
     status, body = _json('/tree/us-ca/pen/division/1')
     assert status == '200 OK'
     rows = body['contents']
     assert rows
-    bare = [row for row in rows if not row.get('pieces')]
-    assert bare, 'these titles have no caption in the index'
-    for row in bare:
-        assert row['label'] == row['short']
+    for row in rows:
+        assert row['label'] and row['short']
         assert row['sections'] > 0
-        assert row['first'] and row['last']
-        assert row['first'][:1].isdigit() and row['last'][:1].isdigit()
+        assert not row['href'].startswith('/view/tree/us-ca/pen/node/')
 
 
 def test_a_lettered_rung_finds_its_own_caption():

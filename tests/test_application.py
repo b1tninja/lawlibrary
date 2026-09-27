@@ -59,13 +59,13 @@ def test_a_code_lists_its_headings():
     page = raw[0].decode('utf-8')
     assert status == '200 OK'
     assert 'No further headings' not in page
-    assert '/view/tree/us-ca/civ/division/' in page
+    # The publisher's tree: each rung is a node, in the publisher's order --
+    # the unnumbered headings first, then Division 1 onward.
+    assert '/view/tree/us-ca/civ/node/' in page
     import re
-    from query import heading_key
-    divisions = re.findall(r'/view/tree/us-ca/civ/division/([^"/]+)', page)
-    assert divisions
-    assert divisions == sorted(divisions, key=heading_key)
-    assert divisions[0] == '1'
+    nodes = re.findall(r'/view/tree/us-ca/civ/node/([^"/]+)', page)
+    assert nodes and nodes == sorted(nodes, key=int)
+    assert '[38. - 86.]' in page  # Division 1. Persons, with the publisher's range
     assert 'class="crumbs"' in page
     assert 'California' in page
     assert 'href="/view/tree/us"' in page

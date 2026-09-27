@@ -748,7 +748,7 @@ class Indexer:
         ``target`` for a case note is ``uppercase`` or ``title``.
         A citation row includes ``cite`` and ``join``.
         """
-        if not os.path.isfile(os.path.join(self.idx_path, 'needles.sqlite')):
+        if not os.path.isfile(os.path.join(self._home(), 'needles.sqlite')):
             return []
         db = self._needle_db()
         try:
@@ -783,7 +783,7 @@ class Indexer:
         is the rare end. Case is folded, so ``ET SEQ.`` counts with ``et seq.``
         """
         from weight import ends
-        if not os.path.isfile(os.path.join(self.idx_path, 'needles.sqlite')):
+        if not os.path.isfile(os.path.join(self._home(), 'needles.sqlite')):
             return ends([])
         db = self._needle_db()
         try:
@@ -802,7 +802,7 @@ class Indexer:
 
     def needles(self, code=None, cls=None):
         """Hits recorded at ingestion. ``code`` and ``cls`` narrow the scope."""
-        if not os.path.isfile(os.path.join(self.idx_path, 'needles.sqlite')):
+        if not os.path.isfile(os.path.join(self._home(), 'needles.sqlite')):
             return []
         db = self._needle_db()
         try:
@@ -829,7 +829,7 @@ class Indexer:
         Vesting is the office graph. Citation is the section graph. The chart
         and the client's drawing read this one list.
         """
-        if not os.path.isfile(os.path.join(self.idx_path, 'needles.sqlite')):
+        if not os.path.isfile(os.path.join(self._home(), 'needles.sqlite')):
             return []
         db = self._needle_db()
         try:
@@ -847,7 +847,7 @@ class Indexer:
 
     def code_edges(self):
         """Book to book. The cited book is the first word of the stored target."""
-        if not os.path.isfile(os.path.join(self.idx_path, 'needles.sqlite')):
+        if not os.path.isfile(os.path.join(self._home(), 'needles.sqlite')):
             return []
         db = self._needle_db()
         try:
@@ -868,7 +868,7 @@ class Indexer:
 
     def enactment_edges(self, code=None):
         """A section and the Statutes chapter stored on its session note."""
-        if not os.path.isfile(os.path.join(self.idx_path, 'needles.sqlite')):
+        if not os.path.isfile(os.path.join(self._home(), 'needles.sqlite')):
             return []
         db = self._needle_db()
         try:
@@ -885,7 +885,7 @@ class Indexer:
 
     def reference_edges(self, citation, limit=24):
         """One section, the targets it names, and the sections that name it."""
-        if not os.path.isfile(os.path.join(self.idx_path, 'needles.sqlite')):
+        if not os.path.isfile(os.path.join(self._home(), 'needles.sqlite')):
             return []
         db = self._needle_db()
         try:
