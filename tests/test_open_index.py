@@ -70,4 +70,8 @@ def test_the_lookup_and_the_search_still_find_the_section(tmp_path):
     found = idxer.get_section('CIV', '2', session='2011')
     assert found and found[0]['session'] == '2011'
     assert [hit['session'] for hit in idxer.search_law('habitable dwelling')] == ['2025']
+    # The ranked search keeps a filter, built once per generation and kept.
+    import indexer as store
+    assert any(key[2][0] == 'comb' for key in store._KEPT if isinstance(key[2], tuple))
+    assert [hit['session'] for hit in idxer.search_law('habitable dwelling')] == ['2025']
     assert idxer.search_law('habitable dwelling', session='all') and len(idxer.search_law('habitable', session='all')) == 2

@@ -371,8 +371,9 @@ class Indexer:
         with idx.searcher() as searcher:
             parsed = self._parse(q, idx.schema)
             results = searcher.search(
-                within(parsed, self._filter(active_only, session, country=country, subdivision=subdivision)),
+                parsed,
                 limit=limit,
+                filter=self._comb(searcher, self._filter(active_only, session, country=country, subdivision=subdivision)),
             )
             results.fragmenter = highlight.ContextFragmenter(surround=128)
             results.formatter = highlight.UppercaseFormatter()
@@ -879,6 +880,19 @@ class Indexer:
         if subdivision not in (None, 'all'):
             terms.append(Term('SUBDIVISION', str(subdivision)))
         return terms
+
+    def _comb(self, searcher, constraint):
+        """The documents a constraint allows, as one bit set per generation.
+
+        A ranked search keeps Whoosh's top-k skipping only when the
+        constraint is a filter, and a filter is built by walking every
+        posting of the constraint's terms: 1.3 s. Built once here and kept
+        with the generation, the walk is paid once a process; a lookup that
+        wants one document uses ``within`` and pays nothing.
+        """
+        if constraint is None:
+            return None
+        return self._kept(('comb', repr(constraint)), lambda: searcher._query_to_comb(constraint))
 
     def _filter(self, active_only, session, country=None, subdivision=None):
         if country is None:
