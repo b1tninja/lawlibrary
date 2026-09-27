@@ -132,22 +132,41 @@ def _roman(text):
 
 
 def heading_key(value):
-    """A division, title, part, chapter, article, or section, in statutory order.
+    """A division, title, part, chapter, or article, in the publisher's order.
 
-    ``SEC. 2`` and ``Section 20`` are section numbers. The label is not part
-    of the number, so 2 sorts before 10 and 20.
+    A heading number is a decimal: Part 2.52 was written in between Parts 2.5
+    and 2.6, so it sorts there. That is not how a section number reads —
+    section 1738.10 follows 1738.9 — so a section keeps ``section_key``, and a
+    labelled ``SEC. 2`` or ``Section 20`` is sent there here. A bare number
+    under a section rung is sorted by the caller with ``section_key``.
     """
     text = str(value or '').strip()
     labeled = _SECTION_LABEL.match(text)
     if labeled:
         return (0, section_key(labeled.group('num')))
     text = text.rstrip('.')
-    if _SECTION_NUM.match(text):
-        return (0, section_key(text))
+    matched = _SECTION_NUM.match(text)
+    if matched:
+        return (0, _decimal_key(matched.group('body'), matched.group('letter')))
     roman = _roman(text)
     if roman is not None:
         return (1, ((roman,), '', text))
     return (2, text.lower())
+
+
+def _decimal_key(body, letter):
+    """``2.52`` as the number two and fifty-two hundredths, then any letter.
+
+    ``1A`` sits after ``1`` and before ``1.1``, which is where the Civil Code
+    put Title 1A. A third segment, rare in a heading, breaks a tie as a whole
+    number.
+    """
+    from decimal import Decimal
+    pieces = body.split('.')
+    whole = int(pieces[0])
+    fraction = Decimal('0.' + pieces[1]) if len(pieces) > 1 and pieces[1] else Decimal(0)
+    rest = tuple(int(piece) for piece in pieces[2:] if piece)
+    return ((whole, fraction, rest), (letter or '').lower(), body)
 
 
 def section_key(number):
@@ -1021,7 +1040,10 @@ def law_tree(url=''):
                 {'url': path.child(unit, value).url, 'unit': unit, 'value': value, 'heading': text}
                 for value, text in found.items()
             ]
-            node['children'].sort(key=lambda child: heading_key(child.get('value')))
+            # A heading number is a decimal and a section number is not, so
+            # the rung says which key reads it. See heading_key.
+            order = section_key if unit == 'section' else heading_key
+            node['children'].sort(key=lambda child: order(child.get('value')))
             return node
     return node
 
