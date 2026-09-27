@@ -666,12 +666,16 @@ def occurrences(text, code=None, shelf=None):
     if not text:
         return []
     found = []
-    spans = []
+    # The characters a longer form already covers. A bill is a whole
+    # measure, and checking each hit against a growing list of spans was
+    # most of the time a bill took to index.
+    taken = bytearray(len(text))
     for name, form, pattern in _compiled(code, shelf):
         for match in pattern.finditer(text):
-            if any(match.start() < end and match.end() > start for start, end in spans):
+            start, end = match.start(), match.end()
+            if taken.find(1, start, end) != -1:
                 continue
-            spans.append((match.start(), match.end()))
+            taken[start:end] = b'\x01' * (end - start)
             found.append({
                 'class': name,
                 'form': form,

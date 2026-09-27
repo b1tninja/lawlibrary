@@ -335,13 +335,12 @@ def find_links(text, here=None):
         for number in re.findall(r'\d+(?:\.\d+)*', match.group('body')):
             found.append(Link('article', match.group(0), Code.CONSTITUTION, number, label))
         taken.append((match.start(), match.end()))
+    # The ranges, found once; they were found again for every bare number.
+    commencing = [(item.start(), item.end()) for item in _COMMENCING.finditer(text or '')]
     for match in _BARE.finditer(text or ''):
         if any(match.start() >= begin and match.end() <= end for begin, end in taken):
             continue
-        if any(
-            match.start() >= begin and match.end() <= end
-            for begin, end in ((item.start(), item.end()) for item in _COMMENCING.finditer(text or ''))
-        ):
+        if any(match.start() >= begin and match.end() <= end for begin, end in commencing):
             continue
         if book:
             for number in re.findall(r'\d+(?:\.\d+)*', match.group('body')):
