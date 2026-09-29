@@ -1,6 +1,6 @@
 """Each name that collides has one reading. The other reading stays on its own class."""
 
-from apa import Code
+from us.ca.apa import Code
 from needles import (
     California, Cut, General, House, Insurance, PublicUtilitiesSection, Section, Session,
     breakdown, consider, cuts, members, outline,

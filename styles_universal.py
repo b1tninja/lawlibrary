@@ -8,7 +8,7 @@ Legislature token, which does not depend on a reporter.
 
 import re
 
-from apa import Code, Reference, section
+from us.ca.apa import Code, Reference, section
 from parsers import Guide
 
 _CASE = re.compile(r'^(?P<year>\d{4})\s+(?P<place>[A-Z]{2})\s+(?P<num>\d+)$')

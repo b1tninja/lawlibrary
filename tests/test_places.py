@@ -1,6 +1,6 @@
 """A nested reference keeps the unit it was opened inside."""
 
-from apa import Code
+from us.ca.apa import Code
 from places import Citation, book, division, line, page, subchapter
 
 
@@ -65,7 +65,7 @@ def test_a_citation_slices_the_stored_subdivision():
 
 def test_a_range_a_series_and_an_open_end_print_and_parse():
     """The printed span is the same chain the parser rebuilds."""
-    from apa import parse
+    from us.ca.apa import parse
     from citations import Cite
     ranged = Citation(Code.CIVIL).section('1119').through('1124')
     assert ranged.reference() == 'Civil Code sections 1119 to 1124'

@@ -7,7 +7,7 @@ carries a signal that system owns.
 
 import re
 
-from apa import CitationSystem
+from us.ca.apa import CitationSystem
 
 
 def identify(text):

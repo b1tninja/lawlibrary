@@ -8,13 +8,16 @@ Sacramento, California, USA is the home jurisdiction. `python ca.py` is that pla
 | --- | --- |
 | `core.py` | Package root, the data archive, the Whoosh index, and the SQLite corpus directory. The shelf — one index per edition under `data/shelf/<year>/`, built at once and read as one — is `core.open_index`. |
 | `ca.py` | The command. It calls `us.ca`. |
-| `us/ca/` | California statutes and bills from the Legislature's pubinfo zips. |
+| `us/ca/` | California: the state, its editions (codes from 2011, bills from 1989), the shelf build, and `main`. |
+| `us/ca/apa.py` | The California codes, `Code`. |
+| `us/ca/caml.py` | CAML, the markup California publishes statutes in. The grammar is in [caml.md](caml.md). |
+| `us/ca/citation.py` | The citation form California courts use. |
 | `us/ca/counties/sacramento/` | Sacramento County. |
 | `us/ca/counties/sacramento/cities/sacramento.py` | The City of Sacramento. |
-| `us/<state>/` | Another US state. A `counties/` package appears only after a county is added. |
+| `us/states/<state>.py` | Another US state, one module, until it has a publication of its own; then it is a package like `us/ca/`. |
+| `apa.py`, `caml.py`, `california.py` | Names that stay in the root only so an import that has not moved still works; each is the module under `us/ca/`. |
 | `jurisdiction.py` | Country, region, state, county, and city. |
 | `publication.py` | One file layout: statute, measure, or regulation. |
-| `caml.py` | CAML, the markup California publishes statutes in. The grammar is in [caml.md](caml.md). |
 | `indexer.py` | The local Whoosh index. |
 | `ledger.py` | Word counts per place, built in parallel once per index generation. A scope is a sum over places; see [tree.md](tree.md). |
 | `query.py` | The structured lookup Jason calls. How a code's headings nest, and how a node is addressed, is [tree.md](tree.md). |

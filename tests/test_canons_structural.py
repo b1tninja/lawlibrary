@@ -1,6 +1,6 @@
 """Structural customary clauses. The sentence is the indexed section, sliced to the phrase."""
 
-from apa import Code
+from us.ca.apa import Code
 from lexical import Clause, find_clauses
 from places import Citation
 

@@ -1,4 +1,4 @@
-from apa import Code
+from us.ca.apa import Code
 from mcp_server import analyze_text, annotations_law, cite_law, diagram_law, list_courts, list_offices, pin_section, serve_reader
 from places import Citation
 

@@ -10,7 +10,7 @@ those other books to a depth the caller sets.
 import enum
 import re
 
-from apa import Code, cite, section as one_section
+from us.ca.apa import Code, cite, section as one_section
 from needles import cuts, pattern
 from outline import Margin, Roman
 import query as law_query

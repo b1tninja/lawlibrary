@@ -6,7 +6,7 @@ from the grammar in ``docs/caml.md``, not copied from a section; where a real
 section is needed it is looked up.
 """
 
-import caml
+import us.ca.caml as caml
 import query
 
 

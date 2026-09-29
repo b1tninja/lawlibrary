@@ -1,6 +1,6 @@
 """Word classes are registered once. A book supplies a reading only for itself."""
 
-from apa import Code
+from us.ca.apa import Code
 from needles import (
     AgencyNoun, Article, Bill, Board, ConstitutionOutline, Department, JointBill, Noun,
     Outline, PublicUtilitiesSection, Section, Session, consider, nouns, outline,

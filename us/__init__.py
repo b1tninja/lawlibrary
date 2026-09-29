@@ -25,9 +25,15 @@ class UnitedStates(Country):
 
 
 def load_states():
-    """Map ISO 3166-2 code to the State subclass in ``us.states``."""
+    """Map ISO 3166-2 code to its State subclass.
+
+    California is its own package, ``us.ca``, with its editions, its markup
+    and its counties inside it; the other states are one module each in
+    ``us.states`` until one has a publication of its own.
+    """
     import us.states as states
-    found = {}
+    from us.ca import California
+    found = {California.code: California}
     for mod in pkgutil.iter_modules(states.__path__):
         if mod.name.startswith('_'):
             continue

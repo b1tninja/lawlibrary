@@ -78,7 +78,7 @@ class Point:
 
     def citation(self, here=None):
         """The same pointer as a ``Citation`` chain. A point with no book is none."""
-        from apa import Code
+        from us.ca.apa import Code
         from places import Citation
         code = here if isinstance(here, Code) else None
         raw = self.code if isinstance(self.code, str) else ''
@@ -1352,7 +1352,7 @@ def heading_notes(text, context=None):
     The ``Stats.`` year is the chaptering year, not that day.
     """
     source = text or ''
-    from apa import active as _citation_system
+    from us.ca.apa import active as _citation_system
     guide = _citation_system()
     notes = []
     spans = []
@@ -1398,7 +1398,7 @@ def annotate(text, context=None):
     if not text:
         return []
     here = _active(context)
-    from apa import active as _citation_system
+    from us.ca.apa import active as _citation_system
     guide = _citation_system()
     notes = []
     spans = []

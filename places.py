@@ -211,7 +211,7 @@ class Citation:
     """
 
     def __init__(self, code):
-        from apa import Code
+        from us.ca.apa import Code
         if not isinstance(code, Code):
             raise TypeError('code must be a Code')
         self.code = code
@@ -397,7 +397,7 @@ class Citation:
         number = self.place._section()
         if not number:
             return self.place.reference()
-        from apa import cite, section, series, span
+        from us.ca.apa import cite, section, series, span
         from government import Article, ArticleMark
         chain = self.place._chain()
         article_place = next(
@@ -576,7 +576,7 @@ def ask(query):
     in the open book. ``q`` searches inside the place. ``use`` picks read, find,
     refs, or gaps. A missing use follows the filters that were sent.
     """
-    from apa import Code
+    from us.ca.apa import Code
     sent = {key: (value or '').strip() for key, value in (query or {}).items()}
     token = sent.get('code') or ''
     try:

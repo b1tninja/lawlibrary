@@ -132,7 +132,15 @@ class State(Region):
 
     @classmethod
     def counties(cls):
-        """This state's counties, keyed by module name."""
+        """This state's counties, keyed by module name.
+
+        A state with a package of its own (``us.ca``) keeps its counties
+        inside it, ``us.ca.counties``; a state that is one module in
+        ``us.states`` would keep them beside it, ``us.counties.<state>``.
+        """
+        inside = _open_layer(cls.__module__ + '.counties')
+        if inside:
+            return inside
         name = cls.__module__.rsplit('.', 1)[-1]
         return _open_layer('us.counties.%s' % name)
 

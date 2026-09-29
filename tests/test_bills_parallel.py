@@ -8,7 +8,7 @@ shape; no measure is quoted.
 
 import zipfile
 
-from us.states.ca import CaliforniaBills
+from us.ca import CaliforniaBills
 
 
 def _row(cols):

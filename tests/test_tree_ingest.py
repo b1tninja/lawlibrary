@@ -12,7 +12,7 @@ No statute is quoted.
 import zipfile
 from types import SimpleNamespace
 
-from us.states.ca import California, iter_laws, own_unit, toc_headings, toc_trail
+from us.ca import California, iter_laws, own_unit, toc_headings, toc_trail
 
 from indexer import Indexer
 

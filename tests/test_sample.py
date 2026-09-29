@@ -1,4 +1,4 @@
-from apa import Code
+from us.ca.apa import Code
 from corpus import connect, cfr_corpus_path
 from indexer import Indexer
 from sample import Draw, sample, sources

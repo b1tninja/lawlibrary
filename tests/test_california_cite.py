@@ -1,6 +1,6 @@
 import pytest
 
-from apa import CitationSystem, Code, cite, parse, section, series, span
+from us.ca.apa import CitationSystem, Code, cite, parse, section, series, span
 from citations import Cite
 from government import Article
 from parsers import Guide

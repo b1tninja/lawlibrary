@@ -296,7 +296,7 @@ class Draw:
 
     def citations(self):
         """The citations in this draw. The list can be sliced."""
-        from apa import Code
+        from us.ca.apa import Code
         from places import Citation
         found = []
         for row in self.choose().get('sections') or []:

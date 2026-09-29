@@ -1,4 +1,4 @@
-from apa import Code, parse
+from us.ca.apa import Code, parse
 from places import Citation
 
 from structure import Diagram, Gap, _chart, _follows, code_chart, enactment_chart, find_links, inspect, markdown, related, review, split_nodes
@@ -276,7 +276,7 @@ def test_a_roman_heading_is_its_own_rank():
 
 def test_spans_nests_articles_and_this_chapter_rebuild_the_chain():
     """Lookup locators only. The printed form and the link are the same citation."""
-    from apa import parse
+    from us.ca.apa import parse
     ranged = find_links('Sections 1119 to 1124 of the Civil Code')
     assert ranged[0].citation().reference() == 'Civil Code sections 1119 to 1124'
     opened = find_links('commencing with Section 11340', here=Code.GOVERNMENT)

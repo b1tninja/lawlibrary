@@ -1,6 +1,6 @@
 """Agency seats read from the enactment sentence of a stored section."""
 
-from apa import Code
+from us.ca.apa import Code
 from hierarchy import Seat, absent, crumbs, lineage, seats, trail
 from places import Citation
 

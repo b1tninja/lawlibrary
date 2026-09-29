@@ -13,7 +13,7 @@ from ledger import Ledger, build, keep, ledger_path, open_ledger
 def _tree_index(tmp_path, year='2025'):
     from test_tree_ingest import _pubinfo
     from indexer import Indexer
-    from us.states.ca import California
+    from us.ca import California
     pub = tmp_path / ('pubinfo_%s.zip' % year)
     _pubinfo(pub)
     california = California()

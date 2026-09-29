@@ -2,7 +2,7 @@
 
 from publication import City
 
-from us.counties.ca.sacramento import SacramentoCounty
+from us.ca.counties.sacramento import SacramentoCounty
 
 
 class Sacramento(City):

@@ -1,4 +1,4 @@
-from apa import Code
+from us.ca.apa import Code
 from places import Citation
 
 from citations import Absolute, Cite, Convention, Duration, Monetary, Note, Quantity, annotate, find_durations, forms, frames

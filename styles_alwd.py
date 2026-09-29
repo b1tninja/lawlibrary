@@ -6,7 +6,7 @@ either that manual or The Bluebook. This module renders the shorthand
 and the section sign, without the Cal. prefix the Bluebook module adds.
 """
 
-from california import parse as parse_california
+from us.ca.citation import parse as parse_california
 from parsers import Guide
 
 

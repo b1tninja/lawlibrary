@@ -15,7 +15,7 @@ from whoosh.query import And, Or, Prefix, Term
 import corpus
 from core import index_dir, index_ready, open_index, within
 from indexer import DEFAULT_COUNTRY, DEFAULT_SUBDIVISION, Indexer
-from us.counties.ca.sacramento.cities.sacramento import Sacramento
+from us.ca.counties.sacramento.cities.sacramento import Sacramento
 
 HEADING_LEVELS = (
     ('division', 'DIVISION_HEADING'),
@@ -1058,7 +1058,7 @@ def law_tree(url='', expand=False):
             node['children'].append({'url': child.url, 'unit': 'code', 'value': row['code'], 'heading': row['title']})
         return node
     if path.section and path.subdivision is None:
-        from apa import Code
+        from us.ca.apa import Code
         from places import Citation
         try:
             book = Code.get(path.code)

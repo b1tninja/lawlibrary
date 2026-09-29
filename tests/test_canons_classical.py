@@ -1,7 +1,7 @@
 """Classical canons. Each sentence is sliced from the cited section."""
 
 import query
-from apa import Code
+from us.ca.apa import Code
 from canons import Canon, find_signals, readings
 
 

@@ -1,5 +1,5 @@
 import query
-from apa import Code
+from us.ca.apa import Code
 from canons import Canon, ambiguities, find_signals, readings
 
 

@@ -528,7 +528,7 @@ def related_law(code: str, section: str, depth: int = 1, codes: str = '') -> dic
     articles is the article and section.
     Neither is opened. A missing section is found false.
     """
-    from apa import Code
+    from us.ca.apa import Code
     from places import Citation
     try:
         book = Code.get(code)

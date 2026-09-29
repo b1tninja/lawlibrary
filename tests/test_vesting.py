@@ -1,6 +1,6 @@
 """Jurisdiction edges taken from vesting clauses in the index."""
 
-from apa import Code
+from us.ca.apa import Code
 from places import Citation
 from vesting import diagram, grants
 

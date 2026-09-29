@@ -55,7 +55,7 @@ def test_city_and_county_resolve_when_registered():
 def _dre():
     """BPC 10050, sliced to the sentence that creates the department."""
     import query
-    from apa import Code
+    from us.ca.apa import Code
     return query.excerpt(Code.BUSINESS_AND_PROFESSIONS, '10050', 'Department of Real Estate')
 
 
@@ -70,7 +70,7 @@ def test_roster_name_is_also_searched_in_statute_order():
 def _duty():
     """BPC 10050, 10071, and 10080. Each duty sentence is sliced from its section."""
     import query
-    from apa import Code
+    from us.ca.apa import Code
     pins = (
         ('10050', 'principal responsibility'),
         ('10071', 'shall enforce the provisions'),
@@ -102,7 +102,7 @@ def test_duty_phrases_mark_responsibility_power_and_scope():
 def test_succession_vests_the_office():
     """GOV 12802. The agency shall succeed to, and is vested with, the prior duties."""
     import query
-    from apa import Code
+    from us.ca.apa import Code
     from mentions import find_enactments
     text = query.section(Code.GOVERNMENT, '12802').get('text') or ''
     if not text:
@@ -114,7 +114,7 @@ def test_succession_vests_the_office():
 def test_an_ordinance_ordains():
     """ELEC 9224. The people of the city do ordain as follows."""
     import query
-    from apa import Code
+    from us.ca.apa import Code
     from lexical import Clause, find_clauses
     text = query.section(Code.ELECTIONS, '9224').get('text') or ''
     if not text:

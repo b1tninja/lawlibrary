@@ -1170,7 +1170,7 @@ def _diagram_html(kind, code):
                 example_href='/view/diagram/%s?code=GOV' % kind,
                 chart='',
             )
-        from apa import Code
+        from us.ca.apa import Code
         try:
             diagram = diagram.code(Code.get(code))
         except KeyError:
@@ -1312,7 +1312,7 @@ def _piece_href(kind, target):
 
 def _refs(code, number, chapters):
     """One hop of the citation graph, as edges a page can link without a script."""
-    from apa import Code
+    from us.ca.apa import Code
     from places import Citation
     try:
         book = Code.get(code)

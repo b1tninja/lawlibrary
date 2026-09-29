@@ -180,7 +180,7 @@ def test_a_build_logs_its_start_its_progress_and_its_end(tmp_path, caplog):
 def test_the_slow_editions_start_first(tmp_path):
     """A bill edition is a whole measure a row; a few thousand of them outweigh many code sections."""
     from test_tree_ingest import _pubinfo
-    from us.states.ca import expected_work
+    from us.ca import expected_work
     codes = tmp_path / 'pubinfo_2025.zip'
     _pubinfo(codes)
     assert expected_work(str(codes)) == 3 * 0.02

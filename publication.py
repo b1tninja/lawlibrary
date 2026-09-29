@@ -62,7 +62,7 @@ class Publication(ABC):
     def index(self, indexer, path, workers=None, subdivision=None):
         """Write ``sections()`` into the Whoosh index. An empty edition leaves no index."""
         try:
-            from us.states.ca import stamp_subdivision
+            from us.ca import stamp_subdivision
         except ImportError:
             stamp_subdivision = None
 

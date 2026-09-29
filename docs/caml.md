@@ -4,7 +4,7 @@ The markup California publishes its statutes and bills in. Every section in a
 `pubinfo_YYYY.zip` is one CAML document, stored as a `.lob` file beside the
 row that names it.
 
-`caml.py` is the model. `caml.parse` gives the tree, `caml.words` gives the
+`us/ca/caml.py` is the model. `caml.parse` gives the tree, `caml.words` gives the
 reading.
 
 ## What the state publishes
@@ -130,7 +130,7 @@ words wrong; this is a limit of the source, not of the model.
 
 ## Checking the model against the corpus
 
-Every section of `pubinfo_2025` was parsed with `caml.py` and with the
+Every section of `pubinfo_2025` was parsed with `us/ca/caml.py` and with the
 indexer's `html2text`, and the two readings compared.
 
 | | |

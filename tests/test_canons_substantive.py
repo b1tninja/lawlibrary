@@ -6,7 +6,7 @@ phrases. Prefer is a small pure function kept in this file.
 """
 
 import query
-from apa import Code
+from us.ca.apa import Code
 
 
 def _open(code, number):

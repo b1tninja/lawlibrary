@@ -8,8 +8,8 @@ supra are recognized and are not given a code.
 
 import re
 
-from apa import Code, Reference
-from california import parse as parse_california
+from us.ca.apa import Code, Reference
+from us.ca.citation import parse as parse_california
 from parsers import Guide
 
 

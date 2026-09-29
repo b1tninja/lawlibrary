@@ -29,7 +29,7 @@ def test_double_sign_is_a_range_or_a_series():
 def test_a_semicolon_keeps_the_series():
     """A semicolon separates the same series a comma does."""
     from structure import find_links
-    from apa import Code
+    from us.ca.apa import Code
     points = find_citations('Section 51; 54; 54.1; or 55.')
     assert points[0].cite is Cite.SERIES
     assert points[0].numbers == ('51', '54', '54.1', '55')
@@ -70,7 +70,7 @@ def test_and_or_keeps_every_number_and_both_readings():
 
 def test_a_series_keeps_the_last_number_after_or():
     """CIV 55.51. The last number after ', or' stays in the series."""
-    from apa import Code
+    from us.ca.apa import Code
     from places import Citation
     from structure import find_links
     text = Citation(Code.CIVIL).section('55.51').text

@@ -145,7 +145,7 @@ class PublicUtilities(Parser):
     """Public Utilities Code. Section and subdivision have the meaning in section 10."""
 
     def words(self):
-        from apa import Code
+        from us.ca.apa import Code
         return consider(Code.PUBLIC_UTILITIES, self.shelf)
 
 

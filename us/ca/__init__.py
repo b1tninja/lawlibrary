@@ -17,7 +17,7 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_compl
 from contextlib import closing
 from types import SimpleNamespace
 
-import caml
+import us.ca.caml as caml
 from publication import Instrument, Publication, State
 
 import html2text  # Aaron Swartz original author

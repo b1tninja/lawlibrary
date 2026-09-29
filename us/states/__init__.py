@@ -1,1 +1,1 @@
-"""US states. One module per state. Public laws and codes stay beside this package."""
+"""US states, one module each. California is the package ``us.ca`` beside this one."""
