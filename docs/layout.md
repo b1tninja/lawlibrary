@@ -14,6 +14,7 @@ Sacramento, California, USA is the home jurisdiction. `python ca.py` is that pla
 | `us/ca/citation.py` | The citation form California courts use. |
 | `us/ca/counties/sacramento/` | Sacramento County. |
 | `us/ca/counties/sacramento/cities/sacramento.py` | The City of Sacramento. |
+| `us/ca/counties/sacramento/zoning.py` | The County's Zoning Code, from the County's own pages: `fetch` saves the chapters, `SacramentoZoningCode` yields the sections. |
 | `us/states/<state>.py` | Another US state, one module, until it has a publication of its own; then it is a package like `us/ca/`. |
 | `apa.py`, `caml.py`, `california.py` | Names that stay in the root only so an import that has not moved still works; each is the module under `us/ca/`. |
 | `jurisdiction.py` | Country, region, state, county, and city. |
@@ -40,6 +41,10 @@ A future country is a sibling of `us/`, named with its ISO 3166-1 alpha-2 in low
 `Country.layers` is the order under a region. For the United States it is county, then city. Another country can use a different order, or none. A Japanese prefecture is a region. It does not get a second statute corpus just because it has an ISO code.
 
 `legislates` on a region is false when that region does not publish statutes.
+
+## Local codes
+
+A local government's code is a `Codification` on its `Locality` (`codes`): the title, the `Host` that serves it, the government's own page (`pointer`), its own edition of the words (`text`) when it keeps one, and where the ordinances are. `Host` is a closed set: `OFFICIAL`, and the commercial codifiers (`AMERICAN_LEGAL`, `GENERAL_CODE`, `MUNICODE`, `QUALITY_CODE`), which are never sources. A codification is `readable` only when the government publishes it itself. Sacramento: the City Code (Quality Code Publishing, served by American Legal) and the County Code (General Code, eCode360) are pointers; the County's Zoning Code is published by the County at landuse.saccounty.gov and has a parser. `query.place` lists them, and an ordinance citation is a miss that carries them.
 
 ## Publications
 

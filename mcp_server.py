@@ -151,7 +151,12 @@ def get_section(code: str, section: str, session: str = '',
 
 @mcp.tool()
 def place(locality: str = 'Sacramento') -> dict:
-    """Scope a query to a locality. Sacramento ordinances are absent from this index."""
+    """Scope a query to a locality. Sacramento ordinances are absent from this index.
+
+    codes lists the City Code, the County Code and the County's Zoning Code:
+    who serves each, the government's own page (pointer), and readable,
+    true only for a code the government publishes itself.
+    """
     return law_query.place(locality=locality)
 
 

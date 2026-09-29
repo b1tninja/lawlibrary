@@ -424,16 +424,37 @@ def _outline_nodes(docs):
 
 
 def place(locality='Sacramento'):
+    """The home locality: where its statutes are, and what it publishes itself.
+
+    ``codes`` are the City's and the County's codifications, each with who
+    serves it and whether its words may be read here (``readable``): a code
+    a commercial host serves is a pointer to the government's own page and
+    nothing more; the County's Zoning Code, which the County publishes
+    itself, is the one with words.
+    """
     name = (locality or '').strip()
     if name.lower() != Sacramento.name.lower():
         return _miss(locality, 'not_in_index')
+    county = Sacramento.county()
+    codes = [code.record() for code in Sacramento.codes]
+    codes.extend(code.record() for code in (county.codes if county is not None else ()))
     return {
         'country': 'US',
         'region': Sacramento.region(),
         'locality': Sacramento.name,
+        'county': county.name if county is not None else '',
         'statutes': Sacramento.region(),
         'ordinances': 'absent',
+        'codes': codes,
     }
+
+
+def _ordinance_miss(expression):
+    """A Sacramento ordinance asked for: a miss that says where the words are kept."""
+    county = Sacramento.county()
+    pointers = [code.record() for code in Sacramento.codes]
+    pointers.extend(code.record() for code in (county.codes if county is not None else ()))
+    return _miss(expression, 'ordinance_absent', codes=pointers)
 
 
 def _get_section_doc(idxer, code, number, session=None, country=None, subdivision=None):
@@ -791,7 +812,7 @@ def parse_citation(expression):
     if not stripped:
         return _miss(stripped, 'not_in_index')
     if _ORDINANCE.search(stripped):
-        return _miss(stripped, 'ordinance_absent')
+        return _ordinance_miss(stripped)
     if _FEDERAL.search(stripped):
         return _federal_miss(stripped)
 

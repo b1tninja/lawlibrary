@@ -9,11 +9,13 @@ A layer package exists only when that place has been added. California has
 counties. Sacramento County has cities. An empty state has neither.
 """
 
+import enum
 import importlib
 import os
 import pkgutil
 import zipfile
 from abc import ABC, abstractmethod
+from typing import NamedTuple
 
 import pycountry
 
@@ -167,6 +169,58 @@ def _layer_parent(locality):
     return parent
 
 
+class Host(enum.Enum):
+    """Who serves a local code's words online.
+
+    A commercial codifier is never a source here (AGENTS.md, Boundaries):
+    the words come from the local government's own pages or not at all. A
+    code the government publishes itself is OFFICIAL, and its words may be
+    read.
+    """
+
+    OFFICIAL = 'official'
+    AMERICAN_LEGAL = 'american_legal'
+    GENERAL_CODE = 'general_code'
+    MUNICODE = 'municode'
+    QUALITY_CODE = 'quality_code'
+
+    @property
+    def readable(self):
+        return self is Host.OFFICIAL
+
+
+class Codification(NamedTuple):
+    """One code a local government publishes, and where its words are.
+
+    ``pointer`` is the government's own page about the code. ``text`` is
+    the government's own edition of the words, when it keeps one; a code a
+    commercial host serves has none. ``ordinances`` is where the government
+    keeps the ordinances themselves.
+    """
+
+    title: str
+    host: Host
+    pointer: str
+    text: str = ''
+    ordinances: str = ''
+    abbreviation: str = ''
+
+    @property
+    def readable(self):
+        return bool(self.text) and self.host.readable
+
+    def record(self):
+        return {
+            'title': self.title,
+            'abbreviation': self.abbreviation,
+            'host': self.host.value,
+            'readable': self.readable,
+            'pointer': self.pointer,
+            'text': self.text,
+            'ordinances': self.ordinances,
+        }
+
+
 class Locality(ABC):
     """A government below an ISO region. Not itself an ISO subdivision.
 
@@ -176,6 +230,7 @@ class Locality(ABC):
 
     name = None
     parent = None
+    codes = ()
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
