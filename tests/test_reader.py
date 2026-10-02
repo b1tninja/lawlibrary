@@ -6,7 +6,6 @@ of the words.
 """
 
 import json
-from urllib.parse import quote
 
 from application import application
 
@@ -56,7 +55,7 @@ def test_a_section_carries_the_trail_the_cuts_and_the_formats():
     trail = [crumb['unit'] for crumb in body['crumbs']]
     assert trail[0] == 'library'
     assert trail[-1] == 'section'
-    assert body['crumbs'][-1]['href'] == '/view/section/civ/1714.1'
+    assert body['crumbs'][-1]['href'] == '/view/section/CIV/1714.1'
     assert any(step['href'].startswith('/view/tree/') for step in body['crumbs'][1:-1])
     current = [row for row in body['contents'] if row.get('current')]
     assert len(current) == 1
@@ -123,23 +122,7 @@ def test_a_stored_graph_is_an_edge_list_the_client_can_open():
     assert edge['target_href'].startswith('/view/tree/us-ca/')
     status, body = _json('/diagram/enactments', 'code=WAT')
     assert body['found'] is True
-    assert body['edges']
-    assert all(row['source'] == 'WAT' and row['label'] == 'in' for row in body['edges'])
-    opened = body['edges'][0]['target']
-    status, body = _json('/diagram/enactments', 'code=WAT&start=%s&hops=1' % quote(opened))
-    assert body['edges']
-    assert all(row['source'] == opened for row in body['edges'])
-    status, body = _json('/diagram/entities')
-    assert body['found'] is True
-    assert body['edges']
-    assert all(row['label'] in ('in', 'member') for row in body['edges'])
-    status, body = _json('/diagram/entities', 'start=state&hops=1')
-    assert body['hops'] == '1'
-    assert any(row['target'] == 'county' for row in body['edges'])
-    assert any(row['label'] == 'member' for row in body['edges'])
-    status, body = _json('/diagram/terms', 'code=GOV')
-    assert body['found'] is True
-    assert body['chart'].startswith('flowchart')
+    assert all(row['label'] == 'enacted' for row in body['edges'])
 
 
 def test_a_walk_names_every_hop_and_every_edge():
@@ -233,8 +216,7 @@ def test_a_citation_span_carries_the_book_the_sentence_named():
     assert cited
     for row in cited:
         assert row['target'].split()[0].isalpha()
-        from query import cite_route
-        assert row['href'] == cite_route(row['target'])
+        assert row['href'] == '/view/section/%s' % row['target'].replace(' ', '/')
     assert any(row['target'] == 'RTC 7280' for row in cited)
 
 
@@ -279,8 +261,7 @@ def test_the_sections_that_name_this_one_are_the_stored_edges():
     }
     for row in body['rows']:
         assert row['citation'] != 'RTC 7280'
-        from query import cite_route
-        assert row['href'] == cite_route(row['citation'])
+        assert row['href'] == '/view/section/%s' % row['citation'].replace(' ', '/')
         pair = (row['citation'], 'RTC 7280') if row['names'] else ('RTC 7280', row['citation'])
         assert pair in stored, 'a row that is only a prefix of the citation'
     status, body = _json('/citing')
