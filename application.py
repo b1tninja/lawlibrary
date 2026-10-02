@@ -1054,7 +1054,7 @@ def _widen(row, number, query):
 def _child(node, child, facts=None):
     code = node.get('code') or ''
     if child.get('unit') == 'section' and code:
-        href = _section_href(code, child.get('value') or '')
+        href = '/view/section/%s/%s' % (code, child.get('value') or '')
     else:
         href = '/view/tree/' + child['url']
     held = (facts or {}).get(child.get('value') or '') or {}

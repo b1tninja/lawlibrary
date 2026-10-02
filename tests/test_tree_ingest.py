@@ -313,3 +313,19 @@ def test_a_node_address_round_trips(tmp_path, monkeypatch):
     assert place.units == (('node', '2.1'),)
     assert place.url == 'us-ca/civ/node/2.1'
     assert place.child('node', '2.1.1').url == 'us-ca/civ/node/2.1.1'
+
+
+def test_a_section_child_links_to_its_section_without_a_helper_that_is_not_committed():
+    """_child named a helper only an uncommitted file defined; a clean checkout raised NameError.
+
+    The test asserts the route case-insensitively, so it holds whichever way a
+    later change spells the code.
+    """
+    import application
+    node = {'code': 'CIV'}
+    child = {'unit': 'section', 'value': '1950.5', 'url': 'us-ca/civ/section/1950.5', 'heading': 'Deposits'}
+    row = application._child(node, child)
+    assert row['href'].lower() == '/view/section/civ/1950.5'
+    assert row['unit'] == 'section' and row['label'] == 'Deposits'
+    rung = application._child(node, {'unit': 'node', 'value': '2', 'url': 'us-ca/civ/node/2', 'heading': 'Part 2'})
+    assert rung['href'] == '/view/tree/us-ca/civ/node/2'
