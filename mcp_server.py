@@ -317,6 +317,39 @@ def federal_section(title: str, section: str, kind: str = 'usc') -> dict:
 
 
 @mcp.tool()
+def building_standard(part: str, section: str, edition: str = '', on: str = '') -> dict:
+    """One section of a California Building Standards Code (Title 24) part, or a miss.
+
+    part: the part number. 9 is the California Fire Code.
+    section: a provision number such as "903.3.1.1", or a standard such as
+      "NFPA 13" for California's amendments to it printed in Chapter 80.
+    edition: an edition year such as "2022". on: an ISO date; the edition in
+      force that day (the permit application date) is read. Neither reads the newest.
+    The words are OCR of Public.Resource.Org's scan; ocr is true on a hit.
+    A miss has reason: unknown_book, no_edition, not_indexed, not_in_index.
+    """
+    from us.ca.title24 import section as title24_section
+    return title24_section(part, section, year=edition or None, on=on or None)
+
+
+@mcp.tool()
+def standard_adoption(standard: str, on: str = '', event: str = 'permit_application') -> dict:
+    """Which edition of a referenced standard California's codes name on a day.
+
+    standard: such as "NFPA 13", "NFPA 25", "NFPA 13R".
+    on: an ISO date; empty is today.
+    event: permit_application (the codes in effect when the permit was
+      applied for govern, HSC 18938.5) or inspection.
+    Every adopter in force is listed: the Fire Code edition's Chapter 80, and
+    Title 19 for NFPA 25. Where they name different editions, both are kept.
+    The standard's own words are not held: text is a miss, standard_absent.
+    A miss has reason: not_adopted, no_edition, not_indexed, bad_request.
+    """
+    from us.ca.title24 import governing
+    return governing(standard, on=on or None, event=event or 'permit_application')
+
+
+@mcp.tool()
 def search_span(query: str, code: str = '', start: str = '', end: str = '',
                 limit: int = 10, session: str = '',
                 country: str = '', subdivision: str = '') -> dict:

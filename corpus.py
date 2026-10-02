@@ -94,6 +94,13 @@ def manual_corpus_path(book, root=None):
     return os.path.join(_root(root), 'US', 'manuals', '%s.sqlite' % str(book).strip().upper())
 
 
+def title24_corpus_path(part, edition, root=None):
+    """One file per Title 24 part and edition: ``US-CA/title24/2025/9.sqlite``."""
+    return os.path.join(
+        _root(root), 'US-CA', 'title24', str(edition).strip(), '%s.sqlite' % str(part).strip(),
+    )
+
+
 def statute_corpus_path(subdivision, law_code, root=None):
     """One file for a code of law inside a region: ``US-CA/statutes/CIV.sqlite``."""
     return os.path.join(
@@ -151,6 +158,9 @@ class Catalog:
 
     def attach_cfr(self, title, root=None):
         return self.attach(cfr_corpus_path(title, root=root), alias_for('cfr', title))
+
+    def attach_title24(self, part, edition, root=None):
+        return self.attach(title24_corpus_path(part, edition, root=root), alias_for('title24', part, edition))
 
     def attach_statute(self, subdivision, law_code, root=None):
         return self.attach(

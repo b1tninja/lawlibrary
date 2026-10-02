@@ -6,7 +6,7 @@ Official statute and regulation text. Sacramento, California is home. Human setu
 
 These guide an agent that adds a parser, a pin, or a lookup.
 
-1. **A closed set is an enum.** Reach for the member. `Cite.SECTION`, `Cite.RANGE`, `Cite.SERIES`. `Note.CITATION`, `Note.CROSS_REFERENCE`. `Clause.ENACTMENT`. `Canon.MANDATORY`. `Kind.AGENCY`, `Relation.DUTY`. `Instrument.STATUTE`, `Instrument.REGULATION`, `Instrument.RULE`, `Instrument.MANUAL`. `Branch.LEGISLATIVE`, `Article.I`. `Guide.CALIFORNIA_STYLE_MANUAL`. A constitution article is a `Provision`. A parser is `CanonMixin` and `StyleMixin`. A California code is a `Code` member. A citation span is `section`, `span`, or `series`. `Bench.TRIAL`, `Division.CIVIL`. `Function.REAL_ESTATE`. The value is the word a file may store. The loader turns that word back into the member before a caller sees it.
+1. **A closed set is an enum.** Reach for the member. `Cite.SECTION`, `Cite.RANGE`, `Cite.SERIES`. `Note.CITATION`, `Note.CROSS_REFERENCE`. `Clause.ENACTMENT`. `Canon.MANDATORY`. `Kind.AGENCY`, `Relation.DUTY`. `Instrument.STATUTE`, `Instrument.REGULATION`, `Instrument.RULE`, `Instrument.MANUAL`, `Instrument.STANDARD`. `Part.FIRE`, `Event.PERMIT_APPLICATION`. `Branch.LEGISLATIVE`, `Article.I`. `Guide.CALIFORNIA_STYLE_MANUAL`. A constitution article is a `Provision`. A parser is `CanonMixin` and `StyleMixin`. A California code is a `Code` member. A citation span is `section`, `span`, or `series`. `Bench.TRIAL`, `Division.CIVIL`. `Function.REAL_ESTATE`. The value is the word a file may store. The loader turns that word back into the member before a caller sees it.
 
 2. **A fact is a record.** A citation is a `Point`. A clause is a `Mark`. A canon hit is a `Signal`. A reference is an `Annotation`. A court book is a `Rulebook`. The open book is a `Context`. Fields stay on the record. A task reads `point.cite` and `point.numbers`.
 
@@ -23,6 +23,7 @@ These guide an agent that adds a parser, a pin, or a lookup.
 ## Boundaries
 
 - Commercial hosts (Justia, FindLaw, Westlaw, Lexis, Fastcase, Municode, American Legal, General Code, Barclays) are never sources.
+- Public.Resource.Org's Internet Archive scans of a code a government adopted as law may be read (the California Fire Code; see [docs/special/nfpa.md](docs/special/nfpa.md)). A standards body's own viewer (NFPA, ICC, IAPMO) is never read. An adopted standard is an `Adoption`; its words stay `standard_absent` until a lawful copy is opened.
 - Quote a sentence only when it was retrieved from the local index or from an official page that was opened.
 - Prefer plain text, then an XML-like file, then HTML, then PDF. A PDF of court rules stays a pointer until a text edition exists.
 - Do not commit `data/`, zips, PDFs, or `.env`.

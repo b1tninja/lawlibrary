@@ -6,7 +6,9 @@ The California Building Standards Commission continues under Health and Safety C
 
 ## Verdict
 
-There is **no government bulk file** of Title 24 Part 2 or Part 9. The adopted words live only in the copyrighted ICC publication (viewable online, not downloadable as the full code). A Part 2 or Part 9 edition stays `editions = ()`. A later parser must refuse ICC, NFPA, and IAPMO viewers, their errata/supplement PDFs, purchased code PDFs, and any scrape or reconstruction of those hosts.
+There is **no government bulk file** of Title 24 Part 2 or Part 9. The adopted words live in the ICC publication (viewable online, not downloadable as the full code).
+
+**Decision 2026-09-29:** Public.Resource.Org's scans of Title 24 on the Internet Archive are read. Each is posted as law, noncommercially, with OCR plain text (`_djvu.txt`). Part 9 (the California Fire Code), 2022 and 2025 editions, is loaded by `us/ca/title24/fire.py`. The case law and the chain to NFPA 13 and 25 are in [nfpa.md](nfpa.md). The ICC, NFPA and IAPMO viewers, their errata PDFs, and purchased PDFs are still refused.
 
 ## What Parts 2 and 9 are
 
@@ -97,7 +99,7 @@ Health and Safety Code provisions around sections 17950 and 17958 (State Housing
 - ICC online code viewers and any crawl, scrape, or mirror of them (including URLs under `codes.iccsafe.org` linked from the Codes page)
 - ICC Errata Central PDFs for Parts 2 and 9 (and any other ICC-hosted Title 24 packets)
 - NFPA and IAPMO viewers or downloads (other Title 24 parts; same copyright posture)
-- Purchased or library PDF/HTML of Part 2 or Part 9 committed into git or treated as a government bulk source
+- Purchased or library PDF/HTML of Part 2 or Part 9 committed into git or treated as a government bulk source (Public.Resource.Org's Internet Archive scans are the one scan read; they are saved under `data/`, never committed)
 - Invented or paraphrased “quotes” of CBC/CFC sections without an allowed government file of those words
 - Using HSC §§ 17950 / 17958 (or Building Standards Law) as if they were Part 2 or Part 9
 
@@ -107,5 +109,6 @@ Health and Safety Code provisions around sections 17950 and 17958 (State Housing
 | --- | --- |
 | Government XML / CAML / zip of Part 2 or Part 9? | No |
 | Government HTML or PDF of the full adopted Part 2 or Part 9? | No |
-| `editions` for Part 2 / Part 9 | Stay empty |
+| `editions` for Part 2 / Part 9 | Part 9: 2022 and 2025 from Public.Resource.Org's OCR (`us.ca.title24.EDITIONS`). Part 2: empty |
+| Where the words go | `data/codes/US-CA/title24/{edition}/{part}.sqlite` |
 | Closest official state files | Bulletins, change summaries, guides, FAQ, rulemaking PDFs on `dgs.ca.gov` — metadata and narrative only, not the CBC/CFC corpus |

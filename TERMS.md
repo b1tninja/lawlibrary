@@ -162,7 +162,9 @@ A surface is a closed set. The member is the word a file may store. `Indexer.ann
 | `Convention.USD`, `GROUPED`, `DECIMAL`, `MONTH_DAY_YEAR`, `ABBREVIATED_MDY`, `ISO_8601`, `NUMERIC_MDY`, `YEAR`, `MONTH`, `DAY` | how the value is printed. The target stays the number or `YYYY-MM-DD`. `Nov. 5, 1974` is `abbreviated_mdy` | `convention()`, `Parser.formats` |
 | `Gap.SHORT_TITLE`, `UNRESOLVED`, `UNLINKED` | a citation shape the links did not record | `review` |
 | `Layer.NOTE`, `CANON`, `CLAUSE`, `MENTION`, `RELATION`, `NEEDLE`, `ABBREVIATION` | which parser recorded a span on the text | `marks.layers` |
-| `Instrument.STATUTE`, `MEASURE`, `REGULATION`, `RULE`, `MANUAL` | what an edition contains | `sample(book, kind=...)` |
+| `Instrument.STATUTE`, `MEASURE`, `REGULATION`, `RULE`, `MANUAL`, `ORDINANCE`, `STANDARD` | what an edition contains | `sample(book, kind=...)` |
+| `Adoption`, `Standard`, `Event.PERMIT_APPLICATION`, `Event.INSPECTION` | a code naming an edition of a standard, and the act whose date picks it | `us.ca.title24.governing(standard, on, event)` |
+| `Part.FIRE` | a part of Title 24 | `us.ca.title24.section(part, number)` |
 
 `abbreviations` records a short form introduced in parentheses after the first full name. `find_clause` reads one `Clause`. `find_signals` reads one `Canon`. `list_offices` and `list_courts` are the catalogs. `list_pins` is a stored reading. `outline_law` and `tree_law` are the heading ladder. `session_law` and `act_law` are a year and a chapter. `CreditMixin.credits` is one constitution credit or one `Stats.` line.
 

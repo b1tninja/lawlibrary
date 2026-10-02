@@ -36,6 +36,7 @@ class Instrument(enum.Enum):
     RULE = 'rule'
     MANUAL = 'manual'
     ORDINANCE = 'ordinance'
+    STANDARD = 'standard'
 
 
 class Publication(ABC):

@@ -8,7 +8,9 @@ statute file.
 import os
 
 from jurisdiction import subdivision
-from corpus import cfr_corpus_path, corpus_path, corpus_path_for, manual_corpus_path
+from corpus import (
+    alias_for, cfr_corpus_path, corpus_path, corpus_path_for, manual_corpus_path, title24_corpus_path,
+)
 
 # Political bodies whose regulations we have already placed in a corpus.
 # The Secretary of State roster is the full California list. These rows are
@@ -101,6 +103,13 @@ def list_corpora(root=None):
         specs.append(('cfr_%s' % title, cfr_corpus_path(title, root=root), 'regulation'))
     for book in ('OLRC', 'HOLC', 'GPO'):
         specs.append(('manual_%s' % book.lower(), manual_corpus_path(book, root=root), 'manual'))
+    from us.ca.title24 import EDITIONS
+    for chosen in EDITIONS:
+        specs.append((
+            alias_for('title24', chosen.part.value, chosen.year),
+            title24_corpus_path(chosen.part.value, chosen.year, root=root),
+            'regulation',
+        ))
     try:
         from us.ca.counties.sacramento.cities.sacramento import Sacramento
         specs.append(('sacramento', corpus_path_for(Sacramento, root=root), 'ordinance'))

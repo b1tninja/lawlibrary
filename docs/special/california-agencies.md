@@ -36,7 +36,7 @@ See **[dre.md](dre.md)**. Title 10 CCR chapter 6 is the department’s Real Esta
 
 ## Building Standards Commission (Title 24)
 
-See **[title-24.md](title-24.md)**. Parts 2 and 9 are copyrighted ICC publications (viewable online, not a government bulk download). Edition stays empty. Do not crawl ICC/NFPA/IAPMO viewers.
+See **[title-24.md](title-24.md)** and **[nfpa.md](nfpa.md)**. Parts 2 and 9 are ICC publications (viewable online, not a government bulk download). Part 9, 2022 and 2025, is read from Public.Resource.Org's Internet Archive scans (`us/ca/title24/fire.py`). Do not crawl ICC/NFPA/IAPMO viewers.
 
 ## Department of Housing and Community Development
 
@@ -87,7 +87,7 @@ HTML article pages are not an XML/text edition.
 | Host | [osfm.fire.ca.gov](https://osfm.fire.ca.gov/) — e.g. [Title 19 Development](https://osfm.fire.ca.gov/divisions/code-development-and-analysis/title-19-development/), [SFT regulations](https://osfm.fire.ca.gov/what-we-do/state-fire-training/regulations-and-incorporated-documents) |
 | Bulk XML / text | **None** |
 | What they post | Title 19 **rulemaking** express terms, notices, and manuals as **PDF** (and some HTML procedure manuals). Pipeline and training pages cite CCR Title 19 sections via external CCR links. Title 24 development is rulemaking history, not a bulk CBC/CFC file |
-| Shape for this project | **PDF** (rulemaking) + **Westlaw CCR** for compiled Title 19 |
+| Shape for this project | **PDF** (rulemaking) + **Westlaw CCR** for compiled Title 19. The final-text PDF of the 2014 NFPA 25 rulemaking is strikeout/underline, so its OCR cannot separate deleted from added words. §901's adoption of NFPA 25-2011 is recorded by hand in `us/ca/title19.py`; see [nfpa.md](nfpa.md) |
 
 ## California Coastal Commission
 
@@ -111,14 +111,15 @@ HTML article pages are not an XML/text edition.
 | --- | --- | --- |
 | Official CCR (all APA titles) | Westlaw only | Do not add |
 | DRE Title 10 ch. 6 | PDF | Empty — [dre.md](dre.md) |
-| Title 24 Parts 2 & 9 | ICC copyright | Empty — [title-24.md](title-24.md) |
+| Title 24 Part 2 | ICC copyright | Empty — [title-24.md](title-24.md) |
+| Title 24 Part 9 (Fire Code) 2022, 2025 | Public.Resource.Org OCR text | `us/ca/title24/fire.py` — [nfpa.md](nfpa.md) |
 | HCD Title 25 | PDF + Westlaw | Do not add |
 | CSLB Title 16 Div. 8 | PDF + Westlaw | Do not add |
 | CDI Title 10 Ch. 5 | Westlaw (+ PDF rulemaking) | Do not add |
 | CRD FEHA Title 2 Div. 4.1 | HTML + PDF + Westlaw | Do not add |
-| OSFM Title 19 | PDF + Westlaw | Do not add |
+| OSFM Title 19 | PDF + Westlaw | Do not add text; §901's NFPA 25 adoption is a record (`us/ca/title19.py`) |
 | Coastal Comm. Title 14 Div. 5.5 | Westlaw + PDF rulemaking | Do not add |
 | CEC Title 20 | PDF rulemaking | Do not add |
 | DIR Title 8 (DLSE subset) | HTML (+ Westlaw) | Do not add |
 
-**Parsers added:** none.
+**Parsers added:** the California Fire Code (Title 24 Part 9), from Public.Resource.Org's scans.

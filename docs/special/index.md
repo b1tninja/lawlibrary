@@ -12,7 +12,8 @@ Every corpus and every agency name in this tree comes from a government publishe
 | Federal departments’ rules | The department adopts them. The Federal Register publishes them | Each department’s organic statute, listed in [authority.md](authority.md) | The CFR title, not the department’s brochure | [federal-agencies.md](federal-agencies.md) |
 | California statutes | Legislative Counsel | The Legislature’s pubinfo distribution | `pubinfo_YYYY.zip` | [layout.md](../layout.md) |
 | California Code of Regulations | Office of Administrative Law | Government Code § 11344 | No government bulk XML. The online compilation is Barclays and is not crawled | [california-agencies.md](california-agencies.md) |
-| California Building Standards Code | California Building Standards Commission | Health and Safety Code §§ 18901, 18920, 18930 | No government bulk file of Parts 2 and 9 | [title-24.md](title-24.md) |
+| California Building Standards Code | California Building Standards Commission | Health and Safety Code §§ 18901, 18920, 18930 | No government bulk file of Parts 2 and 9. Part 9 (Fire Code) 2022 and 2025 from Public.Resource.Org's Internet Archive OCR text | [title-24.md](title-24.md), [nfpa.md](nfpa.md) |
+| NFPA standards California adopts | NFPA writes them; the Fire Code's Chapter 80 and Title 19 §901 adopt editions | Health and Safety Code §§ 13143, 13195 | Adoptions and California's amendments only; the standards' words are not held | [nfpa.md](nfpa.md) |
 | Real Estate Commissioner regulations | Department of Real Estate, compiled by OAL | Business and Professions Code §§ 10050, 10080 | Department PDF only | [dre.md](dre.md) |
 
 Who created each body, as distinct from who publishes the compilation, is [authority.md](authority.md).

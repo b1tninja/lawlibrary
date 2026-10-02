@@ -19,6 +19,9 @@ Sacramento, California, USA is the home jurisdiction. `python ca.py` is that pla
 | `apa.py`, `caml.py`, `california.py` | Names that stay in the root only so an import that has not moved still works; each is the module under `us/ca/`. |
 | `jurisdiction.py` | Country, region, state, county, and city. |
 | `publication.py` | One file layout: statute, measure, or regulation. |
+| `adoption.py` | A code naming an edition of a standard (`Adoption`), and which edition governs on a day for an event (`governing`). |
+| `us/ca/title24/` | Title 24, the Building Standards Code: its parts, editions, and the section reader. `fire.py` reads the California Fire Code and its Chapter 80. See [special/nfpa.md](special/nfpa.md). |
+| `us/ca/title19.py` | Title 19's adoption of NFPA 25, recorded; no text. |
 | `indexer.py` | The local Whoosh index. |
 | `ledger.py` | Word counts per place, built in parallel once per index generation. A scope is a sum over places; see [tree.md](tree.md). |
 | `query.py` | The structured lookup Jason calls. How a code's headings nest, and how a node is addressed, is [tree.md](tree.md). |
@@ -76,6 +79,7 @@ Each publishing subdivision gets its own SQLite file and the same `section` tabl
 | City of Sacramento | `data/codes/US-CA/sacramento/sacramento.sqlite` |
 | One CFR title | `data/codes/US/cfr/24.sqlite`, schema `cfr_24` |
 | One official manual | `data/codes/US/manuals/OLRC.sqlite`, schema `manual_olrc` |
+| One Title 24 part and edition | `data/codes/US-CA/title24/2025/9.sqlite`, schema `title24_9_2025` |
 | One California code, when split out | `data/codes/US-CA/statutes/CIV.sqlite`, schema `us_ca_civ` |
 
 A canton or other region uses the same rule as a state: one file named with its ISO 3166-2 code. `data/idx` is the Whoosh index already built for California. New corpora are the SQLite files above.
