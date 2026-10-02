@@ -39,3 +39,27 @@ def test_a_bare_board_is_not_an_office():
     priors = {item.prior for item in split}
     assert 'Division of Architecture' in priors
     assert 'State Architect' in priors
+
+
+def test_a_sentence_read_finds_what_a_whole_text_read_finds():
+    """The patterns are read only around their verb. The matches are the whole-text matches."""
+    from vesting import _AUTHORITY, _SUCCESSION, _authorities, _successions
+
+    def spans(matches):
+        return [(match.span(), match.groupdict()) for match in matches]
+
+    filler = 'The Alpha Office reports yearly to the Legislature. ' * 40
+    texts = [
+        '',
+        filler,
+        'The Alpha Office shall succeed to the powers of the Beta Office',
+        'The Alpha Office shall succeed to the powers of the Beta Office. ' + filler,
+        filler + 'The Alpha Office shall succeed to the powers of the Beta Office, and the Gamma Office may succeed to them.',
+        'It ends. The Alpha Office SHALL SUCCEED TO the Beta Office. The Gamma Office may succeed to the Delta Office.',
+        'The Alpha Office shall have all authority previously vested in the Beta Office. ' + filler,
+        filler + 'The Alpha Office shall have all authority previously vested in the Beta Office',
+    ]
+    for text in texts:
+        assert spans(_successions(text)) == spans(_SUCCESSION.finditer(text))
+        assert spans(_authorities(text)) == spans(_AUTHORITY.finditer(text))
+    assert _successions(texts[4]) and _authorities(texts[6])

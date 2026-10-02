@@ -37,6 +37,39 @@ _PRIOR = re.compile(
 _AUTHORITY = re.compile(
     r'(?i)(?P<receiver>[A-Z][^.]{0,120}?)\s+shall have all authority previously vested in (?:the )?(?P<prior>[^.,]+)'
 )
+_SUCCEEDS = re.compile(r'(?i)succeeds? to')
+_VESTED_BEFORE = re.compile(r'(?i)shall have all authority previously vested in')
+
+
+def _sentences(pattern, words, text):
+    """Matches of ``pattern`` in ``text``, read only where ``words`` stand.
+
+    Both patterns open on any letter and then look up to 180 characters ahead
+    for their verb, so a whole measure is read 180 times over and finds
+    nothing. Neither pattern can cross a period, and each needs its verb, so
+    the span between the periods around the verb holds every match.
+    """
+    found = []
+    reached = 0
+    for hit in words.finditer(text):
+        if hit.start() < reached:
+            continue
+        start = text.rfind('.', 0, hit.start()) + 1
+        reached = text.find('.', hit.end())
+        if reached < 0:
+            reached = len(text)
+        found.extend(pattern.finditer(text, start, reached))
+    return found
+
+
+def _successions(text):
+    return _sentences(_SUCCESSION, _SUCCEEDS, text)
+
+
+def _authorities(text):
+    return _sentences(_AUTHORITY, _VESTED_BEFORE, text)
+
+
 _GENERIC = frozenset({
     'board', 'commission', 'department', 'director', 'chief', 'secretary',
     'office', 'officer', 'committee', 'bureau', 'agency', 'state',
@@ -84,14 +117,14 @@ def grants(text):
         for mark in find_enactments(text)
         if mark.name == 'vesting'
     ]
-    for match in _SUCCESSION.finditer(text):
+    for match in _successions(text):
         receiver = _keep(match.group('receiver'))
         earlier = _PRIOR.search(match.group('body') or '')
         priors = _offices(earlier.group('prior')) if earlier else []
         for prior in priors:
             if receiver and prior.casefold() != receiver.casefold():
                 found.append(Grant(receiver, prior, match.group(0)))
-    for match in _AUTHORITY.finditer(text):
+    for match in _authorities(text):
         if not any(match.start() < end and match.end() > start for start, end in spans):
             continue
         receiver = _keep(match.group('receiver'))
