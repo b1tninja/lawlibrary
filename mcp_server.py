@@ -233,6 +233,83 @@ def range_law(code: str, start: str, end: str, text: bool = False, session: str 
     return result
 
 
+def _span_list(start, end, spans):
+    rows = []
+    if start:
+        rows.append((start, end or start))
+    for piece in (spans or '').split(','):
+        piece = piece.strip()
+        if piece:
+            first, _, last = piece.partition('-')
+            rows.append((first.strip(), (last or first).strip()))
+    return rows
+
+
+@mcp.tool()
+def section_history(code: str, section: str) -> dict:
+    """One section across every edition on the shelf (codes from 2011; earlier editions are bills).
+
+    Each edition: found, a digest of the words, and the history note read
+    into a credit (action, Stats. year, chapter, section of the act, bill,
+    effective and operative days). steps: each edition against the next,
+    change added, amended, revised, renoted, unchanged, or repealed, with a
+    word-level summary. A repeal names a statute only from a recodification
+    on record. A miss has found false and reason.
+    """
+    import history
+    return history.section_history(code, section)
+
+
+@mcp.tool()
+def law_changes(code: str, start: str = '', end: str = '', spans: str = '', act: str = '',
+                since: str = '', until: str = '', before: str = '', after: str = '',
+                unchanged: bool = False) -> dict:
+    """Every change to a span of sections, oldest first, as one list.
+
+    start, end: one span; spans: more as "4000-6150,1350-1378"; act:
+    davis-stirling or commercial-industrial adds its former and new spans.
+    since, until: bound the editions compared. before and after: compare two
+    editions directly instead. Each row: citation, before, after, change,
+    action, statute, bill, operative, summary.
+    """
+    import history
+    rows = _span_list(start, end, spans)
+    if before and after:
+        return history.between(code, rows, before, after, unchanged=unchanged)
+    return history.changes(code, rows, act=act or None, since=since or None,
+                           until=until or None, unchanged=unchanged)
+
+
+@mcp.tool()
+def successor_sections(code: str, section: str, subdivision: str = '', candidates: bool = True) -> dict:
+    """Where a former section went: the Law Revision Commission's disposition table (the pin),
+    its Comments (how: without change, with changes, new), and similarity candidates
+    only where the table is silent. Each row keeps its source; two readings stay two.
+
+    subdivision: "(g)" narrows to rows for that subdivision. targets: where each
+    named new section stands in the newest edition. A miss has found false and reason
+    (not_recodified, not_fetched, not_in_table).
+    """
+    import succession
+    return succession.successors(code, section, subdivision or None, candidates=candidates)
+
+
+@mcp.tool()
+def predecessor_sections(code: str, section: str, candidates: bool = True) -> dict:
+    """Which former provisions a new section continues, from the same sources as successor_sections."""
+    import succession
+    return succession.predecessors(code, section, candidates=candidates)
+
+
+@mcp.tool()
+def recodification_coverage(act: str = 'davis-stirling') -> dict:
+    """How much of the former law the Commission's table places: sections and subdivisions
+    continued, only omitted, or unplaced (with similarity candidates), and the new sections
+    the table, the Comments, or neither account for."""
+    import succession
+    return succession.coverage(act)
+
+
 @mcp.tool()
 def federal_section(title: str, section: str, kind: str = 'usc') -> dict:
     """Words only if that corpus file has been loaded; absence is a miss; do not scrape."""

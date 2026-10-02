@@ -169,6 +169,35 @@ def _decimal_key(body, letter):
     return ((whole, fraction, rest), (letter or '').lower(), body)
 
 
+def section_address(number):
+    """The section number without a printed label.
+
+    ``SEC. 10``, ``Section 10``, and ``[SEC. 10.]`` are ``10``. A number that
+    is already bare, such as ``1714.1``, stays that number.
+    """
+    text = str(number or '').strip()
+    labeled = _SECTION_LABEL.match(text)
+    if labeled:
+        return labeled.group('num')
+    return text
+
+
+def section_forms(number):
+    """Stored keys that can hold this section. The bare number is first."""
+    text = str(number or '').strip()
+    bare = section_address(text)
+    forms = [text, bare]
+    if _SECTION_NUM.match(bare):
+        forms.extend((
+            'SEC. %s' % bare,
+            'Sec. %s' % bare,
+            'Section %s' % bare,
+            'SECTION %s' % bare,
+            '[SEC. %s.]' % bare,
+        ))
+    return list(dict.fromkeys(form for form in forms if form))
+
+
 def section_key(number):
     """Sort key so 5375.5 sits between 5375 and 5376."""
     text = str(number or '').strip()

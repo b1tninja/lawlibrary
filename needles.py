@@ -483,6 +483,8 @@ class Action(enum.Enum):
     REPEALED = 'repealed'
     REPEALED_AND_ADDED = 'repealed and added'
     REPEALED_CONDITIONALLY = 'repealed conditionally'
+    RENUMBERED = 'renumbered'
+    ADOPTED = 'adopted'
 
 
 class Shelf(enum.Enum):

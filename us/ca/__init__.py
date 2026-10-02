@@ -1060,6 +1060,8 @@ def main(argv=None):
     parser.add_argument('-g', '--get', nargs=2, metavar=('CODE', 'SECTION'),
                         help="Print one section, e.g. --get CIV 1940")
     parser.add_argument('-n', '--limit', type=int, default=10)
+    from history import add_arguments as history_arguments
+    history_arguments(parser)
 
     try:
         parser.add_argument('-p', '--print', action=argparse.BooleanOptionalAction)
@@ -1101,6 +1103,9 @@ def main(argv=None):
         if args.query:
             for hit in indexer.search_law(args.query, limit=args.limit):
                 pprint.pp(hit)
+
+    from history import run as history_run
+    history_run(args)
 
     if args.print:
         print_pubinfos(args.path, colorize=args.color, jsonp=args.json)

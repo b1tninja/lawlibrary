@@ -232,6 +232,30 @@ A surface is a closed set. The member is the word a file may store. `Indexer.ann
 | A format hint | `Hint`. A suffix on the section path: `.html`, `.txt`, `.xml`, `.pdf`, or `.md`. `1714.1.txt` is still section 1714.1. `.md` is `text/markdown`: the citation, the headings, the text, the history, the reference links, and a fenced flowchart. No suffix on `/section` stays JSON |
 | The development reader | `serve_reader(action, port)`. `start`, `stop`, or `status`. Binds `127.0.0.1`. `url` is `/view`. A stop ends only the recorded process |
 | The section on either side | `query.beside(code, number)`. `previous` and `next` are section numbers in the tightest heading. A miss leaves both empty |
+| One section across the editions | `history.section_history(code, number)`. A `Step` per pair of editions, a `Change`, and a `Diff` |
+| Every change in a span | `history.changes(code, spans, act=)`, oldest first; `history.between` for two editions |
+| A history note | `history.read_note(note)` returns a `HistoryNote` |
+| Where a former section went | `succession.successors`, `succession.predecessors`, `succession.coverage` |
+
+## History and succession
+
+The words the code tables and the Law Revision Commission print, and the member that holds each. See [docs/history.md](docs/history.md).
+
+| Words | Member | Source |
+| --- | --- | --- |
+| `Added`, `Amended`, `Repealed and added`, `Added by renumbering Section`, `Enacted` at the head of a history note | `needles.Action` | the code tables' `HISTORY` column |
+| `Effective`, `Operative`, `Section operative`, `Inoperative`, `Repealed as of` before a day | `needles.Occasion` on a `Dated` | the same note |
+| `(AB 805)` after the credit | `HistoryNote.bill` | the same note, from the 2017 edition on |
+| a section absent from the next edition | `Change.REPEALED` | the shelf; the note never says it |
+| disposition table, `Existing Provision`, `Proposed Provision(s)` | `Source.DISPOSITION_TABLE` | [AB805DispoTable.pdf](http://www.clrc.ca.gov/pub/publishers/2012/AB805DispoTable.pdf) |
+| `omitted`, `omitted, but see` | `Succession.OMITTED`, `Succession.OMITTED_SEE` | the same table |
+| `not continued` | `Succession.NOT_CONTINUED` | [SB752DispoTable.docx](http://www.clrc.ca.gov/pub/publishers/2013/SB752DispoTable.docx) |
+| similar provisions | `Succession.PARALLEL` | the same file, second table |
+| Comment | `Source.COMMISSION_COMMENT` | [Pub235-H855.pdf](http://www.clrc.ca.gov/pub/Printed-Reports/Pub235-H855.pdf) |
+| `continues former Section ... without change` | `Succession.CONTINUED_WITHOUT_CHANGE` | a Comment |
+| `continues the substance of`, `without substantive change`, nonsubstantive changes listed | `Succession.CONTINUED_WITHOUT_SUBSTANTIVE_CHANGE` | a Comment |
+| `The following substantive change is made` | `Succession.CONTINUED_WITH_CHANGES` | a Comment |
+| `restates`, `generalizes`, `supersedes`, `is similar to`, `is new` | `RESTATED`, `GENERALIZED`, `SUPERSEDED`, `SIMILAR`, `NEW` | a Comment |
 
 ## Follow-ups
 

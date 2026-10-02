@@ -23,6 +23,8 @@ Sacramento, California, USA is the home jurisdiction. `python ca.py` is that pla
 | `ledger.py` | Word counts per place, built in parallel once per index generation. A scope is a sum over places; see [tree.md](tree.md). |
 | `query.py` | The structured lookup Jason calls. How a code's headings nest, and how a node is addressed, is [tree.md](tree.md). |
 | `mcp_server.py` | The agent tools over that index. |
+| `history.py` | One section, or a span, edition by edition on the shelf: the history note read, and what changed. See [history.md](history.md). |
+| `succession.py` | Which section continues a former one: the Law Revision Commission's disposition tables and Comments (saved in `data/clrc`), and similarity candidates. See [history.md](history.md). |
 
 A future country is a sibling of `us/`, named with its ISO 3166-1 alpha-2 in lowercase (`gb/`, `ca/` for Canada). The branch for the United States is `US`. `main` and `master` point at the same commit.
 

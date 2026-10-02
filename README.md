@@ -40,8 +40,14 @@ python ca.py --index --force     # rebuild editions the shelf already holds
 python ca.py --index --flat      # the old single index instead (resets it)
 python ca.py --get CIV 1940
 python ca.py -q "habitability"
+python ca.py --history CIV 5855               # one section across the editions on the shelf
+python ca.py --changes CIV --act davis-stirling  # every change to 1350-1378 and 4000-6150, oldest first
+python ca.py --fetch-clrc                     # the Law Revision Commission's tables, into data/clrc
+python ca.py --successors CIV 1363 "(g)"      # where a former section went
 lawlibrary-mcp                   # list_codes, list_sessions, search_law, get_section
 ```
+
+Section history and the Davis-Stirling disposition tables are [docs/history.md](docs/history.md).
 
 Search and `get_section` use the newest session unless you pass an older year or `all`. Historical zips are frozen; the current session is the law in force.
 

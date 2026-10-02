@@ -154,6 +154,22 @@ Add tools beside the existing four. Keep the old tools. New tools:
 
 `outside_us_ca` misses already name `statute.title` / `chapter` and `regulations.title`. Do not invent quotes.
 
+### History and successors
+
+`section_history`, `law_changes`, `successor_sections`, `predecessor_sections`, and `recodification_coverage` call `history` and `succession` ([history.md](history.md)). A worker inside this environment can call them directly:
+
+```python
+import history, succession
+history.section_history('CIV', '1363')
+history.changes('CIV', act='davis-stirling', since=2011)
+history.between('CIV', [('4000', '6150')], '2023', '2025')
+succession.successors('CIV', '1363', '(g)')
+succession.predecessors('CIV', '5855')
+succession.coverage('davis-stirling')
+```
+
+A table row is the Commission's reading; a Comment row is a second reading and may disagree; a `similarity` row is a candidate. Say which.
+
 ## Tests
 
 Parser tests do not need an index: each citation form above, the numeric ordering of `5375`, `5375.5`, and `5376`, and a Sacramento ordinance expression resolving to `ordinance_absent`.
