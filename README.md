@@ -55,7 +55,7 @@ The shelf lives at `data/shelf/<year>/`, one Whoosh index and needle store per e
 
 CAML parsing is the slow part, so index workers each open the zip and run html2text. The Whoosh writer stays in the parent process. `--workers` sets the pool size.
 
-The publication archive is `LAWLIBRARY_DATA` in the environment, then the same name in `.env`, then the platform data directory (`%LOCALAPPDATA%\lawlibrary` on Windows). `.env.example` shows the file. The checkout's zips are not committed.
+The publication archive is `LAWLIBRARY_DATA` in the environment, then the same name in the checkout's `.env`, then in the user config `~/.lawlibrary/.env` (`LAWLIBRARY_CONFIG` names another file), then the platform data directory (`%LOCALAPPDATA%\lawlibrary` on Windows). The user config is in the home folder, outside `AppData`, so every program that runs lawlibrary reads the same file wherever it starts; a machine whose system drive is small names a folder there. `.env.example` shows the file. The checkout's zips are not committed.
 
 ## Reader
 
