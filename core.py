@@ -8,10 +8,13 @@ Resolution order for the publication archive:
 3. ``LAWLIBRARY_DATA`` in the user config, ``~/.lawlibrary/.env`` (``LAWLIBRARY_CONFIG``
    names another file). It sits in the home folder, outside ``AppData``, so every
    program that runs lawlibrary reads the same file wherever it starts.
-4. The platform data directory: ``%LOCALAPPDATA%\\lawlibrary`` on Windows,
+4. The default data directory: ``~/.lawlibrary/data`` on Windows,
    ``~/Library/Application Support/lawlibrary`` on macOS, and
    ``$XDG_DATA_HOME/lawlibrary`` or ``~/.local/share/lawlibrary`` elsewhere. A
-   machine whose system drive is small names a folder in step 3 instead.
+   machine whose system drive is small names a folder in step 3 instead. Windows
+   no longer defaults under ``%LOCALAPPDATA%``: a program launched by a packaged
+   application has its writes there redirected to a private cache, so two programs
+   of one person could keep two archives. ``legacy_data_dir()`` names the old folder.
 """
 
 from __future__ import annotations
@@ -27,15 +30,22 @@ def package_root() -> Path:
 
 
 def platform_data_dir() -> Path:
-    """Where this operating system keeps an application's local data."""
+    """The default archive folder: in the home folder on Windows (never under ``AppData``), else where the system
+    keeps an application's local data."""
     name = "lawlibrary"
     if os.name == "nt":
-        base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
-        return Path(base) / name
+        return Path.home() / ".lawlibrary" / "data"
     if sys.platform == "darwin":
         return Path.home() / "Library" / "Application Support" / name
     base = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local" / "share")
     return Path(base) / name
+
+
+def legacy_data_dir() -> Path | None:
+    """Windows' old default, ``%LOCALAPPDATA%\\lawlibrary``; None elsewhere or with no ``LOCALAPPDATA``. A caller that
+    finds an archive there moves it to ``data_dir()``."""
+    local = os.environ.get("LOCALAPPDATA") if os.name == "nt" else ""
+    return Path(local) / "lawlibrary" if local else None
 
 
 def config_path(environ: os._Environ[str] | dict[str, str] | None = None) -> Path:

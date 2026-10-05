@@ -1,6 +1,9 @@
+import os
 from pathlib import Path
 
-from core import config_path, data_dir, platform_data_dir
+import pytest
+
+from core import config_path, data_dir, legacy_data_dir, platform_data_dir
 
 
 def test_environment_wins_over_dotenv(tmp_path):
@@ -17,8 +20,20 @@ def test_dotenv_wins_over_the_platform_directory(tmp_path):
     assert data_dir({}, dotenv) == archive.resolve()
 
 
-def test_platform_directory_is_named_lawlibrary():
-    assert platform_data_dir().name == "lawlibrary"
+def test_the_default_directory_is_in_the_home_folder_on_windows_and_never_under_appdata():
+    found = platform_data_dir()
+    assert "lawlibrary" in str(found).lower()
+    if os.name == "nt":
+        assert found == Path.home() / ".lawlibrary" / "data"
+    assert "AppData" not in found.parts
+
+
+@pytest.mark.skipif(os.name != "nt", reason="the old default was Windows'")
+def test_the_old_appdata_default_is_named_for_a_move_by_hand(monkeypatch, tmp_path):
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local"))
+    assert legacy_data_dir() == tmp_path / "local" / "lawlibrary"
+    monkeypatch.delenv("LOCALAPPDATA")
+    assert legacy_data_dir() is None
 
 
 def test_the_user_config_wins_over_the_platform_directory(tmp_path):
