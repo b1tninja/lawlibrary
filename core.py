@@ -5,9 +5,13 @@ Resolution order for the publication archive:
 1. ``LAWLIBRARY_DATA`` in the process environment, then the older name
    ``MOUNT_DIRECTORY``.
 2. ``LAWLIBRARY_DATA`` in the ``.env`` file next to this module.
-3. The platform data directory: ``%LOCALAPPDATA%\\lawlibrary`` on Windows,
+3. ``LAWLIBRARY_DATA`` in the user config, ``~/.lawlibrary/.env`` (``LAWLIBRARY_CONFIG``
+   names another file). It sits in the home folder, outside ``AppData``, so every
+   program that runs lawlibrary reads the same file wherever it starts.
+4. The platform data directory: ``%LOCALAPPDATA%\\lawlibrary`` on Windows,
    ``~/Library/Application Support/lawlibrary`` on macOS, and
-   ``$XDG_DATA_HOME/lawlibrary`` or ``~/.local/share/lawlibrary`` elsewhere.
+   ``$XDG_DATA_HOME/lawlibrary`` or ``~/.local/share/lawlibrary`` elsewhere. A
+   machine whose system drive is small names a folder in step 3 instead.
 """
 
 from __future__ import annotations
@@ -34,8 +38,19 @@ def platform_data_dir() -> Path:
     return Path(base) / name
 
 
-def data_dir(environ: os._Environ[str] | dict[str, str] | None = None, dotenv_path: Path | None = None) -> Path:
-    """Archive root. Environment, then ``.env``, then the platform directory."""
+def config_path(environ: os._Environ[str] | dict[str, str] | None = None) -> Path:
+    """The user config file: ``LAWLIBRARY_CONFIG`` when set, else ``~/.lawlibrary/.env``. It need not exist."""
+    env = os.environ if environ is None else environ
+    named = (env.get("LAWLIBRARY_CONFIG") or "").strip()
+    return Path(named).expanduser() if named else Path.home() / ".lawlibrary" / ".env"
+
+
+def data_dir(environ: os._Environ[str] | dict[str, str] | None = None, dotenv_path: Path | None = None,
+             user_config: Path | None = None) -> Path:
+    """Archive root. Environment, then the checkout's ``.env``, then the user config, then the platform directory.
+
+    A caller that passes ``environ`` supplies every source itself, so the person's real user config is read only for
+    the process environment (or a ``user_config`` named here)."""
     env = os.environ if environ is None else environ
     chosen = env.get("LAWLIBRARY_DATA") or env.get("MOUNT_DIRECTORY")
     if chosen:
@@ -44,6 +59,13 @@ def data_dir(environ: os._Environ[str] | dict[str, str] | None = None, dotenv_pa
     from_file = _dotenv_value(file_path, "LAWLIBRARY_DATA")
     if from_file:
         return Path(from_file).expanduser().resolve()
+    if user_config is None and environ is None:
+        user_config = config_path()
+    elif user_config is None and environ.get("LAWLIBRARY_CONFIG"):
+        user_config = config_path(environ)
+    from_user = _dotenv_value(user_config, "LAWLIBRARY_DATA") if user_config is not None else ""
+    if from_user:
+        return Path(from_user).expanduser().resolve()
     return platform_data_dir()
 
 
@@ -273,12 +295,12 @@ def ensure_dir(path: Path | str) -> Path:
 def _dotenv_value(path: Path, key: str) -> str:
     if not path.is_file():
         return ""
-    for raw in path.read_text(encoding="utf-8").splitlines():
+    for raw in path.read_text(encoding="utf-8-sig").splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
         name, _, value = line.partition("=")
-        if name.strip() != key:
+        if name.strip().removeprefix("export ").strip() != key:
             continue
         value = value.strip()
         if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
