@@ -348,3 +348,22 @@ def test_a_law_url_names_one_node():
     assert path.subdivision == 'b'
     assert path.url == 'us-ca/civ/division/1/section/1940/subdivision/b'
     assert parse_law_url('').url == 'us-ca'
+
+
+def test_range_text_stops_at_the_limit_unless_the_caller_asks_for_every_section(monkeypatch):
+    import query as law_query
+
+    docs = [{'SECTION_NUM': '66499.%d' % n} for n in range(1, 46)]
+    monkeypatch.setattr(law_query, '_indexer', lambda: object())
+    monkeypatch.setattr(law_query, '_index_ready', lambda *a, **k: True)
+    monkeypatch.setattr(law_query, '_resolve_known_code', lambda *a, **k: 'GOV')
+    monkeypatch.setattr(law_query, '_sections_in_span', lambda *a, **k: docs)
+    monkeypatch.setattr(law_query, '_session_value', lambda *a, **k: '2025')
+    monkeypatch.setattr(law_query, '_section_payload', lambda doc: {'section': doc['SECTION_NUM']})
+    monkeypatch.setattr(law_query, 'outline', lambda *a, **k: {'found': True, 'nodes': []})
+
+    too_large = law_query.range('GOV', '66499.1', '66499.45', text=True)
+    assert too_large['reason'] == 'span_too_large' and 'sections' not in too_large
+    every = law_query.range('GOV', '66499.1', '66499.45', text=True, limit=None)
+    assert [s['section'] for s in every['sections']] == [d['SECTION_NUM'] for d in docs]
+    assert len(law_query.range('GOV', '66499.1', '66499.45', text=True, limit=50)['sections']) == 45

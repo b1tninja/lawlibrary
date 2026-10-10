@@ -656,7 +656,9 @@ def outline(code, start, end, *, session=None, country=None, subdivision=None):
     }
 
 
-def range(code, start, end, *, session=None, text=False, country=None, subdivision=None):
+def range(code, start, end, *, session=None, text=False, country=None, subdivision=None, limit=TEXT_SPAN_LIMIT):
+    """A span's outline, or with ``text`` its sections' words. A span of more than ``limit`` sections answers with the
+    outline and ``span_too_large``; ``limit=None`` asks for every section, for a caller (jason's exporter) that reads them all."""
     expression = '%s %s-%s' % (code or '', start or '', end or '')
     idxer = _indexer()
     if not (code or '').strip() or start is None or end is None:
@@ -681,7 +683,7 @@ def range(code, start, end, *, session=None, text=False, country=None, subdivisi
     if not docs:
         return _miss(expression.strip(), 'not_in_index')
 
-    if text and (is_mutual or len(docs) > TEXT_SPAN_LIMIT):
+    if text and (is_mutual or (limit is not None and len(docs) > limit)):
         result = outline(
             resolved, start, end, session=session,
             country=country, subdivision=subdivision,
