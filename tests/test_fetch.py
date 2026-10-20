@@ -8,7 +8,7 @@ import pytest
 
 from us.ca import PUBINFO_HOST, _fetch_pubinfo, _zip_intact
 from us.ca.title24 import EDITIONS, fetch as fetch_edition
-from utils import read_url, save_url
+from utils import _on_host, read_url, save_url
 
 
 def _server(handler):
@@ -97,3 +97,36 @@ def test_the_commission_host_is_the_only_one_read():
     import succession
     with pytest.raises(OSError, match='not an official source'):
         succession._open_url('https://example.invalid/table.pdf')
+
+
+def test_a_storage_subdomain_is_on_the_host_and_a_lookalike_is_not():
+    """The Internet Archive redirects a download to a numbered storage host."""
+    stored = 'https://dn790003.ca.archive.org/0/items/x/x_djvu.txt'
+    assert _on_host(stored, ('archive.org',))
+    assert _on_host('https://archive.org/download/x', ('archive.org',))
+    assert not _on_host('https://evilarchive.org/x', ('archive.org',))
+    assert not _on_host('https://archive.org.example.invalid/x', ('archive.org',))
+    assert not _on_host('https://example.invalid/archive.org', ('archive.org',))
+
+
+def test_a_redirect_that_stays_on_the_host_is_followed():
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == '/start':
+                self.send_response(302)
+                self.send_header('Location', '/there')
+                self.end_headers()
+                return
+            self.send_response(200)
+            self.send_header('Content-Length', '2')
+            self.end_headers()
+            self.wfile.write(b'ok')
+
+        def log_message(self, fmt, *args):
+            return
+
+    server = _server(Handler)
+    try:
+        assert read_url('http://127.0.0.1:%s/start' % server.server_address[1], '127.0.0.1') == b'ok'
+    finally:
+        server.shutdown()
