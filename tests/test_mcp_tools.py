@@ -107,18 +107,25 @@ def test_serve_reader_starts_and_stops_only_its_process(monkeypatch, tmp_path):
     idle = serve_reader('status', port=8765)
     assert idle['running'] is False
     assert idle['url'] == 'http://127.0.0.1:8765/view'
-    started = serve_reader('start', port=8765)
+    planned = serve_reader('start', port=8765)
+    assert planned['confirm'] is False
+    assert 'confirm=true' in planned['plan']
+    assert spawned['calls'] == 0
+    started = serve_reader('start', port=8765, confirm=True)
     assert started['running'] is True
     assert started['pid'] == 4242
     assert spawned['port'] == 8765
-    again = serve_reader('start', port=8765)
+    again = serve_reader('start', port=8765, confirm=True)
     assert again['running'] is True
     assert spawned['calls'] == 1
-    stopped = serve_reader('stop')
+    held = serve_reader('stop')
+    assert held['confirm'] is False
+    assert spawned['calls'] == 1
+    stopped = serve_reader('stop', confirm=True)
     assert stopped['running'] is False
     assert not (tmp_path / 'reader.pid').exists()
     opened['up'] = True
-    blocked = serve_reader('stop', port=8765)
+    blocked = serve_reader('stop', port=8765, confirm=True)
     assert blocked['found'] is False
     assert blocked['reason'] == 'untracked'
     assert serve_reader('publish')['reason'] == 'unknown_action'
@@ -127,3 +134,56 @@ def test_serve_reader_starts_and_stops_only_its_process(monkeypatch, tmp_path):
 def test_pin_section_misses_without_writing():
     missed = pin_section('NOTACODE', '1')
     assert missed['found'] is False
+
+
+def test_write_pin_refuses_to_replace(monkeypatch):
+    from mcp_server import write_pin_section
+    stored = {'rows': []}
+
+    monkeypatch.setattr(
+        'mcp_server.law_query.section',
+        lambda *args, **kwargs: {'found': True, 'citation': 'CIV 1', 'text': 'The department shall.'},
+    )
+    monkeypatch.setattr('mcp_server.analyze', lambda text: object())
+    monkeypatch.setattr('mcp_server.pins', lambda citation=None, **kwargs: list(stored['rows']))
+
+    def remember(reading, citation):
+        stored['rows'] = [{'citation': citation}]
+
+    monkeypatch.setattr('mcp_server.pin', remember)
+    first = write_pin_section('CIV', '1')
+    assert first['found'] is True
+    assert stored['rows'] == [{'citation': 'CIV 1'}]
+    refused = pin_section('CIV', '1')
+    assert refused['reason'] == 'output_exists'
+    assert refused['found'] is False
+    write_pin_section('CIV', '1', overwrite=True)
+    assert stored['rows'] == [{'citation': 'CIV 1'}]
+
+
+def test_capabilities_list_the_registered_tools():
+    from capabilities import FEATURES, TOOLS, capabilities
+    from mcp_server import mcp, server_status
+    assert 'confirm=true' in mcp.instructions
+    assert 'overwrite=true' in mcp.instructions
+    caps = capabilities()
+    assert caps['name'] == 'lawlibrary'
+    assert caps['version']
+    assert caps['tool_count'] == len(TOOLS)
+    assert caps['tools'] == list(TOOLS)
+    assert set(mcp._tool_manager._tools) == set(TOOLS)
+    for flag in ('confirm_gate', 'write_overwrite_guard', 'search', 'reader'):
+        assert flag in FEATURES
+        assert flag in caps['features']
+    status = server_status()
+    assert status['found'] is True
+    assert status['capabilities']['tools'] == list(TOOLS)
+    assert server_status(['nope'])['reason'] == 'unknown_section'
+
+
+def test_search_law_is_the_tool_and_the_old_helper_name_still_answers():
+    from mcp_server import mcp, named_codes
+    assert 'search_law' in mcp._tool_manager._tools
+    assert '_named_codes' in mcp._tool_manager._tools
+    assert named_codes('CIV, RTC') == {'codes': ['CIV', 'RTC'], 'same': False}
+    assert named_codes('same')['same'] is True

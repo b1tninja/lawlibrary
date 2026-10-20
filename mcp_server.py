@@ -13,6 +13,7 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from agency import agencies
+from capabilities import INSTRUCTIONS
 from analysis import analyze, pin, pins
 from court import courts
 from entities import list_corpora as corpora_on_disk, list_entities
@@ -23,7 +24,7 @@ from indexer import Indexer
 import query as law_query
 import sample as law_sample
 
-mcp = FastMCP('lawlibrary')
+mcp = FastMCP('lawlibrary', instructions=INSTRUCTIONS)
 
 
 def _indexer():
@@ -95,7 +96,6 @@ def list_sessions() -> list:
     return _indexer().sessions()
 
 
-@mcp.tool()
 def _named_codes(text):
     """``same`` or a comma-separated list of code tokens. Empty is every book."""
     raw = (text or '').strip()
@@ -106,6 +106,19 @@ def _named_codes(text):
     return [part.strip() for part in raw.split(',') if part.strip()], False
 
 
+@mcp.tool(name='_named_codes')
+def named_codes(text: str = '') -> dict:
+    """Compatibility name. Pass codes= to search_law.
+
+    The decorator used to sit on this helper, so the helper was the tool and
+    search_law was not. The helper still parses a code list. This tool returns
+    that parse. same is true when the text is ``same``.
+    """
+    codes, same = _named_codes(text)
+    return {'codes': codes, 'same': same}
+
+
+@mcp.tool()
 def search_law(query: str, limit: int = 10, session: str = '',
                country: str = '', subdivision: str = '', codes: str = '') -> list:
     """Full-text search of codified law.
@@ -493,22 +506,43 @@ def list_pins(citation: str = '', model: str = '', fact: str = '') -> list:
     )
 
 
-@mcp.tool()
-def pin_section(code: str, section: str) -> dict:
-    """Read one indexed section, analyze it, and store jurisdiction and delegation pins.
-
-    A miss from get_section is returned unchanged and nothing is written.
-    """
+def _pin_section(code, section, overwrite):
+    """Store pins for one section. A citation that already has pins needs overwrite."""
     doc = law_query.section(code, section)
     if not doc.get('found'):
         return doc
+    citation = doc.get('citation')
+    existing = pins(citation=citation)
+    if existing and not overwrite:
+        return {
+            'found': False,
+            'reason': 'output_exists',
+            'citation': citation,
+            'hint': 'Pass overwrite=true to replace the stored pins.',
+        }
     reading = analyze(doc.get('text') or '')
-    pin(reading, doc.get('citation'))
+    pin(reading, citation)
     return {
         'found': True,
-        'citation': doc.get('citation'),
-        'pins': pins(citation=doc.get('citation')),
+        'citation': citation,
+        'pins': pins(citation=citation),
     }
+
+
+@mcp.tool()
+def write_pin_section(code: str, section: str, overwrite: bool = False) -> dict:
+    """Read one indexed section, analyze it, and store jurisdiction and delegation pins.
+
+    A miss from get_section is returned unchanged and nothing is written.
+    Pins already stored for that citation are left in place unless overwrite=true.
+    """
+    return _pin_section(code, section, overwrite)
+
+
+@mcp.tool()
+def pin_section(code: str, section: str, overwrite: bool = False) -> dict:
+    """Compatibility name for write_pin_section. overwrite=true replaces stored pins."""
+    return write_pin_section(code, section, overwrite)
 
 
 @mcp.tool()
@@ -852,15 +886,69 @@ def _serve_reader(action, port):
     return {'found': False, 'reason': 'stopped', 'running': False, 'port': number, 'pid': _reader_proc.pid}
 
 
+def _reader_plan(action, port):
+    """The plan for a start or a stop. status is a read and has no plan."""
+    chosen = (action or 'status').strip().lower()
+    if chosen not in ('start', 'stop'):
+        return None
+    if chosen == 'start':
+        step = 'Start the reader on 127.0.0.1:%s and write reader.pid.' % port
+    else:
+        step = 'Stop the reader this tool recorded on port %s.' % port
+    return {
+        'found': True,
+        'confirm': False,
+        'action': chosen,
+        'port': port,
+        'plan': step + ' Repeat with confirm=true.',
+    }
+
+
 @mcp.tool()
-def serve_reader(action: str = 'status', port: int = 8765) -> dict:
+def send_reader(action: str = 'status', port: int = 8765, confirm: bool = False) -> dict:
     """Start, stop, or report the development reader.
 
     action: start, stop, or status. The process binds 127.0.0.1 only.
+    start and stop return a plan until confirm=true. status is a read.
     url is the /view page. A start that finds the port open leaves that process running.
     A stop ends only the process this tool recorded. An open port with no record stays up.
     """
-    return _serve_reader(action, port)
+    try:
+        number = int(port)
+    except (TypeError, ValueError):
+        return {'found': False, 'reason': 'port', 'running': False}
+    if number < 1 or number > 65535:
+        return {'found': False, 'reason': 'port', 'running': False}
+    if not confirm:
+        plan = _reader_plan(action, number)
+        if plan is not None:
+            return plan
+    return _serve_reader(action, number)
+
+
+@mcp.tool()
+def serve_reader(action: str = 'status', port: int = 8765, confirm: bool = False) -> dict:
+    """Compatibility name for send_reader. start and stop need confirm=true."""
+    return send_reader(action, port, confirm)
+
+
+@mcp.tool()
+def server_status(sections: list | None = None) -> dict:
+    """Version, feature flags, and every tool name.
+
+    sections: capabilities, or empty for that same report.
+    Call this when a tool seems to be missing. If the list is stale, restart the server.
+    """
+    from capabilities import capabilities
+    chosen = list(sections) if sections else ['capabilities']
+    bad = [name for name in chosen if name != 'capabilities']
+    if bad:
+        return {
+            'found': False,
+            'reason': 'unknown_section',
+            'hint': 'Valid sections: capabilities.',
+        }
+    return {'found': True, 'capabilities': capabilities()}
 
 
 def main():
