@@ -94,6 +94,15 @@ def test_words_before_section_are_not_a_code():
     assert all('PERIOD' not in (point.code or '') for point in points)
 
 
+def test_a_hyphen_between_section_words_is_a_range():
+    point = find_citations('Sections 1119-1124 of the Civil Code')[0]
+    assert point.cite is Cite.RANGE
+    assert point.numbers == ('1119', '1124')
+    single = find_citations('Civ. Code § 10050-10080')[0]
+    assert single.cite is Cite.SECTION
+    assert single.numbers == ('10050',)
+
+
 def test_spelled_section_is_the_same_frame():
     point = next(point for point in find_citations(PROSE) if '5806' in point.numbers)
     assert point.cite is Cite.SECTION
