@@ -115,7 +115,7 @@ _ONE = re.compile(
     r'|(?:IX|VIII|VII|VI|IV|III|II|V|I)\.'
 )
 _OF_THE = re.compile(
-    r'(?i)Sections?\s+(?P<body>\d+(?:\.\d+)*(?:\([A-Za-z0-9]+\))*(?:\s*(?:;\s*(?:and/or|and|or)|;|,\s*(?:and/or|and|or)|,|and/or|and|or|to|through)\s*\d+(?:\.\d+)*)*)'
+    r'(?i)Sections?\s+(?P<body>\d+(?:\.\d+)*(?:\([A-Za-z0-9]+\))*(?:\s*(?:;\s*(?:and/or|and|or)|;|,\s*(?:and/or|and|or)|,|and/or|and|or|to|through|[-–—])\s*\d+(?:\.\d+)*)*)'
     r'\s*(?:of\s+the\s+|,\s+)'
 )
 _TITLES = tuple(sorted(Code, key=lambda code: len(code.title), reverse=True))
@@ -147,12 +147,12 @@ _CREDIT = re.compile(
     r'(?:,\s+Sec\.?\s+(?P<act>\d+(?:\.\d+)*))?'
 )
 _ARTICLE = re.compile(
-    r'(?i)Sections?\s+(?P<body>\d+(?:\.\d+)*(?:\s*(?:;|,|and|or|to)\s*\d+(?:\.\d+)*)*)'
+    r'(?i)Sections?\s+(?P<body>\d+(?:\.\d+)*(?:\s*(?:;|,|and|or|to|through|[-–—])\s*\d+(?:\.\d+)*)*)'
     r'\s+of\s+Article\s+(?P<roman>[IVXLCDM]+)'
     r'(?:\s*(?P<suffix>[A-D])(?![A-Za-z]))?'
 )
 _BARE = re.compile(
-    r'(?i)\bSections?\s+(?P<body>\d+(?:\.\d+)*(?:\s*(?:;\s*(?:and/or|and|or)|;|,\s*(?:and/or|and|or)|,|and/or|and|or)\s*\d+(?:\.\d+)*)*)'
+    r'(?i)\bSections?\s+(?P<body>\d+(?:\.\d+)*(?:\s*(?:;\s*(?:and/or|and|or)|;|,\s*(?:and/or|and|or)|,|and/or|and|or|to|through|[-–—])\s*\d+(?:\.\d+)*)*)'
     r'(?!\s+of\s+the\b)'
 )
 _THIS = pattern(internal=True, prefix=r'\bthis ', suffix=r'\b')
@@ -168,6 +168,19 @@ def _mark_unit(label):
     if rank is Rank.CAPITAL:
         return 'subparagraph'
     return 'subdivision'
+
+
+def _is_range(body):
+    """A span of two numbers, not a series.
+
+    ``to``, ``through``, and a hyphen are the same span. A comma, a semicolon,
+    ``and``, or ``or`` is a series, and the hyphen inside one does not swallow it.
+    """
+    if not body or ',' in body or ';' in body:
+        return False
+    if re.search(r'(?i)\band\b|\bor\b', body):
+        return False
+    return re.search(r'[-–—]|\b(?:to|through)\b', body) is not None
 
 
 def _section_marks(body):
@@ -305,7 +318,7 @@ def find_links(text, here=None):
     named = _named_statutes(text or '')
     for _start, _end, body, code, phrase in named:
         marks = list(_section_marks(body))
-        if len(marks) >= 2 and re.search(r'(?i)\b(?:to|through)\b', body):
+        if len(marks) >= 2 and _is_range(body):
             found.append(Link('statute', phrase, code, marks[0][0], end=marks[-1][0]))
         elif len(marks) >= 2:
             found.append(Link(
@@ -343,8 +356,13 @@ def find_links(text, here=None):
         if any(match.start() >= begin and match.end() <= end for begin, end in commencing):
             continue
         if book:
-            for number in re.findall(r'\d+(?:\.\d+)*', match.group('body')):
-                found.append(Link('statute', match.group(0), book, number))
+            body = match.group('body')
+            numbers = re.findall(r'\d+(?:\.\d+)*', body)
+            if len(numbers) >= 2 and _is_range(body):
+                found.append(Link('statute', match.group(0), book, numbers[0], end=numbers[-1]))
+            else:
+                for number in numbers:
+                    found.append(Link('statute', match.group(0), book, number))
     for match in _COMMENCING.finditer(text or ''):
         found.append(Link('range', match.group(0), book, match.group('num')))
     for match in _NEST.finditer(text or ''):

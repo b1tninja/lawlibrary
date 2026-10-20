@@ -6,6 +6,8 @@ the set of every document the constraint matches before it looks at the
 query. Both answers must be the answers ``open_dir`` and ``filter=`` gave.
 """
 
+import os
+
 from whoosh import index
 from whoosh.query import And, Term
 
@@ -63,6 +65,52 @@ def test_within_is_the_filter_without_the_walk(tmp_path):
             plain = searcher.search(Term('LEGAL_TEXT', 'impos'), limit=limit, filter=constraint)
             assert [(hit['LAW_CODE'], hit.score) for hit in ranked] == [(hit['LAW_CODE'], hit.score) for hit in plain]
             assert ranked and all(hit['SESSION'] == '2025' for hit in ranked)
+
+
+def test_all_sessions_return_the_newest_and_a_labeled_number_still_opens(tmp_path, monkeypatch):
+    """``session='all'`` is the newest text. ``[SEC. 20.]`` opens as section 20."""
+    import sqlite3
+
+    import query
+    idxer = Indexer(tmp_path / 'idx')
+    laws = []
+    for year, words in (('2011', 'The former duty.'), ('2025', 'The current duty.')):
+        laws.append({
+            'PK': '%s:civ2' % year,
+            'LAW_CODE': 'CIV', 'SECTION_NUM': '2',
+            'CODE_HEADING': 'Civil Code - CIV',
+            'LEGAL_TEXT': words, 'ACTIVE_FLG': True,
+            'SESSION': year, 'SUBDIVISION': 'US-CA',
+        })
+    laws.append({
+        'PK': '2025:cons20',
+        'LAW_CODE': 'CONS', 'SECTION_NUM': '[SEC. 20.]',
+        'CODE_HEADING': 'Constitution - CONS',
+        'LEGAL_TEXT': 'The judicial power of the state.',
+        'ACTIVE_FLG': True, 'SESSION': '2025', 'SUBDIVISION': 'US-CA',
+    })
+    # Different outgoing cites, so each session's edge can be told apart.
+    laws[0]['LEGAL_TEXT'] = 'See Section 9 of the Civil Code. The former duty.'
+    laws[1]['LEGAL_TEXT'] = 'See Section 10 of the Civil Code. The current duty.'
+    idxer.index_pubinfo_laws(str(tmp_path / 'pub.zip'), laws)
+    monkeypatch.setattr(query, '_indexer', lambda: idxer)
+    opened = query.section('CIV', '2', session='all')
+    assert opened['found'] is True
+    assert opened['session'] == '2025'
+    assert 'current duty' in opened['text']
+    labeled = query.section('CONS', '20')
+    assert labeled['found'] is True
+    assert labeled['section'] == '[SEC. 20.]'
+    assert 'judicial power' in labeled['text']
+    direct = idxer.get_section('CONS', '20')
+    assert direct and direct[0]['section'] == '[SEC. 20.]'
+    db = sqlite3.connect(os.path.join(idxer._home(), 'needles.sqlite'))
+    receivers = {
+        row[0] for row in db.execute(
+            "SELECT receiver FROM edge WHERE citation = 'CIV 2' AND kind = 'citation'",
+        )
+    }
+    assert receivers == {'CIV 9', 'CIV 10'}
 
 
 def test_the_lookup_and_the_search_still_find_the_section(tmp_path):

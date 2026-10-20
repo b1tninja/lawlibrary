@@ -36,6 +36,7 @@ def _plain_section(fields):
         'LAW_CODE': fields.get('LAW_CODE') or '',
         'LEGAL_TEXT': fields.get('LEGAL_TEXT') or '',
         'SECTION_HISTORY': fields.get('SECTION_HISTORY') or fields.get('HISTORY') or '',
+        'SESSION': fields.get('SESSION') or '',
         'SHELF': fields.get('SHELF'),
     }
 
@@ -504,16 +505,22 @@ class Indexer:
 
     def get_section(self, code, section, active_only=True, session=None,
                     country=None, subdivision=None):
+        from query import number_query
         code = self._resolve_code(code)
         section = str(section).rstrip('.')
         idx = open_index(self.idx_path)
-        query = And([Term('LAW_CODE', code), Term('SECTION_NUM', section)])
+        query = And([Term('LAW_CODE', code), number_query(section)])
         with idx.searcher() as searcher:
             results = searcher.search(
                 within(query, self._filter(active_only, session, country=country, subdivision=subdivision)),
-                limit=20,
+                limit=None,
             )
-            return [self._section(hit) for hit in results]
+            hits = [self._section(hit) for hit in results]
+            hits.sort(key=lambda row: (
+                str(row.get('section') or '').rstrip('.') == section,
+                str(row.get('session') or ''),
+            ), reverse=True)
+            return hits
 
     def list_codes(self):
         codes = self._read_codes()
@@ -608,6 +615,10 @@ class Indexer:
         # read every row of a seven-million-row table.
         db.execute('CREATE INDEX IF NOT EXISTS needle_form_code ON needle (form, code)')
         db.execute('CREATE INDEX IF NOT EXISTS annotation_text ON annotation (text, note, code)')
+        for table in ('needle', 'edge', 'annotation'):
+            columns = [row[1] for row in db.execute('PRAGMA table_info(%s)' % table)]
+            if 'session' not in columns:
+                db.execute('ALTER TABLE %s ADD COLUMN session TEXT' % table)
         _NEEDLE_READY.add(path)
         return db
 
@@ -628,7 +639,7 @@ class Indexer:
             if ('table', table) not in have or ('index', index) not in have:
                 return False
             columns = [row[1] for row in db.execute('PRAGMA table_info(%s)' % table)]
-            if column not in columns:
+            if column not in columns or 'session' not in columns:
                 return False
         return True
 
@@ -639,13 +650,22 @@ class Indexer:
         without it they are made here.
         """
         citation = doc.get('CITATION') or ''
+        session = str(doc.get('SESSION') or '')
         if replace:
-            db.execute('DELETE FROM needle WHERE citation = ?', (citation,))
-            db.execute('DELETE FROM edge WHERE citation = ?', (citation,))
-            db.execute('DELETE FROM annotation WHERE citation = ?', (citation,))
-        self._write_needle_rows(db, [packed if packed is not None else _needle_rows(doc, shelf)])
+            # A flat index holds several sessions under one citation. The
+            # delete is this session's rows. Another year's rows stay.
+            # Rows written before ``session`` existed are this citation's
+            # only copy, so they go with the replace.
+            for table in ('needle', 'edge', 'annotation'):
+                db.execute(
+                    'DELETE FROM %s WHERE citation = ? AND (session = ? OR session IS NULL)' % table,
+                    (citation, session),
+                )
+        self._write_needle_rows(
+            db, [packed if packed is not None else _needle_rows(doc, shelf)], session,
+        )
 
-    def _write_terms(self, db, packed):
+    def _write_terms(self, db, packed, session):
         """Insert needle and edge rows. This connection does not parse."""
         needles, edges = [], []
         for part in packed:
@@ -653,16 +673,18 @@ class Indexer:
             edges.extend(part[1])
         if needles:
             db.executemany(
-                'INSERT INTO needle (citation, code, class, form, start, end) VALUES (?, ?, ?, ?, ?, ?)',
-                needles,
+                'INSERT INTO needle (citation, code, class, form, start, end, session) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?)',
+                [row + (session,) for row in needles],
             )
         if edges:
             db.executemany(
-                'INSERT INTO edge (citation, code, kind, prior, receiver) VALUES (?, ?, ?, ?, ?)',
-                edges,
+                'INSERT INTO edge (citation, code, kind, prior, receiver, session) '
+                'VALUES (?, ?, ?, ?, ?, ?)',
+                [row + (session,) for row in edges],
             )
 
-    def _write_annotations(self, db, packed):
+    def _write_annotations(self, db, packed, session):
         """Insert annotation rows. This connection does not parse."""
         notes = []
         for part in packed:
@@ -670,15 +692,15 @@ class Indexer:
         if notes:
             db.executemany(
                 'INSERT INTO annotation '
-                '(citation, code, note, text, target, start, end, cite, join_kind) '
-                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                notes,
+                '(citation, code, note, text, target, start, end, cite, join_kind, session) '
+                'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [row + (session,) for row in notes],
             )
 
-    def _write_needle_rows(self, db, packed):
+    def _write_needle_rows(self, db, packed, session=''):
         """Insert rows on this connection. Callers do not share the connection."""
-        self._write_terms(db, [(part[0], part[1]) for part in packed])
-        self._write_annotations(db, [part[2] for part in packed])
+        self._write_terms(db, [(part[0], part[1]) for part in packed], session)
+        self._write_annotations(db, [part[2] for part in packed], session)
 
     def index_stored_needles(self, workers=1):
         """Record needles for sections already in the index. The text index is left as it is.
@@ -737,8 +759,15 @@ class Indexer:
         else:
             terms = pool.map(_term_rows, batch)
             notes = pool.map(_annotation_rows, batch)
-        self._write_terms(db, terms)
-        self._write_annotations(db, notes)
+        by_session = {}
+        for doc, term, note in zip(batch, terms, notes):
+            session = str(doc.get('SESSION') or '')
+            term_rows, note_rows = by_session.setdefault(session, ([], []))
+            term_rows.append(term)
+            note_rows.append(note)
+        for session, (term_rows, note_rows) in by_session.items():
+            self._write_terms(db, term_rows, session)
+            self._write_annotations(db, note_rows, session)
         return len(batch)
 
     def annotations(self, note=None, code=None, target=None, limit=24):

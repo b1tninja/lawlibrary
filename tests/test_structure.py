@@ -274,6 +274,23 @@ def test_a_roman_heading_is_its_own_rank():
     assert root.children[0].children[0].label == '(a)'
 
 
+def test_a_hyphen_is_the_same_span_as_to():
+    """A dash between section numbers is one range. A series stays a series."""
+    ranged = find_links('Sections 1119-1124 of the Civil Code')
+    assert ranged[0].citation().reference() == 'Civil Code sections 1119 to 1124'
+    spanned = find_links('Sections 2953.1 through 2953.4 of the Civil Code')
+    assert spanned[0].citation().reference() == 'Civil Code sections 2953.1 to 2953.4'
+    en = find_links('Sections 1119\u20131124 of the Civil Code')
+    assert en[0].end == '1124'
+    bare = find_links('Section 1119-1124', here=Code.CIVIL)
+    assert bare[0].citation().reference() == 'Civil Code sections 1119 to 1124'
+    article = find_links('Sections 8-9 of Article II')
+    assert sorted(link.section for link in article) == ['8', '9']
+    assert all(link.code is Code.CONSTITUTION for link in article)
+    series = find_links('Section 51; 54; or 55.', here=Code.CIVIL)
+    assert [link.section for link in series if link.kind == 'statute'] == ['51', '54', '55']
+
+
 def test_spans_nests_articles_and_this_chapter_rebuild_the_chain():
     """Lookup locators only. The printed form and the link are the same citation."""
     from us.ca.apa import parse
