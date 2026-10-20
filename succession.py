@@ -33,7 +33,6 @@ import os
 import re
 import shutil
 import subprocess
-import urllib.request
 import zipfile
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -368,11 +367,9 @@ def fetch(reports=None, *, force=False, opener=None):
 
 
 def _open_url(url):
-    if not re.match(r'^https?://(?:www\.)?clrc\.ca\.gov/', url):
-        raise OSError('not an official source: %s' % url)
-    request = urllib.request.Request(url, headers={'User-Agent': 'lawlibrary'})
-    with urllib.request.urlopen(request, timeout=120) as response:
-        return response.read()
+    """The Commission's own site. A redirect to any other host is refused."""
+    from utils import read_url
+    return read_url(url, ('clrc.ca.gov', 'www.clrc.ca.gov'))
 
 
 def _pdftotext():

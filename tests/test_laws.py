@@ -230,3 +230,66 @@ def test_index_search_and_citation(tmp_path):
     full = indexer.get_section('Civil Code', '1940')
     assert 'landlord' in full[0]['text'].lower()
     assert indexer.list_codes() == [{'code': 'CIV', 'title': 'Civil Code'}]
+
+
+def test_a_dat_byte_that_is_not_utf8_does_not_drop_the_edition(tmp_path):
+    path = tmp_path / 'pubinfo_2025.zip'
+    _pubinfo(path)
+    line = _row(['pk2', 'CIV', '1941.', '1872', '1', '1', None, 'ver2', '1.', None, None, '2.', '3.',
+                 'Enacted X 1872.', 'LAW_SECTION_TBL_pk2.lob', 'Y', 'u', '2020-01-01 00:00:00'])
+    broken = line.encode('utf-8').replace(b'X', b'\xff')
+    with zipfile.ZipFile(path) as zf:
+        names = {info.filename: zf.read(info.filename) for info in zf.infolist()}
+    names['LAW_SECTION_TBL.dat'] = names['LAW_SECTION_TBL.dat'].rstrip(b'\n') + b'\n' + broken + b'\n'
+    names['LAW_SECTION_TBL_pk2.lob'] = b'<p>The tenant shall keep the dwelling.</p>'
+    with zipfile.ZipFile(path, 'w') as zf:
+        for name, payload in names.items():
+            zf.writestr(name, payload)
+    numbers = sorted(law['SECTION_NUM'] for law in iter_laws(path))
+    assert numbers == ['1940', '1941']
+
+
+def test_a_toc_row_that_will_not_parse_does_not_drop_the_edition(tmp_path):
+    path = tmp_path / 'pubinfo_2025.zip'
+    _pubinfo(path)
+    bad = _row(['CIV', '1.', None, None, None, None, 'Not a node', 'Y', 'u',
+                '2020-01-01 00:00:00', '9', '1', '1', 'nope', 'N', None, None, None, None])
+    with zipfile.ZipFile(path) as zf:
+        names = {info.filename: zf.read(info.filename) for info in zf.infolist()}
+    names['LAW_TOC_TBL.dat'] = names['LAW_TOC_TBL.dat'].rstrip(b'\n') + b'\n' + bad.encode('utf-8') + b'\n'
+    with zipfile.ZipFile(path, 'w') as zf:
+        for name, payload in names.items():
+            zf.writestr(name, payload)
+    law = next(iter_laws(path))
+    assert law['SECTION_NUM'] == '1940'
+    assert law['DIVISION_HEADING'] == 'Division 1. Persons'
+
+
+def test_a_section_does_not_take_another_versions_heading(tmp_path):
+    path = tmp_path / 'pubinfo_2025.zip'
+    toc = [
+        _row(['CIV', '1.', None, None, None, None, 'Division 1. Persons', 'Y', 'u',
+              '2020-01-01 00:00:00', '1', '1', '1', '1', 'N', None, None, None, None]),
+    ]
+    sections = [
+        _row(['1', 'CIV', '1', '1940', '1', 'Former duty', None, None, None, 'u',
+              '2020-01-01 00:00:00', 'ver-old', '1']),
+    ]
+    law = [
+        _row(['pk-old', 'CIV', '1940.', '1872', '1', '1', None, 'ver-old', '1.', None, None, None, None,
+              'Enacted 1872.', 'old.lob', 'N', 'u', '2010-01-01 00:00:00']),
+        _row(['pk-new', 'CIV', '1940.', '1872', '1', '1', None, 'ver-new', '1.', None, None, None, None,
+              'Amended 2020.', 'new.lob', 'Y', 'u', '2020-01-01 00:00:00']),
+    ]
+    codes = [_row(['CIV', 'Civil Code'])]
+    with zipfile.ZipFile(path, 'w') as zf:
+        zf.writestr('CODES_TBL.dat', '\n'.join(codes) + '\n')
+        zf.writestr('LAW_TOC_TBL.dat', '\n'.join(toc) + '\n')
+        zf.writestr('LAW_TOC_SECTIONS_TBL.dat', '\n'.join(sections) + '\n')
+        zf.writestr('LAW_SECTION_TBL.dat', '\n'.join(law) + '\n')
+        zf.writestr('old.lob', '<p>The former duty.</p>')
+        zf.writestr('new.lob', '<p>The current duty.</p>')
+    by_text = {law['LEGAL_TEXT'].strip(): law for law in iter_laws(path)}
+    assert by_text['The former duty.']['SECTION_TITLE'] == 'Former duty'
+    assert by_text['The current duty.']['SECTION_TITLE'] == ''
+    assert by_text['The current duty.']['DIVISION_HEADING'] == ''

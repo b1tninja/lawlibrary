@@ -19,7 +19,6 @@ import datetime
 import enum
 import os
 import sqlite3
-import urllib.request
 from typing import NamedTuple
 
 from corpus import title24_corpus_path
@@ -132,16 +131,42 @@ def source_dir(root=None):
     return os.path.join(str(data_dir()), 'title24')
 
 
+def _edition_text(path):
+    """Whether ``path`` holds OCR text rather than an HTML error page."""
+    try:
+        if os.path.getsize(path) == 0:
+            return False
+        with open(path, 'rb') as fh:
+            head = fh.read(128).lstrip().lower()
+    except OSError:
+        return False
+    return not head.startswith((b'<!doctype', b'<html', b'<head'))
+
+
 def fetch(chosen, dest=None):
-    """Save one edition's OCR text from the Internet Archive; return its path."""
+    """Save one edition's OCR text from the Internet Archive; return its path.
+
+    An empty file or an HTML error page is not the edition, so it is retrieved
+    again. A redirect off archive.org is refused.
+    """
+    from utils import read_url
     folder = source_dir(dest)
     os.makedirs(folder, exist_ok=True)
     path = os.path.join(folder, chosen.filename)
-    if not os.path.isfile(path):
-        request = urllib.request.Request(chosen.text_url, headers={'User-Agent': 'lawlibrary'})
-        with urllib.request.urlopen(request) as response, open(path + '.part', 'wb') as out:
-            out.write(response.read())
-        os.replace(path + '.part', path)
+    if os.path.isfile(path) and _edition_text(path):
+        return path
+    body = read_url(chosen.text_url, 'archive.org')
+    if body.lstrip()[:16].lower().startswith((b'<!doctype', b'<html', b'<head')) or not body.strip():
+        raise OSError('not the edition text: %s' % chosen.text_url)
+    partial = path + '.part'
+    try:
+        with open(partial, 'wb') as out:
+            out.write(body)
+        os.replace(partial, path)
+    except Exception:
+        if os.path.isfile(partial):
+            os.remove(partial)
+        raise
     return path
 
 

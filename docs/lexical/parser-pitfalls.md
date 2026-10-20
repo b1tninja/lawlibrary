@@ -33,6 +33,7 @@ The section number stays the printed text. The book is a `Code` member.
 | Water Code section 12872 | `unlinked` | "subdivision (b)(1) of Section 12867" dropped `(1)`. "paragraph (1) of subdivision (b)" became two subdivisions. | A stack is one chain. `(a) and (b)` stays two siblings. |
 | Probate Code section 16461 | `unresolved` | "YEAR PERIOD PROVIDED IN SECTION 16460" took the capital words in front of Section as the book. | A code prefix includes the word Code. Other words stay outside the citation. |
 | Code of Civil Procedure section 1161 | `short_title` | "Section 1946 of the Civil Code" was recorded, then the words after that title were read as a longer book name. | A known title ends the book. Later words are not a longer title unless a longer known title actually continues. |
+| Civil Code sections 1119-1124 | `unlinked` | "Sections 1119-1124 of the Civil Code" matched nothing. A hyphen was not a span separator, so the range was dropped, and "Section 1119-1124" in the open book kept only 1119. | A hyphen, an en dash, and an em dash are the same span as `to`. A comma or `and` stays a series. |
 
 ## Open
 

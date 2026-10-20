@@ -198,6 +198,36 @@ def section_forms(number):
     return list(dict.fromkeys(form for form in forms if form))
 
 
+def number_query(number):
+    """A term for every stored spelling of this section number."""
+    forms = section_forms(str(number).rstrip('.'))
+    terms = [Term('SECTION_NUM', form) for form in forms]
+    if len(terms) == 1:
+        return terms[0]
+    return Or(terms)
+
+
+def _choose_doc(results, number):
+    """The exact stored number, then the newest session.
+
+    ``session='all'`` matches every edition. Whoosh does not order those
+    hits by year, so the newest text is chosen here. A labeled key such as
+    ``[SEC. 20.]`` loses to the spelling the caller asked for when both are
+    present.
+    """
+    rows = [dict(hit) for hit in results]
+    if not rows:
+        return None
+    wanted = str(number).rstrip('.')
+
+    def rank(doc):
+        stored = str(doc.get('SECTION_NUM') or '').rstrip('.')
+        return (stored == wanted, str(doc.get('SESSION') or ''))
+
+    rows.sort(key=rank, reverse=True)
+    return rows[0]
+
+
 def section_key(number):
     """Sort key so 5375.5 sits between 5375 and 5376."""
     text = str(number or '').strip()
@@ -489,15 +519,13 @@ def _ordinance_miss(expression):
 def _get_section_doc(idxer, code, number, session=None, country=None, subdivision=None):
     section_num = str(number).rstrip('.')
     idx = open_index(idxer.idx_path)
-    query = And([Term('LAW_CODE', code), Term('SECTION_NUM', section_num)])
+    query = And([Term('LAW_CODE', code), number_query(section_num)])
     with idx.searcher() as searcher:
         results = searcher.search(
             within(query, idxer._filter(True, session, country=country, subdivision=subdivision)),
-            limit=20,
+            limit=None,
         )
-        if not results:
-            return None
-        return dict(results[0])
+        return _choose_doc(results, section_num)
 
 
 def _indexed_in(idxer, code, number, *, exclude, country=None, subdivision=None):
@@ -510,7 +538,7 @@ def _indexed_in(idxer, code, number, *, exclude, country=None, subdivision=None)
         return []
     section_num = str(number).rstrip('.')
     idx = open_index(idxer.idx_path)
-    query = And([Term('LAW_CODE', code), Term('SECTION_NUM', section_num)])
+    query = And([Term('LAW_CODE', code), number_query(section_num)])
     with idx.searcher() as searcher:
         results = searcher.search(
             within(query, idxer._filter(True, 'all', country=country, subdivision=subdivision)),

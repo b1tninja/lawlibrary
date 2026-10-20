@@ -106,7 +106,7 @@ def read_text_from_zipped_file(zip_file, target):
 
 
 def read_lines_from_zipped_file(zip_file, target):
-    with io.TextIOWrapper(zip_file.open(target, 'r'), encoding=ENCODING) as text_file:
+    with io.TextIOWrapper(zip_file.open(target, 'r'), encoding=ENCODING, errors='replace') as text_file:
         for line in map(str.rstrip, iter(text_file.readline, '')):
             if not line:
                 continue
@@ -415,19 +415,26 @@ def section_overlay(CODE_HEADING, DIVISION_HEADING, TITLE_HEADING, PART_HEADING,
     return dict(**locals())
 
 
+def _placed(rows, reader):
+    """One parsed row, or none when the publisher's row will not parse."""
+    for record in rows:
+        try:
+            yield SimpleNamespace(**reader(record))
+        except (TypeError, ValueError):
+            logger.warning("Skipping a table-of-contents row that did not parse")
+
+
 def law_indexes(CODES_TBL, LAW_TOC_TBL, LAW_TOC_SECTIONS_TBL):
     CODES_TBL = dict(CODES_TBL)
     toc_by_path = dict()
-    for record in map(LawTocTblDict, LAW_TOC_TBL):
-        node = SimpleNamespace(**record)
+    for node in _placed(LAW_TOC_TBL, LawTocTblDict):
         toc_by_path[node.LAW_CODE, node.NODE_TREEPATH] = node
 
     by_version = dict()
     by_section = dict()
-    for node in map(LawTocSectionsTblDict, LAW_TOC_SECTIONS_TBL):
-        placed = SimpleNamespace(**node)
+    for placed in _placed(LAW_TOC_SECTIONS_TBL, LawTocSectionsTblDict):
         by_version[placed.LAW_CODE, placed.LAW_SECTION_VERSION_ID] = placed
-        by_section[placed.LAW_CODE, placed.SECTION_NUM] = placed
+        by_section.setdefault((placed.LAW_CODE, placed.SECTION_NUM), []).append(placed)
     return CODES_TBL, toc_by_path, by_version, by_section
 
 
@@ -444,10 +451,11 @@ def format_law_section(law_section, LOB, *, CODES_TBL, toc_by_path, by_version, 
     try:
         placed = by_version[LAW_CODE, LAW_SECTION_VERSION_ID]
     except KeyError:
-        try:
-            placed = by_section[LAW_CODE, rstrip_dot(SECTION_NUM)]
-        except KeyError:
-            placed = None
+        # Another version's heading is a different section. Leave the tree
+        # empty rather than file this text under that version's caption.
+        slots = by_section.get((LAW_CODE, rstrip_dot(SECTION_NUM))) or []
+        same = [slot for slot in slots if slot.LAW_SECTION_VERSION_ID == LAW_SECTION_VERSION_ID]
+        placed = same[0] if len(same) == 1 else None
 
     try:
         CODE_HEADING = CODES_TBL[LAW_CODE]
@@ -1002,18 +1010,52 @@ def list_pubinfo_years():
     return sorted({int(year) for year in re.findall(r'pubinfo_(\d{4})\.zip', page)})
 
 
+PUBINFO_HOST = 'downloads.leginfo.legislature.ca.gov'
+
+
+def _zip_opens(path):
+    """The central directory is intact. A truncated download fails this."""
+    if not os.path.isfile(path):
+        return False
+    try:
+        with zipfile.ZipFile(path) as zf:
+            zf.namelist()
+        return True
+    except (zipfile.BadZipFile, OSError):
+        return False
+
+
+def _zip_intact(path):
+    """Every member's CRC matches. Checked on a file just downloaded."""
+    try:
+        with zipfile.ZipFile(path) as zf:
+            return zf.testzip() is None
+    except (zipfile.BadZipFile, OSError):
+        return False
+
+
 def _fetch_pubinfo(year, path):
-    import urllib.request
+    from utils import save_url
 
     pubinfo = "pubinfo_%d.zip" % year
     dst = os.path.join(path, pubinfo)
-    if os.path.isfile(dst):
+    if _zip_opens(dst):
         logger.info("Already have %s", pubinfo)
         return dst
+    if os.path.isfile(dst):
+        logger.warning("%s is not a readable zip; retrieving it again", pubinfo)
+        os.remove(dst)
     partial = dst + '.partial'
     logger.info("Retrieving %s", pubinfo)
-    urllib.request.urlretrieve(PUBINFO_INDEX + pubinfo, partial)
-    os.replace(partial, dst)
+    try:
+        save_url(PUBINFO_INDEX + pubinfo, partial, PUBINFO_HOST)
+        if not _zip_intact(partial):
+            raise zipfile.BadZipFile(pubinfo)
+        os.replace(partial, dst)
+    except Exception:
+        if os.path.isfile(partial):
+            os.remove(partial)
+        raise
     logger.info("Retrieved %s", pubinfo)
     return dst
 
