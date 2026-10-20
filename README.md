@@ -22,7 +22,7 @@ pip install .
 
 ## Development
 
-An editable install points the environment at this checkout. Change a module and the next run sees it. Install again only when dependencies, the version, or the `lawlibrary-mcp` script change. The `dev` extra adds pytest.
+An editable install points the environment at this checkout. Change a module and the next run sees it. Install again only when dependencies, the version, or the `lawlibrary-mcp` script change. The `dev` extra adds pytest and the MCP server. The `mcp` extra is the server alone. A plain install does not include it.
 
 ```bash
 python -m venv .venv
@@ -44,7 +44,7 @@ python ca.py --history CIV 5855               # one section across the editions 
 python ca.py --changes CIV --act davis-stirling  # every change to 1350-1378 and 4000-6150, oldest first
 python ca.py --fetch-clrc                     # the Law Revision Commission's tables, into data/clrc
 python ca.py --successors CIV 1363 "(g)"      # where a former section went
-lawlibrary-mcp                   # list_codes, list_sessions, search_law, get_section
+lawlibrary-mcp                   # the mcp extra: list_codes, search_law, get_section
 ```
 
 Section history and the Davis-Stirling disposition tables are [docs/history.md](docs/history.md).
