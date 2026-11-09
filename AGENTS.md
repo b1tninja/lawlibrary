@@ -22,7 +22,7 @@ These guide an agent that adds a parser, a pin, or a lookup.
 
 ## Boundaries
 
-- Commercial hosts (Justia, FindLaw, Westlaw, Lexis, Fastcase, Municode, American Legal, General Code, Barclays) are never sources.
+- Commercial hosts (Justia, FindLaw, Westlaw, Lexis, Fastcase, Municode, American Legal, General Code, Barclays) are not sources. One exception: when a government's own code page sends the reader to a host as its code and keeps no edition itself, that edition is `adopted` on its `Codification` and may be read. The Sacramento City Code (American Legal) is the one such code. A host's bot challenge is never scripted past; its export is saved by hand in a browser.
 - Public.Resource.Org's Internet Archive scans of a code a government adopted as law may be read (the California Fire Code; see [docs/special/nfpa.md](docs/special/nfpa.md)). A standards body's own viewer (NFPA, ICC, IAPMO) is never read. An adopted standard is an `Adoption`; its words stay `standard_absent` until a lawful copy is opened.
 - Quote a sentence only when it was retrieved from the local index or from an official page that was opened.
 - Prefer plain text, then an XML-like file, then HTML, then PDF. A PDF of court rules stays a pointer until a text edition exists.
