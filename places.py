@@ -346,10 +346,6 @@ class Citation:
         """The Mermaid flowchart of this section and the statutes it cites."""
         return self.chart
 
-    def page(self):
-        """That flowchart as a Markdown page. Chat draws the mermaid fence."""
-        return self.md
-
     def tree(self):
         """The same walk as nested nodes. The visited set is built inside the walk."""
         return self._walk()
